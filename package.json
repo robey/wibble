@@ -1,0 +1,27 @@
+{
+  "name": "wibble",
+  "version": "1.0.0",
+  "description": "wibble",
+  "keywords": [ ],
+  "author": "Robey Pointer <robeypointer@gmail.com>",
+  "scripts": {
+    "test": "cake test"
+  },
+  "dependencies": {
+    "coffee-script": "*",
+    "packrattle": "*"
+  },
+  "devDependencies": {
+    "fibers": "*",
+    "glob": "*",
+    "mocha": "*",
+    "should": "*",
+    "sync": "*"
+  },
+  "main": "./lib/wibble",
+  "files": [
+    "Cakefile",
+    "lib",
+    "test"
+  ]
+}
