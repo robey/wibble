@@ -7,7 +7,7 @@ keywords = [ "then", "else", "match", "true", "false", "is" ]
 
 # expression:
 # - symbol
-# - number / value
+# - number (value)
 # - boolean
 # - unit
 # - opref
@@ -15,7 +15,10 @@ keywords = [ "then", "else", "match", "true", "false", "is" ]
 # call: (arg)
 # unary: (right)
 # binary: (left, right)
-# code: (params)
+# condition: (ifThen, ifElse)
+# code
+# local: (value)
+# params: (body) -- function
 
 parser.setWhitespace /([ ]+|\\\n)+/
 
@@ -59,14 +62,14 @@ structWithoutNames = parser.seq(
 ).onMatch (x) ->
   # quick AST optimization: "(expr)" is just a precedence-bumped expression.
   if x[0].length == 1 then return x[0][0]
-  { struct: x[0] }
+  { struct: x[0].map((x) -> { expression: x }) }
 
 struct = structWithNames.or(structWithoutNames)
 
 atom1 = boolean.or(-> xfunction).or(struct).or(-> block).or(symbol).or(number).or(unit).or(opref).or(symbolref).onFail("atom")
 
 unary = parser.seq(parser.string("-").drop(), atom1).onMatch (x) ->
-  { unary: "-", right: x[0] }
+  { unary: "negate", right: x[0] }
 
 atom = atom1.or(unary)
 
@@ -145,19 +148,4 @@ block = parser.seq(
   parser.drop("}")
 ).onMatch (x) ->
   { code: x[0] }
-
-
-#      try {
-#        val expr = parser.parseExpression(line)
-#        val rv = runtime.apply(expr, globals)
-#        out.print("\u2604 ")
-#        out.print("[")
-#        out.print(rv.`type`.toDebug)
-#        out.print("] ")
-#        out.print(rv.toDebug)
-#        out.print("\n\n")
-#      } catch {
-#        case e: ParseException => out.println(e)
-#        case e: Runtime.WException => out.println("\u2639\u2639\u2639 " + e.getMessage)
-#      }
 
