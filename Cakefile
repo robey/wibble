@@ -4,8 +4,11 @@ fibers = require 'fibers'
 fs = require 'fs'
 glob = require 'glob'
 mocha = require 'mocha'
+readline = require 'readline'
 sync = require 'sync'
 util = require 'util'
+
+wibble = require "./src/wibble"
 
 exec = (args...) ->
   command = args.shift()
@@ -35,9 +38,18 @@ synctask = (name, description, f) ->
   task name, description, -> (sync -> f())
 
 # gray, yellow, orange, red, purple, blue, cyan, green
-colors = [ "37", "33;1", "33", "31", "35", "34", "36", "32" ]
+colors = [ "37", "33;1", "33", "31", "35", "34;1", "36", "32" ]
 inColor = (colorIndex, s) -> "\u001b[" + colors[colorIndex] + "m" + s + "\u001b[0m"
+yellow = (s) -> inColor(1, s)
+orange = (s) -> inColor(2, s)
 red = (s) -> inColor(3, s)
+blue = (s) -> inColor(5, s)
+cyan = (s) -> inColor(6, s)
+
+pad = (message, len) ->
+  if message.length > len then return message.slice(0, len)
+  while message.length < len then message = message + " "
+  message
 
 ## -----
 
@@ -55,8 +67,10 @@ synctask "distclean", "erase everything that wasn't in git", ->
   run "rm -rf node_modules"
 
 synctask "run", "wut", ->
-  readline = require("readline")
-  parser = require("./src/wibble/parser")
+  parser = wibble.parser
+  runtime = new wibble.Runtime()
+  runtime.logger = (stage, message) ->
+    console.log blue(pad(stage, 5)) + " " + cyan(message)
   process.stdin.setEncoding('utf8')
   process.stdin.resume()
   buffer = ""
@@ -80,7 +94,16 @@ synctask "run", "wut", ->
       console.log (for i in [0 ... rv.state.xpos] then " ").join("") + red("^")
       console.log red("\u2639\u2639\u2639 ") + rv.message
     else
-      console.log util.inspect(rv.match, false, null)
+      expr = rv.match
+      runtime.log 'parse', yellow("\u2691") + " " + wibble.dumpExpr(expr)
+      expr = wibble.transform(expr)
+      runtime.log 'parse', orange("\u2691") + " " + wibble.dumpExpr(expr)
+      try
+        rv = runtime.xeval(expr)
+        console.log yellow("\u2604") + " [#{rv.type.toDebug()}] #{rv.toDebug()}"
+      catch e
+        console.log red("\u2639\u2639\u2639 ") + e.toString()
+        throw e
     buffer = ""
     r.setPrompt("\u2605> ", 3)
     r.prompt()
