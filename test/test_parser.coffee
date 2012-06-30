@@ -32,8 +32,8 @@ describe "Parser", ->
     it "struct", ->
       parse("(x, y)").should.eql(
         struct: [
-          { symbol: "x" }
-          { symbol: "y" }
+          { expression: { symbol: "x" } }
+          { expression: { symbol: "y" } }
         ]
       )
       parse("(x=3, y = 4)").should.eql(
@@ -71,8 +71,8 @@ describe "Parser", ->
           arg: { symbol: "add" }
         arg:
           struct: [
-            { number: "int", value: "4" }
-            { number: "int", value: "5" }
+            { expression: { number: "int", value: "4" } }
+            { expression: { number: "int", value: "5" } }
           ]
       )
 
@@ -130,7 +130,7 @@ describe "Parser", ->
           left: { symbol: "x" }
           right: { number: "int", value: "0" }
         ifThen:
-          unary: "-"
+          unary: "negate"
           right: { symbol: "x" }
         ifElse: { symbol: "x" }
       )
