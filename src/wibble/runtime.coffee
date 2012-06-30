@@ -132,6 +132,9 @@ IntType.on "/", (runtime, self, message) ->
 IntType.on "%", (runtime, self, message) ->
   new WFunction(null, IntType, (runtime, func, n) -> new WInt(self.value % n.value))
 
+IntType.on "negate", (runtime, self, message) ->
+  new WFunction(null, UnitType, (runtime, func, n) -> new WInt(-self.value))
+
 globalTypes =
   "Int": IntType
   "Unit": UnitType
