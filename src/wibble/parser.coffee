@@ -17,7 +17,8 @@ keywords = [ "then", "else", "match", "true", "false", "is" ]
 # condition: (ifThen, ifElse)
 # code
 # local: (value)
-# params: (body) -- function
+# func: (params)
+# method: (params, body)
 
 parser.setWhitespace /([ ]+|\\\n)+/
 
@@ -104,7 +105,7 @@ condition = parser.seq(
 expression = condition.or(comparison).onFail("Expected expression")
 exports.expression = expression
 
-#####
+##### inline functions
 
 LF = /(\s*\n)+/
 
@@ -119,9 +120,8 @@ parameterList = parameter.repeat(",")
 
 functionParameters = parser.seq(
   parser.drop("(")
-  parameterList
+  parameterList.optional([])
   parser.drop(")")
-  parser.drop("->")
 ).onMatch (x) -> x[0]
 
 local = parser.seq(
@@ -134,17 +134,33 @@ local = parser.seq(
 blockCode = local.or(expression).onFail("Expected local or expression")
 
 xfunction = parser.seq(
-  functionParameters.or(parser.string("->").onMatch((x) -> []))
+  functionParameters.optional([])
+  parser.drop("->")
   expression
 ).onMatch (x) ->
-  { params: x[0], body: x[1] }
+  { params: x[0], func: x[1] }
 
 block = parser.seq(
   parser.drop("{")
   parser.optional(LF).drop()
-  blockCode.repeat(/\n|;/).optional()
+  blockCode.repeat(/\n|;/).optional([])
   parser.optional(LF).drop()
   parser.drop("}")
 ).onMatch (x) ->
   { code: x[0] }
+
+##### def functions
+
+method = parser.seq(
+  parser.drop("def"),
+  symbol.or(opref).or(symbolref),
+  functionParameters,
+  parser.drop("="),
+  expression
+).skip("\n").onMatch (x) ->
+  { method: x[0], params: x[1], body: x[2] }
+
+
+# FIXME
+exports.method = method
 

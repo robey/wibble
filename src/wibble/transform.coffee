@@ -28,10 +28,10 @@ dumpExpr = (expr) ->
     return "{ " + (dumpExpr(e) for e in expr.code).join("; ") + " }"
   if expr.local?
     return "val " + expr.local + " = " + dumpExpr(expr.value)
-  if expr.params?
+  if expr.func?
     params = for p in expr.params
       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-    return "((" + params.join(", ") + ") -> " + dumpExpr(expr.body) + ")"
+    return "((" + params.join(", ") + ") -> " + dumpExpr(expr.func) + ")"
   "???"
 
 # traverse an expression, looking for objects where 'match(obj)' returns
@@ -57,17 +57,17 @@ dig = (expr, match, transform) ->
   else if expr.condition?
     cond = dig(expr.condition, match, transform)
     ifThen = dig(expr.ifThen, match, transform)
-    ifElse = if expr.ifElse? then dig(expr.ifElse, match, transform) else null
+    ifElse = if expr.ifElse? then dig(expr.ifElse, match, transform) else undefined
     { condition: cond, ifThen: ifThen, ifElse: ifElse }
   else if expr.code?
     { code: expr.code.map((x) -> dig(x, match, transform)) }
   else if expr.local?
     { local: expr.local, value: dig(expr.value, match, transform) }
-  else if expr.params?
+  else if expr.func?
     params = for p in expr.params
-      v = if p.value? then dig(p.value, match, transform) else null
+      v = if p.value? then dig(p.value, match, transform) else undefined
       { name: p.name, type: p.type, value: v }
-    { params: params, body: dig(expr.body, match, transform) }
+    { params: params, func: dig(expr.func, match, transform) }
   else
     expr
 

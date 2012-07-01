@@ -1,9 +1,10 @@
+inspect = require('util').inspect
 should = require 'should'
 
 parser = require('../src/wibble').parser
 
-describe "Parser", ->
-  describe "expressions", ->
+describe "Parse", ->
+  describe "an expression of", ->
     parse = (line) -> parser.expression.consume(line).match
 
     it "symbol", ->
@@ -144,13 +145,13 @@ describe "Parser", ->
         ifElse: { number: "int", value: "2" }
       )
 
-    it "anonymous function in block", ->
+    it "an anonymous function in block", ->
       parse("(x: Int, y: Int) -> { x * x + y * y }").should.eql(
         params: [
           { name: "x", type: "Int", value: undefined }
           { name: "y", type: "Int", value: undefined }
         ]
-        body:
+        func:
           code: [
             {
               binary: "+"
@@ -171,22 +172,22 @@ describe "Parser", ->
           { name: "x", type: "Int", value: { number: "int", value: "4" } }
           { name: "y", type: "Int", value: { number: "int", value: "5" } }
         ]
-        body:
+        func:
           code: [ { symbol: "x" } ]
       )
 
-    it "anonymous function in expression", ->
+    it "an anonymous function in an expression", ->
       parse("(x: Int) -> x * 2").should.eql(
         params: [
           { name: "x", type: "Int", value: undefined }
         ]
-        body:
+        func:
           binary: "*"
           left: { symbol: "x" }
           right: { number: "int", value: "2" }
       )
 
-    it "anonymous function that's immediately called", ->
+    it "an anonymous function that's immediately called", ->
       parse("{ 3 } ()").should.eql(
         call:
           code: [
@@ -197,7 +198,91 @@ describe "Parser", ->
       parse("(-> 3) ()").should.eql(
         call:
           params: []
-          body: { number: "int", value: "3" }
+          func: { number: "int", value: "3" }
         arg: { unit: true }
       )
 
+  describe "a method of", ->
+    parse = (line) -> parser.method.consume(line).match
+
+    it "empty", ->
+      parse("def nothing() = ()").should.eql(
+        method:
+          symbol: "nothing"
+        params: []
+        body:
+          { unit: true }
+      )
+
+    it "parameters", ->
+      parse("def absorb(x: Int, y: Int) = {}").should.eql(
+        method:
+          symbol: "absorb"
+        params: [
+          { name: "x", type: "Int", value: undefined }
+          { name: "y", type: "Int", value: undefined }
+        ]
+        body:
+          code: []
+      )
+
+    it "code", ->
+      parse("def square(x: Int) = { widget draw(); x ** 2 }").should.eql(
+        method:
+          symbol: "square"
+        params: [
+          { name: "x", type: "Int", value: undefined }
+        ]
+        body:
+          code: [
+            { 
+              call:
+                call: { symbol: "widget" }
+                arg: { symbol: "draw" }
+              arg: { unit: true }
+            }
+            { 
+              binary: "**"
+              left: { symbol: "x" }
+              right: { number: "int", value: "2" }
+            }
+          ]
+      )
+
+    it "one line", ->
+      parse("def pi() = 3").should.eql(
+        method: { symbol: "pi" }
+        params: []
+        body: { number: "int", value: "3" }
+      )
+
+    it "operator reference", ->
+      parse("def :+(_: Int) = _ + 1").should.eql(
+        method: { symbol: "+" }
+        params: [
+          { name: "_", type: "Int", value: undefined }
+        ]
+        body:
+          binary: "+"
+          left: { symbol: "_" }
+          right: { number: "int", value: "1" }
+      )
+
+    it "code with val", ->
+      parse("def square(x: Int) = {\n  val n = x * x\n  n\n}").should.eql(
+        method: { symbol: "square" }
+        params: [
+          { name: "x", type: "Int", value: undefined }
+        ]
+        body:
+          code: [
+            {
+              local: "n"
+              value:
+                binary: "*"
+                left: { symbol: "x" }
+                right: { symbol: "x" }
+            }
+            { symbol: "n" }
+          ]
+      )

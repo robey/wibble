@@ -189,7 +189,7 @@ class Runtime
         rv = @xeval(x, context)
       return rv
 
-    if expr.params?
+    if expr.func?
       # create a WFunction
       fields = []
       for p in expr.params
@@ -198,7 +198,7 @@ class Runtime
         f = new WField(p.name, type, value)
         fields.push(f)
       inType = if fields.length == 0 then UnitType else new StructType(fields)
-      return new WFunction(context, inType, expr.body)
+      return new WFunction(context, inType, expr.func)
 
   call: (obj, message) ->
     if message.type == SymbolType
