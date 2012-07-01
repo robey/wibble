@@ -10,7 +10,6 @@ keywords = [ "then", "else", "match", "true", "false", "is" ]
 # - number (value)
 # - boolean
 # - unit
-# - opref
 # - struct
 # call: (arg)
 # unary: (right)
@@ -40,7 +39,7 @@ boolean = parser.regex(/true|false/).onMatch (m) -> { boolean: m[0] == "true" }
 unit = parser.string("()").onMatch (x) -> { unit: true }
 
 opref = parser.seq(parser.drop(":"), opList.reduce((a, b) -> parser.implicit(a).or(b))).onMatch (x) ->
-  { opref: x[0] }
+  { symbol: x[0] }
 
 symbolref = parser.seq(parser.drop(":"), NAME).onMatch (m) ->
   { symbol: m[0][0] }

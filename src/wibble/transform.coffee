@@ -8,7 +8,6 @@ dumpExpr = (expr) ->
   if expr.number? then return expr.value
   if expr.boolean? then return expr.boolean.toString()
   if expr.unit? then return "()"
-  if expr.opref? then return ":" + expr.opref
   if expr.struct?
     fields = for field in expr.struct
       if field.name?
@@ -76,7 +75,7 @@ dig = (expr, match, transform) ->
 flattenBinary = (expr) ->
   dig expr, ((x) -> x.binary? or x.unary?), (x) ->
     if x.binary?
-      { call: { call: x.left, arg: { opref: x.binary } }, arg: x.right }
+      { call: { call: x.left, arg: { symbol: x.binary } }, arg: x.right }
     else if x.unary?
       { call: { call: x.right, arg: { symbol: x.unary } }, arg: { unit: true } }
 

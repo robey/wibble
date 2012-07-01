@@ -27,7 +27,7 @@ describe "Parser", ->
       parse("()").should.eql(unit: true)
 
     it "opref", ->
-      parse(":*").should.eql(opref: "*")
+      parse(":*").should.eql(symbol: "*")
 
     it "struct", ->
       parse("(x, y)").should.eql(
@@ -61,7 +61,7 @@ describe "Parser", ->
       )
       parse("3 :+").should.eql(
         call: { number: "int", value: "3" }
-        arg: { opref: "+" }
+        arg: { symbol: "+" }
       )
 
     it "call with struct", ->
