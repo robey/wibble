@@ -3,7 +3,7 @@ parser = require("packrattle")
 opList = [
   "**", "*", "/", "%", "+", "-", "<<", ">>", "==", "!=", ">=", "<=", ">", "<"
 ]
-keywords = [ "then", "else", "match", "true", "false", "is" ]
+keywords = [ "then", "else", "match", "true", "false", "is", "on", "val", "def" ]
 
 # expression:
 # - symbol
@@ -12,13 +12,17 @@ keywords = [ "then", "else", "match", "true", "false", "is" ]
 # - unit
 # - struct
 # call: (arg)
-# unary: (right)
-# binary: (left, right)
+# unary: (right) *
+# binary: (left, right) *
 # condition: (ifThen, ifElse)
 # code
 # local: (value)
 # func: (params)
-# method: (params, body)
+# on: (handler)
+# context: (handlers)
+# method: (params, body) *
+#
+# * eliminated through transforms
 
 parser.setWhitespace /([ ]+|\\\n)+/
 
@@ -66,7 +70,10 @@ structWithoutNames = parser.seq(
 
 struct = structWithNames.or(structWithoutNames)
 
-atom1 = boolean.or(-> xfunction).or(struct).or(-> block).or(symbol).or(number).or(unit).or(opref).or(symbolref).onFail("atom")
+# FIXME: array / map / string constants? :)
+constant = boolean.or(number).or(unit).or(symbol).or(symbolref).onFail("constant")
+
+atom1 = constant.or(-> xfunction).or(struct).or(-> block).or(opref).onFail("atom")
 
 unary = parser.seq(parser.string("-").drop(), atom1).onMatch (x) ->
   { unary: "negate", right: x[0] }
@@ -131,7 +138,25 @@ local = parser.seq(
   expression
 ).onMatch (x) -> { local: x[0][0], value: x[1] }
 
-blockCode = local.or(expression).onFail("Expected local or expression")
+method = parser.seq(
+  parser.drop("def"),
+  symbol.or(opref).or(symbolref),
+  functionParameters,
+  parser.drop("="),
+  expression
+).onMatch (x) ->
+  { method: x[0].symbol, params: x[1], body: x[2] }
+
+handler = parser.seq(
+  parser.drop("on"),
+  constant.or(functionParameters.onMatch (x) -> { params: x }),
+  parser.drop("->"),
+  expression
+).onMatch (x) ->
+  { on: x[0], handler: x[1] }
+
+blockCode = local.or(method).or(handler).or(expression).onFail("Expected local or expression")
+exports.blockCode = blockCode
 
 xfunction = parser.seq(
   functionParameters.optional([])
@@ -149,18 +174,4 @@ block = parser.seq(
 ).onMatch (x) ->
   { code: x[0] }
 
-##### def functions
-
-method = parser.seq(
-  parser.drop("def"),
-  symbol.or(opref).or(symbolref),
-  functionParameters,
-  parser.drop("="),
-  expression
-).skip("\n").onMatch (x) ->
-  { method: x[0], params: x[1], body: x[2] }
-
-
-# FIXME
-exports.method = method
 

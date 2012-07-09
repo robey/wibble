@@ -104,6 +104,7 @@ class WFunction extends Context
     @on @inType, (runtime, self, message) =>
       if @body instanceof Function then return @body(runtime, self, message)
       # unpack struct into locals
+      # FIXME: don't pass 'this' as the parent context. it lets vars leak down.
       c = new Context(this)
       if message.type instanceof StructType
         for k, v of message.values then c.set(k, v)
@@ -188,7 +189,10 @@ class Runtime
       for x in expr.code
         rv = @xeval(x, context)
       return rv
-
+    if expr.local?
+      rv = @xeval(expr.value, context)
+      context.set(expr.local, rv)
+      return rv
     if expr.func?
       # create a WFunction
       fields = []

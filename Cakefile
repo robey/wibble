@@ -88,7 +88,7 @@ synctask "run", "wut", ->
       r.prompt()
       return
     line = buffer + line
-    rv = parser.expression.consume(line)
+    rv = parser.blockCode.consume(line)
     if not rv.ok
       console.log rv.state.line()
       console.log (for i in [0 ... rv.state.xpos] then " ").join("") + red("^")

@@ -27,11 +27,15 @@ dumpExpr = (expr) ->
   if expr.code?
     return "{ " + (dumpExpr(e) for e in expr.code).join("; ") + " }"
   if expr.local?
-    return "val " + expr.local + " = " + dumpExpr(expr.value)
+    return "val :" + expr.local + " = " + dumpExpr(expr.value)
   if expr.func?
     params = for p in expr.params
       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
     return "((" + params.join(", ") + ") -> " + dumpExpr(expr.func) + ")"
+  if expr.method?
+    params = for p in expr.params
+      p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
+    return "def :" + expr.method + "(" + params.join(", ") + ") -> " + dumpExpr(expr.body) + ")"
   "???"
 
 # traverse an expression, looking for objects where 'match(obj)' returns
@@ -68,6 +72,13 @@ dig = (expr, match, transform) ->
       v = if p.value? then dig(p.value, match, transform) else undefined
       { name: p.name, type: p.type, value: v }
     { params: params, func: dig(expr.func, match, transform) }
+  else if expr.on?
+    { on: dig(expr.on, match, transform), handler: dig(expr.handler, match, transform) }
+  else if expr.method?
+    params = for p in expr.params
+      v = if p.value? then dig(p.value, match, transform) else undefined
+      { name: p.name, type: p.type, value: v }
+    { method: expr.method, params: params, body: dig(expr.body, match, transform) }
   else
     expr
 
@@ -79,9 +90,24 @@ flattenBinary = (expr) ->
     else if x.unary?
       { call: { call: x.right, arg: { symbol: x.unary } }, arg: { unit: true } }
 
+# turn all method definitions into locals.
+desugarMethods = (expr) ->
+  dig expr, ((x) -> x.method?), (x) ->
+    { local: x.method, value: { params: x.params, func: x.body } }
+
+# turn "code" arrays into contexts if they have an "on" handler.
+findContexts = (expr) ->
+  dig expr, ((x) -> x.code?), (x) ->
+    handlers = (item for item in x.code when item.on?)
+    if handlers.length > 0
+      { context: (item for item in x.code when not item.on?), handlers: handlers }
+    else
+      x
 
 transform = (expr) ->
   expr = flattenBinary(expr)
+  expr = desugarMethods(expr)
+  expr = findContexts(expr)
   expr
 
 exports.flattenBinary = flattenBinary

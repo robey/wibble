@@ -202,13 +202,35 @@ describe "Parse", ->
         arg: { unit: true }
       )
 
+    it "a code block with a message handler", ->
+      parse("{ on 3 -> 4 }").should.eql(
+        code: [
+          on: { number: "int", value: "3" }
+          handler: { number: "int", value: "4" }
+        ]
+      )
+
+    it "a message handler for a struct", ->
+      parse("{ on (x: Int, y: Int) -> { x * y } }").should.eql(
+        code: [
+          on:
+            params: [
+              { name: "x", type: "Int", value: undefined }
+              { name: "y", type: "Int", value: undefined }
+            ]
+          handler:
+            code: [
+              { binary: "*", left: { symbol: "x" }, right: { symbol: "y" } }
+            ]
+        ]
+      )
+
   describe "a method of", ->
-    parse = (line) -> parser.method.consume(line).match
+    parse = (line) -> parser.blockCode.consume(line).match
 
     it "empty", ->
       parse("def nothing() = ()").should.eql(
-        method:
-          symbol: "nothing"
+        method: "nothing"
         params: []
         body:
           { unit: true }
@@ -216,8 +238,7 @@ describe "Parse", ->
 
     it "parameters", ->
       parse("def absorb(x: Int, y: Int) = {}").should.eql(
-        method:
-          symbol: "absorb"
+        method: "absorb"
         params: [
           { name: "x", type: "Int", value: undefined }
           { name: "y", type: "Int", value: undefined }
@@ -228,8 +249,7 @@ describe "Parse", ->
 
     it "code", ->
       parse("def square(x: Int) = { widget draw(); x ** 2 }").should.eql(
-        method:
-          symbol: "square"
+        method: "square"
         params: [
           { name: "x", type: "Int", value: undefined }
         ]
@@ -251,14 +271,14 @@ describe "Parse", ->
 
     it "one line", ->
       parse("def pi() = 3").should.eql(
-        method: { symbol: "pi" }
+        method: "pi"
         params: []
         body: { number: "int", value: "3" }
       )
 
     it "operator reference", ->
       parse("def :+(_: Int) = _ + 1").should.eql(
-        method: { symbol: "+" }
+        method: "+"
         params: [
           { name: "_", type: "Int", value: undefined }
         ]
@@ -270,7 +290,7 @@ describe "Parse", ->
 
     it "code with val", ->
       parse("def square(x: Int) = {\n  val n = x * x\n  n\n}").should.eql(
-        method: { symbol: "square" }
+        method: "square"
         params: [
           { name: "x", type: "Int", value: undefined }
         ]

@@ -39,3 +39,41 @@ describe "Transform", ->
           }
         ]
     )
+
+  it "methods into local functions", ->
+    expr =
+      method: "square"
+      params: [
+        { name: "x", type: "Int", value: undefined }
+      ]
+      body:
+        binary: "*"
+        left: { symbol: "x" }
+        right: { symbol: "x" }
+    transform(expr).should.eql(
+      local: "square"
+      value:
+        params: [
+          { name: "x", type: "Int", value: undefined }
+        ]
+        func:
+          call:
+            call: { symbol: "x" }
+            arg: { symbol: "*" }
+          arg: { symbol: "x" }
+    )
+
+  it "handlers into contexts", ->
+    expr =
+      code: [
+        { symbol: "x" }
+        { on: { symbol: "destroy" }, handler: { symbol: "ok" } }
+      ]
+    transform(expr).should.eql(
+      context: [
+        { symbol: "x" }
+      ]
+      handlers: [
+        { on: { symbol: "destroy" }, handler: { symbol: "ok" } }
+      ]
+    )
