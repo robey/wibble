@@ -32,11 +32,18 @@ dumpExpr = (expr) ->
     params = for p in expr.params
       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
     return "((" + params.join(", ") + ") -> " + dumpExpr(expr.func) + ")"
+  if expr.on?
+    return "on " + dumpExpr(expr.on) + " -> " + dumpExpr(expr.handler)
   if expr.method?
     params = for p in expr.params
       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
     return "def :" + expr.method + "(" + params.join(", ") + ") -> " + dumpExpr(expr.body) + ")"
-  "???"
+  if expr.proto?
+    params = for p in expr.params
+      p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
+    codes = for x in expr.body then dumpExpr(x)
+    return "prototype " + expr.proto + "(" + params.join(", ") + ") { " + codes.join("; ") + "}"
+  "???" + inspect(expr)
 
 # traverse an expression, looking for objects where 'match(obj)' returns
 # true. for those, replace the object with whatever is returned by
@@ -79,6 +86,11 @@ dig = (expr, match, transform) ->
       v = if p.value? then dig(p.value, match, transform) else undefined
       { name: p.name, type: p.type, value: v }
     { method: expr.method, params: params, body: dig(expr.body, match, transform) }
+  else if expr.proto?
+    params = for p in expr.params
+      v = if p.value? then dig(p.value, match, transform) else undefined
+      { name: p.name, type: p.type, value: v }
+    { proto: expr.proto, params: params, body: dig(expr.body, match, transform) }
   else
     expr
 
@@ -97,17 +109,14 @@ desugarMethods = (expr) ->
 
 # turn "code" arrays into contexts if they have an "on" handler.
 findContexts = (expr) ->
-  dig expr, ((x) -> x.code?), (x) ->
-    handlers = (item for item in x.code when item.on?)
-    if handlers.length > 0
-      { context: (item for item in x.code when not item.on?), handlers: handlers }
-    else
-      x
+  dig expr, ((x) -> x.proto?), (x) ->
+    handlers = (item for item in x.body when item.on?)
+    code = (item for item in x.body when not item.on?)
+    { proto: x.proto, params: x.params, code: code, handlers: handlers }
 
 transform = (expr) ->
   expr = flattenBinary(expr)
   expr = desugarMethods(expr)
-  expr = findContexts(expr)
   expr
 
 exports.flattenBinary = flattenBinary

@@ -3,7 +3,7 @@ parser = require("packrattle")
 opList = [
   "**", "*", "/", "%", "+", "-", "<<", ">>", "==", "!=", ">=", "<=", ">", "<"
 ]
-keywords = [ "then", "else", "match", "true", "false", "is", "on", "val", "def" ]
+keywords = [ "then", "else", "match", "true", "false", "is", "on", "val", "def", "prototype" ]
 
 # expression:
 # - symbol
@@ -19,8 +19,9 @@ keywords = [ "then", "else", "match", "true", "false", "is", "on", "val", "def" 
 # local: (value)
 # func: (params)
 # on: (handler)
-# context: (handlers)
 # method: (params, body) *
+#
+# proto: (params, body)
 #
 # * eliminated through transforms
 
@@ -32,6 +33,7 @@ symbol = parser.regex(NAME).matchIf((m) -> keywords.indexOf(m[0]) < 0).onMatch (
   { symbol: m[0] }
 
 # FIXME hex notation.
+# FIXME binary notation.
 number = parser.regex(/-?[0-9]+(\.[0-9]+)?(L?)/).onMatch (m) ->
   hasDot = m[0].indexOf(".") >= 0
   if m[2] == "L"
@@ -123,11 +125,9 @@ parameter = parser.seq(
   parser.seq(parser.drop("="), expression).optional([])
 ).onMatch (x) -> { name: x[0][0], type: x[1][0], value: x[2][0] }
 
-parameterList = parameter.repeat(",")
-
 functionParameters = parser.seq(
   parser.drop("(")
-  parameterList.optional([])
+  parameter.repeat(",").optional([])
   parser.drop(")")
 ).onMatch (x) -> x[0]
 
@@ -147,15 +147,7 @@ method = parser.seq(
 ).onMatch (x) ->
   { method: x[0].symbol, params: x[1], body: x[2] }
 
-handler = parser.seq(
-  parser.drop("on"),
-  constant.or(functionParameters.onMatch (x) -> { params: x }),
-  parser.drop("->"),
-  expression
-).onMatch (x) ->
-  { on: x[0], handler: x[1] }
-
-blockCode = local.or(method).or(handler).or(expression).onFail("Expected local or expression")
+blockCode = local.or(method).or(expression).onFail("Expected local or expression")
 exports.blockCode = blockCode
 
 xfunction = parser.seq(
@@ -165,13 +157,53 @@ xfunction = parser.seq(
 ).onMatch (x) ->
   { params: x[0], func: x[1] }
 
-block = parser.seq(
-  parser.drop("{")
-  parser.optional(LF).drop()
-  blockCode.repeat(/\n|;/).optional([])
-  parser.optional(LF).drop()
-  parser.drop("}")
+# list of expressions matching 'p' that are inside a { } block
+blockOf = (p) ->
+  parser.seq(
+    parser.drop("{")
+    parser.optional(LF).drop()
+    p.repeat(/\n|;/).optional([])
+    parser.optional(LF).drop()
+    parser.drop("}")
+  ).onMatch (x) -> x[0]
+
+block = blockOf(blockCode).onMatch (x) ->
+  { code: x }
+
+##### prototype
+
+protoParameter = parser.seq(
+  parser.optional("@")
+  NAME
+  parser.drop(":")
+  NAME
+  parser.seq(parser.drop("="), expression).optional([])
+).onMatch (x) -> { local: x[0], name: x[1][0], type: x[2][0], value: x[3][0] }
+
+protoParameters = parser.seq(
+  parser.drop("(")
+  protoParameter.repeat(",").optional([])
+  parser.drop(")")
+).onMatch (x) -> x[0]
+
+handler = parser.seq(
+  parser.drop("on"),
+  constant.or(functionParameters.onMatch (x) -> { params: x }),
+  parser.drop("->"),
+  expression
 ).onMatch (x) ->
-  { code: x[0] }
+  { on: x[0], handler: x[1] }
 
+protoCode = handler.or(local).or(expression).onFail("Expected expression or handler")
 
+proto = parser.seq(
+  parser.drop("prototype")
+  symbol
+  protoParameters.optional([])
+  blockOf(protoCode)
+).onMatch (x) ->
+  { proto: x[0].symbol, params: x[1], body: x[2] }
+
+exports.proto = proto
+
+exports.repl = proto.or(blockCode)

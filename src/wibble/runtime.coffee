@@ -32,7 +32,8 @@ class Context
     else
       @handlers.push([ message, action ])
 
-## -----
+
+## ----- types
 
 class Type extends Context
   constructor: (@name) ->
@@ -67,8 +68,24 @@ class FunctionType extends Type
   toDebug: ->
     "Function(" + @inType.toDebug() + " -> " + @outType.toDebug() + ")"
 
-## -----
+class TraitType extends Type
+  # handlers is a map of string -> FunctionType
+  constructor: (@handlers) ->
+    super("Trait")
 
+  toDebug: ->
+    "Trait(" + (for k, v of @handlers then k + ": " + v.toDebug()).join(", ") + ")"
+
+class ProtoType extends Type
+  constructor: (@inType, @handlers) ->
+    super("Prototype")
+
+#  toDebug: ->
+#    "Prototype(" + @inType.toDebug() + ")"
+#      (for k, v of @handlers then " " + k + ": " + v.toDebug()).join(",") + " })"
+
+
+## ----- values
 
 class WValue
   constructor: (@type) ->
@@ -117,6 +134,17 @@ class WFunction extends Context
   toDebug: ->
     @inType.toDebug() + " -> {...}"
 
+class WPrototype extends Context
+  constructor: (parent, @name, @inType, @handlers, @body) ->
+    super(parent)
+    @type = new ProtoType(@inType, @handlers)
+
+  toDebug: ->
+    @name + "(" + @inType.toDebug() + ")"
+
+class WContext extends Context
+  constructor: (parent, @handlers) ->
+    super(parent)
 
 IntType.on "+", (runtime, self, message) ->
   new WFunction(null, IntType, (runtime, func, n) -> new WInt(self.value + n.value))
@@ -161,6 +189,18 @@ class Runtime
     if type.type != TypeType then throw "Not a type: #{name}"
     type
 
+  # turn a params list into a type (StructType or UnitType)
+  compileParams: (params, context) ->
+    if params.length == 0 then return UnitType
+    # create a WFunction
+    fields = []
+    for p in params
+      type = @resolveType(p.type, context)
+      value = if p.value? then @xeval(p.value, context) else null
+      f = new WField(p.name, type, value)
+      fields.push(f)
+    new StructType(fields)
+
   # evaluate the parsed expression, using this context to resolve symbols.
   xeval: (expr, context) ->
     if not context? then context = @context
@@ -195,14 +235,19 @@ class Runtime
       return rv
     if expr.func?
       # create a WFunction
-      fields = []
-      for p in expr.params
-        type = @resolveType(p.type, context)
-        value = if p.value? then @xeval(p.value, context) else null
-        f = new WField(p.name, type, value)
-        fields.push(f)
-      inType = if fields.length == 0 then UnitType else new StructType(fields)
-      return new WFunction(context, inType, expr.func)
+      return new WFunction(context, @compileParams(expr.params, context), expr.func)
+    if expr.proto?
+      handlers = (item for item in expr.body when item.on?)
+      code = (item for item in expr.body when not item.on?)
+      return new WPrototype(context, expr.proto, @compileParams(expr.params, context), handlers, code)
+
+      # this can only happen at the REPL.
+      # proto, params, body
+
+
+
+  buildProto: (expr, context) ->
+
 
   call: (obj, message) ->
     if message.type == SymbolType

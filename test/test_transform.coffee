@@ -63,17 +63,17 @@ describe "Transform", ->
           arg: { symbol: "x" }
     )
 
-  it "handlers into contexts", ->
-    expr =
-      code: [
-        { symbol: "x" }
-        { on: { symbol: "destroy" }, handler: { symbol: "ok" } }
-      ]
-    transform(expr).should.eql(
-      context: [
-        { symbol: "x" }
-      ]
-      handlers: [
-        { on: { symbol: "destroy" }, handler: { symbol: "ok" } }
-      ]
-    )
+#  it "handlers into contexts", ->
+#    expr =
+#      code: [
+#        { symbol: "x" }
+#        { on: { symbol: "destroy" }, handler: { symbol: "ok" } }
+#      ]
+#    transform(expr).should.eql(
+#      context: [
+#        { symbol: "x" }
+#      ]
+#      handlers: [
+#        { on: { symbol: "destroy" }, handler: { symbol: "ok" } }
+#      ]
+#    )
