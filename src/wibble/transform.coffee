@@ -42,7 +42,7 @@ dumpExpr = (expr) ->
     params = for p in expr.params
       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
     codes = for x in expr.body then dumpExpr(x)
-    return "prototype " + expr.proto + "(" + params.join(", ") + ") { " + codes.join("; ") + "}"
+    return "prototype " + expr.proto + "(" + params.join(", ") + ") { " + codes.join("; ") + " }"
   "???" + inspect(expr)
 
 # traverse an expression, looking for objects where 'match(obj)' returns

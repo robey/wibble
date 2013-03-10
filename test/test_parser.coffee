@@ -289,7 +289,7 @@ describe "Parse", ->
 
     it "a message handler", ->
       parse("prototype Lame { on 3 -> 4 }").should.eql(
-        proto: { symbol: "Lame" }
+        proto: "Lame"
         params: []
         body: [
           on: { number: "int", value: "3" }
@@ -299,7 +299,7 @@ describe "Parse", ->
 
     it "a message handler for a struct", ->
       parse("prototype A {\n  on (x: Int, y: Int) -> { x * y }\n}").should.eql(
-        proto: { symbol: "A" }
+        proto: "A"
         params: []
         body: [
           on:
@@ -316,7 +316,7 @@ describe "Parse", ->
 
     it "parameters", ->
       parse("prototype Toaster(heat: Int) { 3 }").should.eql(
-        proto: { symbol: "Toaster" }
+        proto: "Toaster"
         params: [
           { local: "", name: "heat", type: "Int", value: undefined }
         ]
@@ -325,7 +325,7 @@ describe "Parse", ->
         ]
       )
       parse("prototype Toaster(@heat: Int) { 3 }").should.eql(
-        proto: { symbol: "Toaster" }
+        proto: "Toaster"
         params: [
           { local: "@", name: "heat", type: "Int", value: undefined }
         ]

@@ -5,6 +5,8 @@ opList = [
 ]
 keywords = [ "then", "else", "match", "true", "false", "is", "on", "val", "def", "prototype" ]
 
+# or, and
+
 # expression:
 # - symbol
 # - number (value)
@@ -188,7 +190,7 @@ protoParameters = parser.seq(
 
 handler = parser.seq(
   parser.drop("on"),
-  constant.or(functionParameters.onMatch (x) -> { params: x }),
+  symbol.or(functionParameters.onMatch (x) -> { params: x }),
   parser.drop("->"),
   expression
 ).onMatch (x) ->

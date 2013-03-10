@@ -7,6 +7,7 @@ mocha = require 'mocha'
 readline = require 'readline'
 sync = require 'sync'
 util = require 'util'
+inspect = util.inspect
 
 wibble = require "./src/wibble"
 
