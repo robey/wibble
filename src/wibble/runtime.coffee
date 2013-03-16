@@ -6,10 +6,11 @@ transform = require("./transform.coffee")
 base = require "./runtime_base.coffee"
 object = require "./object.coffee"
 types = require "./types.coffee"
-typecheck = require("./typecheck").typecheck
+typecheck = require("./typecheck")
 
 Scope = base.Scope
 Handler = base.Handler
+TypeChecker = typecheck.TypeChecker
 WObject = object.WObject
 WUnit = types.WUnit
 WInt = types.WInt
@@ -25,6 +26,7 @@ class Runtime
     # default scope (globals) is just the builtin types
     @globals = new Scope()
     for k, v of types.globalTypes then @globals.set(k, v)
+    @typeChecker = new TypeChecker(((message) => @log('type', message)), @globals)
 
   log: (stage, message) ->
     if @logger? then @logger(stage, message)
@@ -84,12 +86,9 @@ class Runtime
     if expr.func?
       # create a WFunction
       # FIXME: when inside a prototype, should start a new scope.
-      inType = @compileParams(expr.params, scope)
-      typeSymtab = inType.typeSymtab
-      if not typeSymtab? then typeSymtab = {}
-      logger = (message) => @log('type', message)
-      outType = typecheck(logger, expr.func, typeSymtab)
-      return new WFunction(inType, outType, expr.func, scope)
+      # FIXME: why is this here? why is there no type scope?
+      ftype = @typeChecker.check(expr)
+      return new WFunction(ftype, expr.func)
     if expr.proto?
       # this can only happen at the REPL.
       on_handlers = (item for item in expr.body when item.on?)
@@ -99,8 +98,10 @@ class Runtime
       handlers = []
       for item in on_handlers
         if item.on.symbol?
+          # fixme fixme fixme
           symtab[item.on.symbol] = new Handler(null, item.handler)
         else
+          # fixme fixme fixme
           handlers.push([ @compileParams(item.on.params, scope), new Handler(null, item.handler) ])
       type = new types.ProtoType(inType, symtab, handlers)
       @log 'proto', "Creating prototype #{expr.proto}, signature: #{type.handlersDebug()}"

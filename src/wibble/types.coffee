@@ -30,16 +30,14 @@ WIntType = new WType("Int")
 WSymbolType = new WType("Symbol")
 
 class WField
-  constructor: (@name, @type, @value) ->
+  constructor: (@name, @type, @defaultExpr) ->
 
   toDebug: ->
-    @name + ": " + @type.toDebug() + (if @value? then (" = " + @value.toDebug()) else "")
+    @name + ": " + @type.toDebug() + (if @defaultExpr? then (" = " + @defaultExpr.toDebug()) else "")
 
 class WStructType extends WType
   constructor: (@fields) ->
     super("Struct")
-    @typeSymtab = {}
-    for f in @fields then @typeSymtab[f.name] = f.type
 
   toDebug: ->
     "(" + @fields.map((f) -> f.toDebug()).join(", ") + ")"
@@ -61,12 +59,13 @@ class WStructType extends WType
       x = {}
       x[@fields[0].name] = value
       return new WStruct(@, x)
+    # FIXME default arguments?
     null
 
 class WFunctionType extends WType
   constructor: (@inType, @outType) ->
     super("Function")
-    @on @inType, new Handler(null, @outType, null)
+    @on @inType, new Handler(@outType, null)
 
   toDebug: ->
     "(" + @inType.toDebug() + " -> " + @outType.toDebug() + ")"
@@ -114,12 +113,13 @@ class WStruct extends WObject
     true
 
 class WFunction extends WObject
-  constructor: (@inType, @outType, @body, inScope) ->
-    super(new WFunctionType(@inType, @outType))
-    @on @inType, new Handler(inScope, @outType, @body)
+  constructor: (type, @body) ->
+    super(type)
+    @on type.inType, new Handler(type.outType, @body)
 
   toDebug: ->
-    "{ #{@type.toDebug()} ... }"
+    body = if typeof @body == "function" then "<native>" else "..."
+    "#{@type.inType.toDebug()} -> {#{body} #{@type.outType.toDebug()}}"
 
 
 # ----- builtin methods

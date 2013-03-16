@@ -32,10 +32,10 @@ class Scope
 
 
 class Handler
-  constructor: (@scope, @outType, @expr) ->
+  constructor: (@outType, @expr) ->
 
   toDebug: ->
-    "scope=#{@scope.toDebug()} expr=#{dumpExpr(@expr)}"
+    "outType=#{@outType.toDebug()} expr=#{dumpExpr(@expr)}"
 
 
 exports.Scope = Scope
