@@ -4,61 +4,17 @@ inspect = util.inspect
 
 transform = require("./transform.coffee")
 base = require "./runtime_base.coffee"
+object = require "./object.coffee"
 types = require "./types.coffee"
 typecheck = require("./typecheck").typecheck
 
 Scope = base.Scope
 Handler = base.Handler
-WValue = base.WValue
-
-## ----- values
-
-WUnit = new WValue(types.UnitType)
-WUnit.toDebug = -> "()"
-
-class WInt extends WValue
-  constructor: (@value) ->
-    super(types.IntType)
-
-  toDebug: -> @value.toString()
-
-class WSymbol extends WValue
-  constructor: (@name) ->
-    super(types.SymbolType)
-
-  toDebug: -> ":" + @name
-
-class WStruct extends WValue
-  constructor: (@type, @values) -> 
-    super(@type)
-
-  toDebug: -> "(" + (for k, v of @values then k.toDebug() + " = " + v.toDebug()).join(", ") + ")"
-
-class WObject extends WValue
-  constructor: (@type, symtab) ->
-    super(@type)
-    for k, v of symtab then @symtab[k] = v
-
-  toDebug: -> "<object of " + @type.name + ">"
-
-class WFunction extends WValue
-  constructor: (@inType, @outType, @body, inScope) ->
-    super(new types.FunctionType(@inType, @outType))
-    @on @inType, new Handler(inScope, @body)
-
-  toDebug: ->
-    @inType.toDebug() + " -> {...}"
-
-class WPrototype extends WValue
-  constructor: (@name, @type, @inType, @body, inScope) ->
-    super(@type)
-    @on @inType, new Handler(inScope, { bless: @body, type: @ })
-
-  toDebug: -> "<prototype #{@name}>"
-  
-exports.WInt = WInt
-exports.WFunction = WFunction
-
+WObject = object.WObject
+WUnit = types.WUnit
+WInt = types.WInt
+WSymbol = types.WSymbol
+WFunction = types.WFunction
 
 ## ----- Runtime
 
@@ -76,13 +32,13 @@ class Runtime
   # turn a type name into a type object, or panic
   resolveType: (name, scope) ->
     type = scope.get(name)
-    if not type? then throw "Unknown type #{name}"
-    if type.type != types.TypeType then throw "Not a type: #{name}"
+    if not type? then throw new Error("Unknown type #{name}")
+    if type.type != types.WTypeType then throw new Error("Not a type: #{name}")
     type
 
   # turn a params list into a type (StructType or UnitType)
   compileParams: (params, scope) ->
-    if params.length == 0 then return types.UnitType
+    if params.length == 0 then return types.WUnitType
     # create a WFunction
     fields = []
     for p in params
@@ -90,7 +46,7 @@ class Runtime
       value = if p.value? then @xeval(p.value, scope) else null
       f = new types.WField(p.name, type, value)
       fields.push(f)
-    new types.StructType(fields)
+    new types.WStructType(fields)
 
   # evaluate the parsed expression, using this scope to resolve symbols.
   xeval: (expr, scope) ->
@@ -113,7 +69,7 @@ class Runtime
       right = @xeval(expr.arg, scope)
       @log 'call', "(#{left.toDebug()}) #{right.toDebug()}"
       rv = @call(left, right)
-      @log 'call', "  ==> #{rv.toDebug()}"
+      @log 'call', "  \u21b3 #{rv.toDebug()}"
       return rv
 
     if expr.code?
@@ -129,7 +85,10 @@ class Runtime
       # create a WFunction
       # FIXME: when inside a prototype, should start a new scope.
       inType = @compileParams(expr.params, scope)
-      outType = typecheck(expr.func, inType.toSymtab)
+      typeSymtab = inType.typeSymtab
+      if not typeSymtab? then typeSymtab = {}
+      logger = (message) => @log('type', message)
+      outType = typecheck(logger, expr.func, typeSymtab)
       return new WFunction(inType, outType, expr.func, scope)
     if expr.proto?
       # this can only happen at the REPL.
@@ -138,7 +97,7 @@ class Runtime
       inType = @compileParams(expr.params, scope)
       symtab = {}
       handlers = []
-      for item in expr.body when item.on?
+      for item in on_handlers
         if item.on.symbol?
           symtab[item.on.symbol] = new Handler(null, item.handler)
         else
@@ -152,7 +111,7 @@ class Runtime
       # FIXME hack for prototype: fill scope from expression, then bless it as a type.
       rv = @xeval(expr.bless, scope)
       return new WObject(expr.type, scope)
-    throw "unhandled! " + inspect(expr)
+    throw new Error("unhandled! " + inspect(expr))
 
 
 
@@ -160,56 +119,34 @@ class Runtime
 
 
   call: (obj, inMessage) ->
-    [ handler, message ] = @handlerForMessage(obj, inMessage)
+    [ type, handler ] = obj.handlerForMessage(inMessage)
+    if not handler?
+      [ type, handler ] = obj.type.handlerForMessage(inMessage)
     if not handler?
       @log 'call', "No handler for message '#{inMessage.toDebug()}' in #{obj.toDebug()}"
-      throw "type #{obj.type.toDebug()} can't handle message #{inMessage.toDebug()}"
+      throw new Error("type #{obj.type.toDebug()} can't handle message #{inMessage.toDebug()}")
+    message = type.coerceValue(inMessage)
     # shortcut native-coffeescript implementations:
-    if handler.expr instanceof Function then return handler.expr(@, obj, message)
+    if typeof handler.expr == "function" then return handler.expr(@, obj, message)
     # unpack struct into locals
     scope = new Scope(handler.scope)
-    if message.type instanceof types.StructType
+    if message.type instanceof types.WStructType
       for k, v of message.values then scope.setNew(k, v)
     else if message == WUnit
       # ok. no extra params.
-    else if message.type == types.SymbolType
+    else if message.type == types.WSymbolType
       # ok. no extra params.
     else
-      throw "Internal error: objects always receive struct messages"
+      throw new Error("Internal error: objects always receive struct messages")
     @log 'call', "Nested eval: #{handler.toDebug()}"
     @log 'call', "Nested eval scope: #{scope.toDebug()}"
     @xeval(handler.expr, scope)
 
-  handlerForMessage: (obj, message) ->
-    handler = obj.get(message)
-    if handler? then return [ handler, message ]
-    for [ type, handler ] in obj.getHandlers()
-      # match type
-      mm = @coerce(type, message)
-      if mm? then return [ handler, mm ]
-    [ null, null ]
 
-  # can 'value' be coerced to be the same type as 'type'? if so, return a new
-  # value with that coercion. otherwise return null.
-  coerce: (type, value) ->
-    if type == value.type then return value
-    if type instanceof types.StructType
-      # oh man.
-      fields = type.fields
-      if fields.length == 0 and value.type == types.UnitType
-        return new WStruct(type, {})
-      if fields.length == 1 and value.type == fields[0].type
-        # odd bug in coffeescript syntax parser
-        x = {}
-        x[fields[0].name] = value
-        return new WStruct(type, x)
-    null
-
-exports.Scope = Scope
 exports.Runtime = Runtime
 
 
-# FIXME bug:
+# FIXME bug: { w(), }
 
 #★> val  x = 3
 #parse ⚑ val :x = 3

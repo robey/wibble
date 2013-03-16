@@ -48,11 +48,10 @@ describe "Runtime", ->
     it "can be created", ->
       runtime = new wibble.Runtime()
       xeval("def square(x: Int) = x * x", runtime)
-      xeval("square", runtime).toDebugType().should.eql([ "Int", "12" ])
+      xeval("square", runtime).toDebugType()[0].should.eql("((x: Int) -> Int)")
 
     it "have their own locals", ->
       runtime = new wibble.Runtime()
-      debug(runtime)
       scope = new wibble.Scope(runtime.globals)
       runtime.globals.set("x", new wibble.WInt(23))
       xeval("def square(x: Int) = x * x", runtime, scope)

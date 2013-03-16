@@ -1,17 +1,33 @@
-base = require "./runtime_base.coffee"
+base = require("./runtime_base.coffee")
+object = require("./object.coffee")
 
-class Type extends base.WValue
+Handler = base.Handler
+WObject = object.WObject
+
+
+# ----- builtin types
+
+class WType extends WObject
   constructor: (@name) ->
-    super(TypeType)
+    super(WTypeType)
 
   toDebug: -> @name
 
-  toSymtab: -> new base.Scope()
+  # can 'otherType' be coerced to be this type?
+  coerce: (otherType) -> otherType == @
 
-TypeType = new Type("Type")
-UnitType = new Type("Unit")
-IntType = new Type("Int")
-SymbolType = new Type("Symbol")
+  # can 'value' be coerced to be this type? if so, return a new value with
+  # that coercion. otherwise return null.
+  coerceValue: (value) ->
+    if @ == value.type then return value
+    null
+
+WTypeType = new WType("Type")
+
+WUnitType = new WType("Unit")
+WAnyType = new WType("Any")
+WIntType = new WType("Int")
+WSymbolType = new WType("Symbol")
 
 class WField
   constructor: (@name, @type, @value) ->
@@ -19,79 +35,126 @@ class WField
   toDebug: ->
     @name + ": " + @type.toDebug() + (if @value? then (" = " + @value.toDebug()) else "")
 
-class StructType extends Type
+class WStructType extends WType
   constructor: (@fields) ->
     super("Struct")
+    @typeSymtab = {}
+    for f in @fields then @typeSymtab[f.name] = f.type
 
   toDebug: ->
     "(" + @fields.map((f) -> f.toDebug()).join(", ") + ")"
 
-  toSymtab: ->
-    symtab = new base.Scope()
-    for f in @fields
-      symtab.setNew(f.name, f.type)
-    symtab
+  coerce: (otherType) ->
+    if otherType == @ then return true
+    # oh man.
+    if @fields.length == 0 and otherType == types.WUnitType then return true
+    if @fields.length == 1 and otherType == @fields[0].type then return true
+    false
 
-class FunctionType extends Type
+  coerceValue: (value) ->
+    if @ == value.type then return value
+    # oh man.
+    if @fields.length == 0 and value.type == types.WUnitType
+      return new WStruct(@, {})
+    if @fields.length == 1 and value.type == @fields[0].type
+      # odd bug in coffeescript syntax parser:
+      x = {}
+      x[@fields[0].name] = value
+      return new WStruct(@, x)
+    null
+
+class WFunctionType extends WType
   constructor: (@inType, @outType) ->
     super("Function")
+    @on @inType, new Handler(null, @outType, null)
 
   toDebug: ->
-    "Function(" + @inType.toDebug() + " -> " + @outType.toDebug() + ")"
+    "(" + @inType.toDebug() + " -> " + @outType.toDebug() + ")"
 
-class TraitType extends Type
-  # handlers is a map of string -> FunctionType
-  constructor: (@handlers) ->
-    super("Trait")
+# class WTraitType extends WType
+#   # FIXME wut
+#   # handlers is a map of string -> FunctionType
+#   constructor: (@handlers) ->
+#     super("Trait")
+
+#   toDebug: ->
+#     "Trait(" + (for k, v of @handlers then k + ": " + v.toDebug()).join(", ") + ")"
+
+
+# ----- value types
+
+WUnit = new WObject(WUnitType)
+WUnit.toDebug = -> "()"
+
+class WInt extends WObject
+  constructor: (@value) ->
+    super(WIntType)
+
+  toDebug: -> @value.toString()
+
+  equals: (other) -> (other instanceof WInt) and (other.value == @value)
+
+class WSymbol extends WObject
+  constructor: (@name) ->
+    super(WSymbolType)
+
+  toDebug: -> ":" + @name
+
+  equals: (other) -> (other instanceof WSymbol) and (other.name == @name)
+
+class WStruct extends WObject
+  constructor: (@type, @values) -> 
+    super(@type)
+
+  toDebug: -> "(" + (for k, v of @values then k.toDebug() + " = " + v.toDebug()).join(", ") + ")"
+
+  equals: (other) ->
+    return false unless (other instanceof WStruct) and other.type.equals(@type)
+    for k, v of @values then if not other.values[k].equals(v) then return false
+    true
+
+class WFunction extends WObject
+  constructor: (@inType, @outType, @body, inScope) ->
+    super(new WFunctionType(@inType, @outType))
+    @on @inType, new Handler(inScope, @outType, @body)
 
   toDebug: ->
-    "Trait(" + (for k, v of @handlers then k + ": " + v.toDebug()).join(", ") + ")"
+    "{ #{@type.toDebug()} ... }"
 
-class ProtoType extends Type
-  constructor: (@inType, symtab, handlers) ->
-    super("Prototype")
-    @symtab = symtab
-    @handlers = handlers
 
-## ----- builtin methods
-## FIXME: clean this up.
+# ----- builtin methods
+# FIXME: clean this up.
 
 init = ->
-  runtime = require "./runtime.coffee"
-  WInt = runtime.WInt
-  WFunction = runtime.WFunction
-  
-  IntType.on "+", (runtime, self, message) ->
-    new WFunction(IntType, IntType, (runtime, func, n) -> new WInt(self.value + n.value))
+  WIntType.nativeMethod "+", WIntType, WIntType, (runtime, self, n) -> new WInt(self.value + n.value)
+  WIntType.nativeMethod "-", WIntType, WIntType, (runtime, self, n) -> new WInt(self.value - n.value)
+  WIntType.nativeMethod "*", WIntType, WIntType, (runtime, self, n) -> new WInt(self.value * n.value)
+  WIntType.nativeMethod "/", WIntType, WIntType, (runtime, self, n) -> new WInt(Math.floor(self.value / n.value))
+  WIntType.nativeMethod "%", WIntType, WIntType, (runtime, self, n) -> new WInt(self.value % n.value)
+  WIntType.nativeMethod "negate", WIntType, WIntType, (runtime, self, n) -> new WInt(-self.value)
 
-  IntType.on "-", (runtime, self, message) ->
-    new WFunction(IntType, IntType, (runtime, func, n) -> new WInt(self.value - n.value))
-
-  IntType.on "*", (runtime, self, message) ->
-    new WFunction(IntType, IntType, (runtime, func, n) -> new WInt(self.value * n.value))
-
-  IntType.on "/", (runtime, self, message) ->
-    new WFunction(IntType, IntType, (runtime, func, n) -> new WInt(self.value / n.value))
-
-  IntType.on "%", (runtime, self, message) ->
-    new WFunction(IntType, IntType, (runtime, func, n) -> new WInt(self.value % n.value))
-
-  IntType.on "negate", (runtime, self, message) ->
-    new WFunction(UnitType, IntType, (runtime, func, n) -> new WInt(-self.value))
 
 globalTypes =
-  "Unit": UnitType
-  "Int": IntType
-  "Symbol": SymbolType
+  "Unit": WUnitType
+  "Int": WIntType
+  "Symbol": WSymbolType
 
-exports.TypeType = TypeType
-exports.UnitType = UnitType
-exports.IntType = IntType
-exports.SymbolType = SymbolType
+exports.WType = WType
+exports.WTypeType = WTypeType
+
+exports.WUnitType = WUnitType
+exports.WAnyType = WAnyType
+exports.WIntType = WIntType
+exports.WSymbolType = WSymbolType
 exports.WField = WField
-exports.StructType = StructType
-exports.FunctionType = FunctionType
-exports.TraitType = TraitType
-exports.ProtoType = ProtoType
+exports.WStructType = WStructType
+exports.WFunctionType = WFunctionType
+
+exports.WUnit = WUnit
+exports.WInt = WInt
+exports.WSymbol = WSymbol
+exports.WStruct = WStruct
+exports.WFunction = WFunction
+
 exports.globalTypes = globalTypes
 exports.init = init

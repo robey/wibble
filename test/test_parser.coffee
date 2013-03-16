@@ -187,6 +187,18 @@ describe "Parse", ->
           right: { number: "int", value: "2" }
       )
 
+    it "an anonymous function with no parameters", ->
+      parse("-> 69").should.eql(
+        params: []
+        func: { number: "int", value: "69" }
+      )
+      parse("-> -> 69").should.eql(
+        params: []
+        func:
+          params: []
+          func: { number: "int", value: "69" }
+      )
+
     it "an anonymous function that's immediately called", ->
       parse("{ 3 } ()").should.eql(
         call:
@@ -284,52 +296,52 @@ describe "Parse", ->
           ]
       )
 
-  describe "a prototype with", ->
-    parse = (line) -> parser.proto.consume(line).match
+  # describe "a prototype with", ->
+  #   parse = (line) -> parser.proto.consume(line).match
 
-    it "a message handler", ->
-      parse("prototype Lame { on 3 -> 4 }").should.eql(
-        proto: "Lame"
-        params: []
-        body: [
-          on: { number: "int", value: "3" }
-          handler: { number: "int", value: "4" }
-        ]
-      )
+  #   it "a message handler", ->
+  #     parse("prototype Lame { on 3 -> 4 }").should.eql(
+  #       proto: "Lame"
+  #       params: []
+  #       body: [
+  #         on: { number: "int", value: "3" }
+  #         handler: { number: "int", value: "4" }
+  #       ]
+  #     )
 
-    it "a message handler for a struct", ->
-      parse("prototype A {\n  on (x: Int, y: Int) -> { x * y }\n}").should.eql(
-        proto: "A"
-        params: []
-        body: [
-          on:
-            params: [
-              { name: "x", type: "Int", value: undefined }
-              { name: "y", type: "Int", value: undefined }
-            ]
-          handler:
-            code: [
-              { binary: "*", left: { symbol: "x" }, right: { symbol: "y" } }
-            ]
-        ]
-      )
+  #   it "a message handler for a struct", ->
+  #     parse("prototype A {\n  on (x: Int, y: Int) -> { x * y }\n}").should.eql(
+  #       proto: "A"
+  #       params: []
+  #       body: [
+  #         on:
+  #           params: [
+  #             { name: "x", type: "Int", value: undefined }
+  #             { name: "y", type: "Int", value: undefined }
+  #           ]
+  #         handler:
+  #           code: [
+  #             { binary: "*", left: { symbol: "x" }, right: { symbol: "y" } }
+  #           ]
+  #       ]
+  #     )
 
-    it "parameters", ->
-      parse("prototype Toaster(heat: Int) { 3 }").should.eql(
-        proto: "Toaster"
-        params: [
-          { local: "", name: "heat", type: "Int", value: undefined }
-        ]
-        body: [
-          { number: "int", value: "3" }
-        ]
-      )
-      parse("prototype Toaster(@heat: Int) { 3 }").should.eql(
-        proto: "Toaster"
-        params: [
-          { local: "@", name: "heat", type: "Int", value: undefined }
-        ]
-        body: [
-          { number: "int", value: "3" }
-        ]
-      )
+  #   it "parameters", ->
+  #     parse("prototype Toaster(heat: Int) { 3 }").should.eql(
+  #       proto: "Toaster"
+  #       params: [
+  #         { local: "", name: "heat", type: "Int", value: undefined }
+  #       ]
+  #       body: [
+  #         { number: "int", value: "3" }
+  #       ]
+  #     )
+  #     parse("prototype Toaster(@heat: Int) { 3 }").should.eql(
+  #       proto: "Toaster"
+  #       params: [
+  #         { local: "@", name: "heat", type: "Int", value: undefined }
+  #       ]
+  #       body: [
+  #         { number: "int", value: "3" }
+  #       ]
+  #     )
