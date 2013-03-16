@@ -131,7 +131,7 @@ init = ->
   WIntType.nativeMethod "*", WIntType, WIntType, (runtime, self, n) -> new WInt(self.value * n.value)
   WIntType.nativeMethod "/", WIntType, WIntType, (runtime, self, n) -> new WInt(Math.floor(self.value / n.value))
   WIntType.nativeMethod "%", WIntType, WIntType, (runtime, self, n) -> new WInt(self.value % n.value)
-  WIntType.nativeMethod "negate", WIntType, WIntType, (runtime, self, n) -> new WInt(-self.value)
+  WIntType.nativeMethod "negate", WUnitType, WIntType, (runtime, self, n) -> new WInt(-self.value)
 
 
 globalTypes =
