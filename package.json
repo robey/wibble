@@ -5,7 +5,7 @@
   "keywords": [ ],
   "author": "Robey Pointer <robeypointer@gmail.com>",
   "scripts": {
-    "test": "cake test"
+    "test": "./node_modules/.bin/plz -v test"
   },
   "dependencies": {
     "coffee-script": "*",
@@ -15,6 +15,7 @@
     "fibers": "*",
     "glob": "*",
     "mocha": "*",
+    "plz": "*",
     "should": "*",
     "sync": "*"
   },
