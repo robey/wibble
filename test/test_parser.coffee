@@ -70,6 +70,26 @@ describe "Parse", ->
       it "unterminated", ->
         parseFailed('"hello').should.match(/Unterminated string/)
 
+    describe "array", ->
+      it "empty", ->
+        parse("[]").should.eql(array: [])
+        parse("[  ]").should.eql(array: [])
+
+      it "single", ->
+        parse("[ 3 ]").should.eql(array: [ { number: "base10", value: "3" } ])
+
+      it "multiple", ->
+        parse("[ true, true, false ]").should.eql(array: [ { boolean: true }, { boolean: true }, { boolean: false } ])
+
+      it "trailing comma", ->
+        parse("[9,]").should.eql(array: [ { number: "base10", value: "9" } ])
+
+      it "nested", ->
+        parse("[ [true], [false] ]").should.eql(array: [
+          { array: [ { boolean: true } ] }
+          { array: [ { boolean: false } ] }
+        ])
+
     it "gibberish", ->
       parseFailed("^^^").should.match(/Expected constant/)
 

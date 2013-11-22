@@ -59,6 +59,11 @@ symbol = pr(NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
 symbolref = pr([ pr(":").drop(), NAME ]).onMatch (m) ->
   { symbol: m[0][0] }
 
-# FIXME: array / map constants? :)
+# { array: [] }
+arrayConst = pr([ pr(/\[\s*/).drop(), pr.repeat([ (-> constant), pr(/\s*,\s*/).optional().drop() ]), pr(/\s*\]/).drop() ]).onMatch (m) ->
+  { array: m[0].map (x) -> x[0] }
 
-exports.constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolref, symbol).onFail("Expected constant")
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolref, symbol, arrayConst).onFail("Expected constant")
+
+exports.constant = constant
+
