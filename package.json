@@ -21,7 +21,7 @@
   },
   "main": "./lib/wibble",
   "files": [
-    "Cakefile",
+    "build.plz",
     "lib",
     "test"
   ]
