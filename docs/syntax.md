@@ -23,6 +23,8 @@
 
 ## expressions
 
+    call := unary (ws* atom)*
+
     unary := ("-" | "not") atom
 
     atom := constant | array | map | struct

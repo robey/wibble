@@ -15,3 +15,5 @@
     { map: [ [ expr, expr ]* ] }
     { struct: [ { name?, expression: expr }* ] }
     { unary: "-"/"not", right: expr }
+    { call: expr, arg: expr }
+    
