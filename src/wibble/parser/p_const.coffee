@@ -56,15 +56,6 @@ symbolOpRef = pr([ pr(":").drop(), pr.alt(OPERATORS...) ]).onMatch (m) ->
 
 symbol = pr.alt(symbolRaw, symbolRef, symbolOpRef)
 
-# { array: [] }
-arrayConst = pr([ pr(/\[\s*/).drop(), commaSeparated(-> constant), pr(/\s*\]/).drop() ]).onMatch (m) ->
-  { array: m[0].map (x) -> x[0] }
-
-# { map: [ [name, _] ] }
-mapItem = pr([ (-> constant), pr(/\s*:\s*/).drop(), (-> constant) ])
-mapConst = pr([ pr(/\{\s*/).drop(), commaSeparated(mapItem), pr(/\s*\}/).drop() ]).onMatch (m) ->
-  { map: m[0].map (x) -> x[0] }
-
-constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbol, arrayConst, mapConst).onFail("Expected constant")
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbol).onFail("Expected constant")
 
 exports.constant = constant
