@@ -64,3 +64,28 @@ describe "Parse expressions", ->
         [ { string: "a" }, { boolean: true } ],
         [ { string: "b" }, { boolean: false } ]
       ])
+
+  describe "struct", ->
+    it "without names", ->
+      parse("(x, y)").should.eql(
+        struct: [
+          { expression: { symbol: "x" } }
+          { expression: { symbol: "y" } }
+        ]
+      )
+
+    it "with names", ->
+      parse("(  x=3,y = 4)").should.eql(
+        struct: [
+          { name: "x", expression: { number: "base10", value: "3" } }
+          { name: "y", expression: { number: "base10", value: "4" } }
+        ]
+      )
+
+    it "single-valued", ->
+      parse("(true)").should.eql(boolean: true)
+
+  it "unary", ->
+    parse("not true").should.eql(unary: "not", right: { boolean: true })
+    parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5" })
+

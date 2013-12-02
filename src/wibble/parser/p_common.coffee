@@ -40,7 +40,8 @@ OPERATORS = [
 whitespace = pr(/\s*/).optional().drop()
 
 commaSeparated = (p) ->
-  pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ])
+  pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ]).onMatch (m) ->
+    m.map (x) -> x[0]
 
 exports.commaSeparated = commaSeparated
 exports.OPERATORS = OPERATORS

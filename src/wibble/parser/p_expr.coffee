@@ -6,6 +6,8 @@ misc = require '../misc'
 
 commaSeparated = p_common.commaSeparated
 constant = p_const.constant
+SYMBOL_NAME = p_common.SYMBOL_NAME
+whitespace = p_common.whitespace
 
 #
 # parse expressions
@@ -13,22 +15,39 @@ constant = p_const.constant
 
 # { array: [] }
 arrayExpr = pr([ pr(/\[\s*/).drop(), commaSeparated(-> expression), pr(/\s*\]/).drop() ]).onMatch (m) ->
-  { array: m[0].map (x) -> x[0] }
+  { array: m[0] }
 
 # { map: [ [name, _] ] }
 mapItem = pr([ (-> expression), pr(/\s*:\s*/).drop(), (-> expression) ])
 mapExpr = pr([ pr(/\{\s*/).drop(), commaSeparated(mapItem), pr(/\s*\}/).drop() ]).onMatch (m) ->
-  { map: m[0].map (x) -> x[0] }
+  { map: m[0] }
 
-atom1 = pr.alt(constant, arrayExpr, mapExpr)
+structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m) ->
+  if m[0].length > 0
+    { name: m[0][0][0], expression: m[1] }
+  else
+    { expression: m[1] }
+
+struct = pr([ pr(/\(\s*/).drop(), commaSeparated(structMember), pr(/\s*\)/).drop() ]).onMatch (m) ->
+  # AST optimization: "(expr)" is just a precedence-bumped expression.
+  if m[0].length == 1 and (not m[0][0].name?) then return m[0][0].expression
+  { struct: m[0] }
+
+
+
+atom = pr.alt(constant, arrayExpr, mapExpr, struct)
+
+unary = pr([ pr([ pr.alt("-", "not"), whitespace ]).optional([]), atom ]).onMatch (m) ->
+  if m[0].length > 0
+    { unary: m[0][0], right: m[1] }
+  else
+    m[1]
+
+
 
 # atom1 = pr.alt(constant, (-> func), struct, (-> block))
 
 
-# unary = parser.seq(parser.string("-").drop(), atom1).onMatch (x) ->
-#   { unary: "negate", right: x[0] }
-
-# atom = atom1.or(unary)
 
 # call = atom.then(atom1.repeat().optional([])).onMatch (x) ->
 #   [ x[0] ].concat(x[1]).reduce (x, y) -> { call: x, arg: y }
@@ -61,6 +80,6 @@ atom1 = pr.alt(constant, arrayExpr, mapExpr)
 
 # expression = condition.or(comparison).onFail("Expected expression")
 
-expression = atom1
+expression = unary
 
 exports.expression = expression

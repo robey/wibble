@@ -1,7 +1,11 @@
 
+## common
+
+    SYMBOL_NAME := [a-z] [a-zA-Z0-9_]*
+
 ## constants
 
-    constant := "()" | "true" | "false" | number | string | symbol | arrayConstant | mapConstant
+    constant := "()" | "true" | "false" | number | string | symbol | opref
 
     number := numberBase2 | numberBase16 | numberBase10
 
@@ -13,9 +17,21 @@
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
-    symbol := ":"? [a-z] [a-zA-Z0-9_]*
+    symbol := ":"? SYMBOL_NAME
 
-    arrayConstant := "[" (ws* constant ws* ","?)* ws* "]"
+    opref := ":" operator
 
-    mapConstant := "{" (ws* symbol ws* ":" ws* constant ws* ","?)* ws* "}"
+## expressions
+
+    unary := ("-" | "not") atom
+
+    atom := constant | array | map | struct
+
+    array := "[" (ws* expression ws* ","?)* ws* "]"
+
+    map := "{" (ws* expression ws* ":" ws* expression ws* ","?)* ws* "}"
+
+    struct := "(" (ws* structMember ws* ","?)* ws* ")"
+
+    structMember := (SYMBOL_NAME ws* "=" ws*)? expression
 
