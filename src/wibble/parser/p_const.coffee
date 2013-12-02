@@ -4,6 +4,7 @@ p_common = require './p_common'
 misc = require '../misc'
 
 commaSeparated = p_common.commaSeparated
+OPERATORS = p_common.OPERATORS
 RESERVED = p_common.RESERVED
 SYMBOL_NAME = p_common.SYMBOL_NAME
 
@@ -44,11 +45,16 @@ cstring = pr([ pr(/"(([^"\\]|\\.)*)/).commit(), pr('"').onFail("Unterminated str
   { string: misc.uncstring(m[0][1]) }
 
 # { symbol: "" }
-symbol = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
+symbolRaw = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
   { symbol: m[0] }
 
-symbolref = pr([ pr(":").drop(), SYMBOL_NAME ]).onMatch (m) ->
+symbolRef = pr([ pr(":").drop(), SYMBOL_NAME ]).onMatch (m) ->
   { symbol: m[0][0] }
+
+symbolOpRef = pr([ pr(":").drop(), pr.alt(OPERATORS...) ]).onMatch (m) ->
+  { symbol: m[0] }
+
+symbol = pr.alt(symbolRaw, symbolRef, symbolOpRef)
 
 # { array: [] }
 arrayConst = pr([ pr(/\[\s*/).drop(), commaSeparated(-> constant), pr(/\s*\]/).drop() ]).onMatch (m) ->
@@ -59,6 +65,6 @@ mapItem = pr([ (-> constant), pr(/\s*:\s*/).drop(), (-> constant) ])
 mapConst = pr([ pr(/\{\s*/).drop(), commaSeparated(mapItem), pr(/\s*\}/).drop() ]).onMatch (m) ->
   { map: m[0].map (x) -> x[0] }
 
-constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolref, symbol, arrayConst, mapConst).onFail("Expected constant")
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbol, arrayConst, mapConst).onFail("Expected constant")
 
 exports.constant = constant

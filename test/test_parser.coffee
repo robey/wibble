@@ -1,8 +1,3 @@
-
-
-
-
-
 inspect = require('util').inspect
 should = require 'should'
 

@@ -20,12 +20,30 @@ RESERVED = [
   "def"
 ]
 
+OPERATORS = [
+  "**"
+  "*"
+  "/"
+  "%"
+  "+"
+  "-"
+  "<<"
+  ">>"
+  "=="
+  "!="
+  ">="
+  "<="
+  ">"
+  "<"
+]
+
 whitespace = pr(/\s*/).optional().drop()
 
 commaSeparated = (p) ->
   pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ])
 
 exports.commaSeparated = commaSeparated
+exports.OPERATORS = OPERATORS
 exports.RESERVED = RESERVED
 exports.SYMBOL_NAME = SYMBOL_NAME
 exports.TYPE_NAME = TYPE_NAME

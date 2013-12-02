@@ -55,6 +55,12 @@ describe "Parse", ->
       parse(":hello").should.eql(symbol: "hello")
       parse(":true").should.eql(symbol: "true")
 
+    it "opref", ->
+      parse(":+").should.eql(symbol: "+")
+      parse(":>").should.eql(symbol: ">")
+      parse(":>>").should.eql(symbol: ">>")
+      parseFailed(":?").should.match(/constant/)
+
     describe "string", ->
       it "empty", ->
         parse('""').should.eql(string: "")
