@@ -37,13 +37,17 @@ OPERATORS = [
   "<"
 ]
 
-whitespace = pr(/\s*/).optional().drop()
+# line may be continued with "\"
+linespace = pr(/([ ]+|\\\n)*/).optional().drop()
+
+whitespace = pr(/[ \n]*/).optional().drop()
 
 commaSeparated = (p) ->
   pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ]).onMatch (m) ->
     m.map (x) -> x[0]
 
 exports.commaSeparated = commaSeparated
+exports.linespace = linespace
 exports.OPERATORS = OPERATORS
 exports.RESERVED = RESERVED
 exports.SYMBOL_NAME = SYMBOL_NAME

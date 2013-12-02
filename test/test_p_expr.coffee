@@ -89,3 +89,47 @@ describe "Parse expressions", ->
     parse("not true").should.eql(unary: "not", right: { boolean: true })
     parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5" })
 
+  describe "call", ->
+    it "simple", ->
+      parse("a b").should.eql(call: { symbol: "a" }, arg: { symbol: "b" })
+      parse("3 :+").should.eql(
+        call: { number: "base10", value: "3" }
+        arg: { symbol: "+" }
+      )
+
+    it "compound", ->
+      parse("widget draw()").should.eql(
+        call:
+          call: { symbol: "widget" }
+          arg: { symbol: "draw" }
+        arg: { nothing: true }
+      )
+      parse("widget height subtract 3").should.eql(
+        call:
+          call:
+            call: { symbol: "widget" }
+            arg: { symbol: "height" }
+          arg: { symbol: "subtract" }
+        arg: { number: "base10", value: "3" }
+      )
+
+    it "with struct", ->
+      parse("b add(4, 5)").should.eql(
+        call:
+          call: { symbol: "b" }
+          arg: { symbol: "add" }
+        arg:
+          struct: [
+            { expression: { number: "base10", value: "4" } }
+            { expression: { number: "base10", value: "5" } }
+          ]
+      )
+
+    it "multi-line", ->
+      parse("a b \\\n  c").should.eql(
+        call:
+          call: { symbol: "a" }
+          arg: { symbol: "b" }
+        arg: { symbol: "c" }
+      )
+

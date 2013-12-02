@@ -6,6 +6,7 @@ misc = require '../misc'
 
 commaSeparated = p_common.commaSeparated
 constant = p_const.constant
+linespace = p_common.linespace
 SYMBOL_NAME = p_common.SYMBOL_NAME
 whitespace = p_common.whitespace
 
@@ -43,6 +44,8 @@ unary = pr([ pr([ pr.alt("-", "not"), whitespace ]).optional([]), atom ]).onMatc
   else
     m[1]
 
+call = pr([ unary, pr.repeatIgnore(linespace, atom) ]).onMatch (m) ->
+  [ m[0] ].concat(m[1]).reduce (x, y) -> { call: x, arg: y }
 
 
 # atom1 = pr.alt(constant, (-> func), struct, (-> block))
@@ -80,6 +83,6 @@ unary = pr([ pr([ pr.alt("-", "not"), whitespace ]).optional([]), atom ]).onMatc
 
 # expression = condition.or(comparison).onFail("Expected expression")
 
-expression = unary
+expression = call
 
 exports.expression = expression

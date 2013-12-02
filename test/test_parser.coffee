@@ -10,43 +10,7 @@ describe "Parse", ->
 
 
 
-    it "opref", ->
-      parse(":*").should.eql(symbol: "*")
 
-    it "struct", ->
-      parse("(x, y)").should.eql(
-        struct: [
-          { expression: { symbol: "x" } }
-          { expression: { symbol: "y" } }
-        ]
-      )
-      parse("(x=3, y = 4)").should.eql(
-        struct: [
-          { name: "x", expression: { number: "int", value: "3" } }
-          { name: "y", expression: { number: "int", value: "4" } }
-        ]
-      )
-
-    it "call", ->
-      parse("a b").should.eql(call: { symbol: "a" }, arg: { symbol: "b" })
-      parse("widget draw()").should.eql(
-        call:
-          call: { symbol: "widget" }
-          arg: { symbol: "draw" }
-        arg: { unit: true }
-      )
-      parse("widget height subtract 3").should.eql(
-        call:
-          call:
-            call: { symbol: "widget" }
-            arg: { symbol: "height" }
-          arg: { symbol: "subtract" }
-        arg: { number: "int", value: "3" }
-      )
-      parse("3 :+").should.eql(
-        call: { number: "int", value: "3" }
-        arg: { symbol: "+" }
-      )
 
     it "call with struct", ->
       parse("b add(4, 5)").should.eql(
