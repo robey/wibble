@@ -2,7 +2,6 @@ pr = require 'packrattle'
 util = require 'util'
 p_common = require './p_common'
 p_const = require './p_const'
-misc = require '../misc'
 
 commaSeparated = p_common.commaSeparated
 constant = p_const.constant
@@ -85,6 +84,5 @@ condition = pr([
     { condition: m[0], ifThen: m[1] }
 
 expression = pr.alt(condition, logical).onFail("Expected expression")
-
 
 exports.expression = expression
