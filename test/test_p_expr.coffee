@@ -9,6 +9,8 @@ test_util = require './test_util'
 parseWith = test_util.parseWith
 parseFailedWith = test_util.parseFailedWith
 
+INFO = { debugger: { info: console.log } }
+
 describe "Parse expressions", ->
   parse = (line, options) -> parseWith(p_expr.expression, line, options)
   parseFailed = (line, options) -> parseFailedWith(p_expr.expression, line, options)
@@ -88,6 +90,7 @@ describe "Parse expressions", ->
   it "unary", ->
     parse("not true").should.eql(unary: "not", right: { boolean: true })
     parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5" })
+    parse("+a").should.eql(unary: "+", right: { symbol: "a" })
 
   describe "call", ->
     it "simple", ->
@@ -132,4 +135,78 @@ describe "Parse expressions", ->
           arg: { symbol: "b" }
         arg: { symbol: "c" }
       )
+
+  describe "binary", ->
+    it "**", ->
+      parse("2 ** 3 ** 4").should.eql(
+        binary: "**"
+        left:
+          binary: "**"
+          left: { number: "base10", value: "2" }
+          right: { number: "base10", value: "3" }
+        right: { number: "base10", value: "4" }
+      )
+
+    it "* / %", ->
+      parse("a * b / c % d").should.eql(
+        binary: "%"
+        left:
+          binary: "/"
+          left:
+            binary: "*"
+            left: { symbol: "a" }
+            right: { symbol: "b" }
+          right: { symbol: "c" }
+        right: { symbol: "d" }
+      )
+
+    it "+ -", ->
+      parse("a + b - c").should.eql(
+        binary: "-"
+        left:
+          binary: "+"
+          left: { symbol: "a" }
+          right: { symbol: "b" }
+        right: { symbol: "c" }
+      )
+
+    it "* vs + precedence", ->
+      parse("a + b * c + d").should.eql(
+        binary: "+"
+        left:
+          binary: "+"
+          left: { symbol: "a" }
+          right:
+            binary: "*"
+            left: { symbol: "b" }
+            right: { symbol: "c" }
+        right: { symbol: "d" }
+      )
+
+    it "+ == and precedence", ->
+      parse("a and b + c == d").should.eql(
+        binary: "and"
+        left: { symbol: "a" }
+        right:
+          binary: "=="
+          left:
+            binary: "+"
+            left: { symbol: "b" }
+            right: { symbol: "c" }
+          right: { symbol: "d" }
+      )
+      
+    it "can span multiple lines", ->
+      parse("3 + \\\n 4").should.eql(
+        binary: "+"
+        left: { number: "base10", value: "3" }
+        right: { number: "base10", value: "4" }
+      )
+
+
+
+
+
+
+
 

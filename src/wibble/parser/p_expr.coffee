@@ -38,7 +38,7 @@ struct = pr([ pr(/\(\s*/).drop(), commaSeparated(structMember), pr(/\s*\)/).drop
 
 atom = pr.alt(constant, arrayExpr, mapExpr, struct)
 
-unary = pr([ pr([ pr.alt("-", "not"), whitespace ]).optional([]), atom ]).onMatch (m) ->
+unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).onMatch (m) ->
   if m[0].length > 0
     { unary: m[0][0], right: m[1] }
   else
@@ -47,28 +47,24 @@ unary = pr([ pr([ pr.alt("-", "not"), whitespace ]).optional([]), atom ]).onMatc
 call = pr([ unary, pr.repeatIgnore(linespace, atom) ]).onMatch (m) ->
   [ m[0] ].concat(m[1]).reduce (x, y) -> { call: x, arg: y }
 
+# helper
+binary = (subexpr, op) ->
+  sep = pr([ linespace, op, linespace ]).onMatch (m) -> m[0]
+  pr.reduce(subexpr, sep, accumulator=((x) -> x), reducer=((left, op, right) -> { binary: op, left: left, right: right }))
+
+power = binary(call, "**")
+factor = binary(power, pr.alt("*", "/", "%"))
+term = binary(factor, pr.alt("+", "-"))
+shifty = binary(term, pr.alt("<<", ">>"))
+comparison = binary(shifty, pr.alt("==", ">=", "<=", "!=", "<", ">"))
+logical = binary(comparison, pr.alt("and", "or"))
 
 # atom1 = pr.alt(constant, (-> func), struct, (-> block))
 
 
 
-# call = atom.then(atom1.repeat().optional([])).onMatch (x) ->
-#   [ x[0] ].concat(x[1]).reduce (x, y) -> { call: x, arg: y }
 
-# # helper
-# binary = (subexpr, op) ->
-#   parser.reduce(
-#     tail: subexpr
-#     sep: parser.implicit(op)
-#     accumulator: (x) -> x
-#     fold: (left, op, right) -> { binary: op, left: left, right: right }
-#   )
 
-# power = binary(call, "**")
-# factor = binary(power, parser.string("*").or("/").or("%"))
-# term = binary(factor, parser.string("+").or("-"))
-# shifty = binary(term, parser.string("<<").or(">>"))
-# comparison = binary(shifty, parser.string("==").or(">=").or("<=").or("!=").or("<").or(">").or("is").or("is not"))
 # condition = parser.seq(
 #   parser.drop("if")
 #   -> expression
@@ -83,6 +79,6 @@ call = pr([ unary, pr.repeatIgnore(linespace, atom) ]).onMatch (m) ->
 
 # expression = condition.or(comparison).onFail("Expected expression")
 
-expression = call
+expression = logical
 
 exports.expression = expression

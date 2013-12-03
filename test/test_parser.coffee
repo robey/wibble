@@ -12,57 +12,7 @@ describe "Parse", ->
 
 
 
-    it "call with struct", ->
-      parse("b add(4, 5)").should.eql(
-        call:
-          call: { symbol: "b" }
-          arg: { symbol: "add" }
-        arg:
-          struct: [
-            { expression: { number: "int", value: "4" } }
-            { expression: { number: "int", value: "5" } }
-          ]
-      )
 
-    it "**", ->
-      parse("2 ** 3 ** 4").should.eql(
-        binary: "**"
-        left:
-          binary: "**"
-          left: { number: "int", value: "2" }
-          right: { number: "int", value: "3" }
-        right: { number: "int", value: "4" }
-      )
-
-    it "* /", ->
-      parse("a * b / c").should.eql(
-        binary: "/"
-        left:
-          binary: "*"
-          left: { symbol: "a" }
-          right: { symbol: "b" }
-        right: { symbol: "c" }
-      )
-
-    it "* vs + precedence", ->
-      parse("a + b * c + d").should.eql(
-        binary: "+"
-        left:
-          binary: "+"
-          left: { symbol: "a" }
-          right:
-            binary: "*"
-            left: { symbol: "b" }
-            right: { symbol: "c" }
-        right: { symbol: "d" }
-      )
-
-    it "can span multiple lines", ->
-      parse("3 + \\\n 4").should.eql(
-        binary: "+"
-        left: { number: "int", value: "3" }
-        right: { number: "int", value: "4" }
-      )
 
     it "if", ->
       parse("if x < 0 then x").should.eql(
