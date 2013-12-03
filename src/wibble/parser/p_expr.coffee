@@ -34,11 +34,10 @@ struct = pr([ pr(/\(\s*/).drop(), commaSeparated(structMember), pr(/\s*\)/).drop
   if m[0].length == 1 and (not m[0][0].name?) then return m[0][0].expression
   { struct: m[0] }
 
+# FIXME: func, block
+atom = pr.alt(constant, arrayExpr, mapExpr, struct).describe("atom")
 
-
-atom = pr.alt(constant, arrayExpr, mapExpr, struct)
-
-unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).onMatch (m) ->
+unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m) ->
   if m[0].length > 0
     { unary: m[0][0], right: m[1] }
   else
@@ -49,8 +48,14 @@ call = pr([ unary, pr.repeatIgnore(linespace, atom) ]).onMatch (m) ->
 
 # helper
 binary = (subexpr, op) ->
+  op = pr(op)
   sep = pr([ linespace, op, linespace ]).onMatch (m) -> m[0]
-  pr.reduce(subexpr, sep, accumulator=((x) -> x), reducer=((left, op, right) -> { binary: op, left: left, right: right }))
+  pr.reduce(
+    subexpr,
+    sep,
+    accumulator=((x) -> x),
+    reducer=((left, op, right) -> { binary: op, left: left, right: right })
+  ).describe("binary(#{op.message()})")
 
 power = binary(call, "**")
 factor = binary(power, pr.alt("*", "/", "%"))
@@ -59,26 +64,27 @@ shifty = binary(term, pr.alt("<<", ">>"))
 comparison = binary(shifty, pr.alt("==", ">=", "<=", "!=", "<", ">"))
 logical = binary(comparison, pr.alt("and", "or"))
 
-# atom1 = pr.alt(constant, (-> func), struct, (-> block))
+condition = pr([
+  pr("if").drop()
+  linespace
+  -> expression
+  linespace
+  pr("then").drop()
+  linespace
+  -> expression
+  pr([
+    linespace
+    pr("else").drop()
+    linespace
+    -> expression
+  ]).optional([])
+]).describe("condition").onMatch (m) ->
+  if m[2].length > 0
+    { condition: m[0], ifThen: m[1], ifElse: m[2][0] }
+  else
+    { condition: m[0], ifThen: m[1] }
 
+expression = pr.alt(condition, logical).onFail("Expected expression")
 
-
-
-
-# condition = parser.seq(
-#   parser.drop("if")
-#   -> expression
-#   parser.drop("then")
-#   -> expression
-#   parser.optional([ parser.drop("else"), -> expression ], [])
-# ).onMatch (x) ->
-#   if x[2].length > 0
-#     { condition: x[0], ifThen: x[1], ifElse: x[2][0] }
-#   else
-#     { condition: x[0], ifThen: x[1] }
-
-# expression = condition.or(comparison).onFail("Expected expression")
-
-expression = logical
 
 exports.expression = expression

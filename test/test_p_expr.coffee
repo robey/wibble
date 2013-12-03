@@ -183,7 +183,7 @@ describe "Parse expressions", ->
         right: { symbol: "d" }
       )
 
-    it "+ == and precedence", ->
+    it "+, ==, and precedence", ->
       parse("a and b + c == d").should.eql(
         binary: "and"
         left: { symbol: "a" }
@@ -195,7 +195,7 @@ describe "Parse expressions", ->
             right: { symbol: "c" }
           right: { symbol: "d" }
       )
-      
+
     it "can span multiple lines", ->
       parse("3 + \\\n 4").should.eql(
         binary: "+"
@@ -203,7 +203,47 @@ describe "Parse expressions", ->
         right: { number: "base10", value: "4" }
       )
 
+  describe "if", ->
+    it "if _ then _", ->
+      parse("if x < 0 then x").should.eql(
+        condition:
+          binary: "<"
+          left: { symbol: "x" }
+          right: { number: "base10", value: "0" }
+        ifThen: { symbol: "x" }
+      )
 
+    it "if _ then _ else _", ->
+      parse("if x < 0 then -x else x").should.eql(
+        condition:
+          binary: "<"
+          left: { symbol: "x" }
+          right: { number: "base10", value: "0" }
+        ifThen:
+          unary: "-"
+          right: { symbol: "x" }
+        ifElse: { symbol: "x" }
+      )
+
+    # it "if {block} then _ else _", ->
+    #   parse("if { 3; true } then 1 else 2").should.eql(
+    #     condition:
+    #       code: [
+    #         { number: "base10", value: "3" }
+    #         { boolean: true }
+    #       ]
+    #     ifThen: { number: "base10", value: "1" }
+    #     ifElse: { number: "base10", value: "2" }
+    #   )
+
+    it "nested", ->
+      parse("if a then (if b then 3) else 9").should.eql(
+        condition: { symbol: "a" }
+        ifThen:
+          condition: { symbol: "b" }
+          ifThen: { number: "base10", value: "3" }
+        ifElse: { number: "base10", value: "9" }
+      )
 
 
 

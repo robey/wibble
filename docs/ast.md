@@ -16,4 +16,6 @@
     { struct: [ { name?, expression: expr }* ] }
     { unary: "-"/"not", right: expr }
     { call: expr, arg: expr }
+    { binary: (op), left: expr, right: expr }
+    { condition: expr, ifThen: expr, ifElse: expr }
     

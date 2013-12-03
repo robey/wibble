@@ -23,6 +23,22 @@
 
 ## expressions
 
+    expression := condition | logical
+
+    condition := "if" ws* expression ws* "then" ws* expression (ws* "else" ws* expression)?
+
+    logical := comparison (("and" | "or") comparison)*
+
+    comparison := shifty (("==" | ">=" | "<=" | "!=" | "<" | ">") shifty)*
+
+    shifty := term (("<<" | ">>") term)*
+
+    term := factor (("+" | "-") factor)*
+
+    factor := power (("*" | "/" | "%") power)*
+
+    power := call ("**" call)*
+
     call := unary (ws* atom)*
 
     unary := ("-" | "not") atom
