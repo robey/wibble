@@ -45,6 +45,11 @@ dump = (expr) ->
     return [ parenthesize(expr.call, PRECEDENCE.call + 1) + " " + parenthesize(expr.arg, PRECEDENCE.call), PRECEDENCE.call ]
   if expr.binary?
     return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE.binary ]
+  if expr.condition?
+    condition = parenthesize(expr.condition, PRECEDENCE.ifThen)
+    ifThen = parenthesize(expr.ifThen, PRECEDENCE.ifThen)
+    ifElse = if expr.ifElse then parenthesize(expr.ifElse, PRECEDENCE.ifThen) else null
+    return [ "if #{condition} then #{ifThen}" + (if ifElse then " else #{ifElse}" else ""), PRECEDENCE.ifThen ]
   "???"
 
 parenthesize = (expr, myPrecedence) ->
@@ -55,10 +60,6 @@ parenthesize = (expr, myPrecedence) ->
     # { array: [ expr* ] }
     # { map: [ [ expr, expr ]* ] }
     # { struct: [ { name?, expression: expr }* ] }
-    # { unary: "-"/"not", right: expr }
-    # { call: expr, arg: expr }
-    # { binary: (op), left: expr, right: expr }
-    # { condition: expr, ifThen: expr, ifElse: expr }
 
 exports.dumpExpr = dumpExpr
 
@@ -71,15 +72,6 @@ exports.dumpExpr = dumpExpr
 #       else
 #         dumpExpr(field.expression)
 #     return "(" + fields.join(", ") + ")"
-#   if expr.call?
-#     return "(" + dumpExpr(expr.call) + " " + dumpExpr(expr.arg) + ")"
-#   if expr.unary?
-#     return expr.unary + "(" + dumpExpr(expr.right) + ")"
-#   if expr.binary?
-#     return "(" + dumpExpr(expr.left) + " " + expr.binary + " " + dumpExpr(expr.right) + ")"
-#   if expr.condition?
-#     return "(if " + dumpExpr(expr.condition) + " then " + dumpExpr(expr.ifThen) +
-#       (if (expr.ifElse) then (" else " + dumpExpr(expr.ifElse)) else "")
 #   if expr.code?
 #     return "{ " + (dumpExpr(e) for e in expr.code).join("; ") + " }"
 #   if expr.local?

@@ -5,6 +5,7 @@ util = require 'util'
 # 'transform(obj)'. for the rest, leave them alone. for all objects, nested
 # expressions are recursively dug.
 digExpr = (expr, match, transform) ->
+  if not expr? then return expr
   dig = (x) -> digExpr(x, match, transform)
   if match(expr) then expr = transform(expr)
   if expr.array? then return { array: expr.array.map(dig) }
@@ -13,6 +14,7 @@ digExpr = (expr, match, transform) ->
   if expr.unary? then return { unary: expr.unary, right: dig(expr.right) }
   if expr.call? then return { call: dig(expr.call), arg: dig(expr.arg) }
   if expr.binary? then return { binary: expr.binary, left: dig(expr.left), right: dig(expr.right) }
+  if expr.condition? then return { condition: dig(expr.condition), ifThen: dig(expr.ifThen), ifElse: dig(expr.ifElse) }
   expr
 
     # { array: [ expr* ] }
@@ -52,20 +54,7 @@ exports.transformExpr = transformExpr
 #     fields = for field in expr.struct
 #       { name: field.name, expression: dig(field.expression, match, transform) }
 #     { struct: fields }
-#   else if expr.call?
-#     { call: dig(expr.call, match, transform), arg: dig(expr.arg, match, transform) }
-#   else if expr.unary?
-#     right = dig(expr.right, match, transform)
-#     { unary: expr.unary, right: right }
-#   else if expr.binary?
-#     left = dig(expr.left, match, transform)
-#     right = dig(expr.right, match, transform)
-#     { binary: expr.binary, left: left, right: right }
-#   else if expr.condition?
-#     cond = dig(expr.condition, match, transform)
-#     ifThen = dig(expr.ifThen, match, transform)
-#     ifElse = if expr.ifElse? then dig(expr.ifElse, match, transform) else undefined
-#     { condition: cond, ifThen: ifThen, ifElse: ifElse }
+
 #   else if expr.code?
 #     { code: expr.code.map((x) -> dig(x, match, transform)) }
 #   else if expr.local?

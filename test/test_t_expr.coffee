@@ -27,3 +27,4 @@ describe "Transform expressions", ->
 
     it "nested", ->
       infix("45 * -9").should.eql("45 :* (9 negative ())")
+      infix("if 3 + 5 < 12 then ok").should.eql("if 3 :+ 5 :< 12 then ok")
