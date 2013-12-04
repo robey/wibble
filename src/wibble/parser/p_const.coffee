@@ -36,9 +36,9 @@ checkBase = (content, regex, name, errorMessage) ->
 number = pr(/-?[0-9]+(\.[0-9]+)?(L?)/).onMatch (m) ->
   hasDot = m[0].indexOf(".") >= 0
   if m[2] == "L"
-    { number: (if hasDot then "long-real" else "long-base10"), value: m[0].slice(0, m[0].length - 1) }
+    { number: (if hasDot then "long-float" else "long-base10"), value: m[0].slice(0, m[0].length - 1) }
   else
-    { number: (if hasDot then "real" else "base10"), value: m[0] }
+    { number: (if hasDot then "float" else "base10"), value: m[0] }
 
 # { string: "" }
 cstring = pr([ pr(/"(([^"\\]|\\.)*)/).commit(), pr('"').onFail("Unterminated string") ]).onMatch (m) ->

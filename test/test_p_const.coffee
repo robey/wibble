@@ -19,9 +19,9 @@ describe "Parse constants", ->
     parse("-919").should.eql(number: "base10", value: "-919")
     parse("12345L").should.eql(number: "long-base10", value: "12345")
 
-  it "real", ->
-    parse("1.2").should.eql(number: "real", value: "1.2")
-    parse("-500.2L").should.eql(number: "long-real", value: "-500.2")
+  it "float", ->
+    parse("1.2").should.eql(number: "float", value: "1.2")
+    parse("-500.2L").should.eql(number: "long-float", value: "-500.2")
 
   it "hex", ->
     parse("0x9").should.eql(number: "base16", value: "9")
@@ -70,6 +70,7 @@ describe "Parse constants", ->
       parseFailed('"\\u99"').should.match(/Illegal/)
       parseFailed('"\\ucats"').should.match(/Illegal/)
       parse('"what\\u2022?"').should.eql(string: "what\u2022?")
+      parse('"what\\nup\\rup"').should.eql(string: "what\nup\rup")
 
     it "unterminated", ->
       parseFailed('"hello').should.match(/Unterminated string/)
