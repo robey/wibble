@@ -14,34 +14,6 @@ describe "Parse", ->
 
 
 
-    it "if", ->
-      parse("if x < 0 then x").should.eql(
-        condition:
-          binary: "<"
-          left: { symbol: "x" }
-          right: { number: "int", value: "0" }
-        ifThen: { symbol: "x" }
-      )
-      parse("if x < 0 then -x else x").should.eql(
-        condition:
-          binary: "<"
-          left: { symbol: "x" }
-          right: { number: "int", value: "0" }
-        ifThen:
-          unary: "negate"
-          right: { symbol: "x" }
-        ifElse: { symbol: "x" }
-      )
-      parse("if { 3; true } then 1 else 2").should.eql(
-        condition:
-          code: [
-            { number: "int", value: "3" }
-            { boolean: true }
-          ]
-        ifThen: { number: "int", value: "1" }
-        ifElse: { number: "int", value: "2" }
-      )
-
     it "an anonymous function in block", ->
       parse("(x: Int, y: Int) -> { x * x + y * y }").should.eql(
         params: [
