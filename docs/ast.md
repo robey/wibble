@@ -1,6 +1,8 @@
 
 # things that can be in the AST
 
+X = eliminated by transformations
+
 ## constants
 
     { nothing: true }
@@ -14,8 +16,7 @@
     { array: [ expr* ] }
     { map: [ [ expr, expr ]* ] }
     { struct: [ { name?, expression: expr }* ] }
-    { unary: "+"/"-"/"not", right: expr }
+    X: { unary: "+"/"-"/"not", right: expr }
     { call: expr, arg: expr }
-    { binary: (op), left: expr, right: expr }
+    X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
-    
