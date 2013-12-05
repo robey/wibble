@@ -48,14 +48,15 @@ cstring = pr([ pr(/"(([^"\\]|\\.)*)/).commit(), pr('"').onFail("Unterminated str
 symbolRaw = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
   { symbol: m[0] }
 
-symbolRef = pr([ pr(":").drop(), SYMBOL_NAME ]).onMatch (m) ->
-  { symbol: m[0][0] }
-
-symbolOpRef = pr([ pr(":").drop(), pr.alt(OPERATORS...) ]).onMatch (m) ->
+symbolRef = pr([
+  pr("'").commit().drop()
+  pr.alt(
+    pr(SYMBOL_NAME).onMatch((m) -> m[0]),
+    OPERATORS...
+  ).onFail("Invalid symbol name after '")
+]).onMatch (m) ->
   { symbol: m[0] }
 
-symbol = pr.alt(symbolRaw, symbolRef, symbolOpRef)
-
-constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbol).onFail("Expected constant")
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRaw, symbolRef).onFail("Expected constant")
 
 exports.constant = constant

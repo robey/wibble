@@ -9,8 +9,6 @@ test_util = require './test_util'
 parseWith = test_util.parseWith
 parseFailedWith = test_util.parseFailedWith
 
-INFO = { debugger: { info: console.log } }
-
 describe "Parse expressions", ->
   parse = (line, options) -> parseWith(p_expr.expression, line, options)
   parseFailed = (line, options) -> parseFailedWith(p_expr.expression, line, options)
@@ -95,7 +93,7 @@ describe "Parse expressions", ->
   describe "call", ->
     it "simple", ->
       parse("a b").should.eql(call: { symbol: "a" }, arg: { symbol: "b" })
-      parse("3 :+").should.eql(
+      parse("3 '+").should.eql(
         call: { number: "base10", value: "3" }
         arg: { symbol: "+" }
       )

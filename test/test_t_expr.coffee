@@ -18,13 +18,13 @@ describe "Transform expressions", ->
     infix = (line, options) -> d_expr.dumpExpr(t_expr.flattenInfix(parse(line, options)))
 
     it "binary", ->
-      infix("3 + 4").should.eql("3 :+ 4")
-      infix("a + b * c + d").should.eql("a :+ (b :* c) :+ d")
-      infix("a + b * (c + d)").should.eql("a :+ (b :* (c :+ d))")
+      infix("3 + 4").should.eql("3 '+ 4")
+      infix("a + b * c + d").should.eql("a '+ (b '* c) '+ d")
+      infix("a + b * (c + d)").should.eql("a '+ (b '* (c '+ d))")
 
     it "unary", ->
       infix("not a").should.eql("a not ()")
 
     it "nested", ->
-      infix("45 * -9").should.eql("45 :* (9 negative ())")
-      infix("if 3 + 5 < 12 then ok").should.eql("if 3 :+ 5 :< 12 then ok")
+      infix("45 * -9").should.eql("45 '* (9 negative ())")
+      infix("if 3 + 5 < 12 then ok").should.eql("if 3 '+ 5 '< 12 then ok")

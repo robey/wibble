@@ -64,13 +64,30 @@ PRECEDENCE =
 # line may be continued with "\"
 linespace = pr(/([ ]+|\\\n)*/).optional().drop()
 
-whitespace = pr(/[ \n]*/).optional().drop()
+# linefeed is acceptable whitespace here
+whitespace = pr(/([ \n]+|\\\n)*/).optional().drop()
 
+# repeat 'p' with optional whitespace around it, separated by commas, with a trailing comma OK
 commaSeparated = (p) ->
   pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ]).onMatch (m) ->
     m.map (x) -> x[0]
 
+# same as commaSeparated, but with a surrounding group syntax like [ ]
+commaSeparatedSurrounded = (open, p, close, message) ->
+  pr([ pr(open).commit().drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).commit().drop() ]).onMatch (m) -> m[0]
+
+# repeat 'p' separated by linefeeds or ; inside { }
+blockOf = (p) ->
+  pr([
+    pr("{").commit().drop()
+    pr.repeatSeparated(pr([ whitespace, p, whitespace ]).onMatch((m) -> m[0]), /[\n;]/, 0)
+    pr("}").commit().drop()
+  ])
+
+
+exports.blockOf = blockOf
 exports.commaSeparated = commaSeparated
+exports.commaSeparatedSurrounded = commaSeparatedSurrounded
 exports.linespace = linespace
 exports.OPERATORS = OPERATORS
 exports.PRECEDENCE = PRECEDENCE

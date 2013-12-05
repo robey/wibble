@@ -31,14 +31,20 @@ dump = (expr) ->
     return [ rv, PRECEDENCE.constant ]
   if expr.symbol?
     if RESERVED.indexOf(expr.symbol) >= 0 or OPERATORS.indexOf(expr.symbol) >= 0
-      return [ ":#{expr.symbol}", PRECEDENCE.constant ]
+      return [ "'#{expr.symbol}", PRECEDENCE.constant ]
     else
       return [ expr.symbol, PRECEDENCE.constant ]
   if expr.string?
     return [ "\"" + misc.cstring(expr.string) + "\"", PRECEDENCE.constant ]
-
-  # array/map/struct: PRECEDENCE.atom
-
+  if expr.array?
+    if expr.array.length == 0 then return [ "[]", PRECEDENCE.atom ]
+    return [ "[ " + expr.array.map(dumpExpr).join(", ") + " ]", PRECEDENCE.atom ]
+  if expr.map?
+    return [ "{ " + expr.map.map(([ key, value ]) -> dumpExpr(key) + ": " + dumpExpr(value)).join(", ") + " }", PRECEDENCE.atom ]
+  if expr.struct?
+    items = expr.struct.map (item) ->
+      (if item.name? then "#{item.name} = " else "") + dumpExpr(item.expression)
+    return [ "(" + items.join(", ") + ")", PRECEDENCE.atom ]
   if expr.unary?
     return [ expr.unary + parenthesize(expr.right, PRECEDENCE.unary), PRECEDENCE.unary ]
   if expr.call?
@@ -50,28 +56,16 @@ dump = (expr) ->
     ifThen = parenthesize(expr.ifThen, PRECEDENCE.ifThen)
     ifElse = if expr.ifElse then parenthesize(expr.ifElse, PRECEDENCE.ifThen) else null
     return [ "if #{condition} then #{ifThen}" + (if ifElse then " else #{ifElse}" else ""), PRECEDENCE.ifThen ]
-  "???"
+  "???(#{util.inspect(expr)})"
 
 parenthesize = (expr, myPrecedence) ->
   [ rv, p ] = dump(expr)
   if p >= myPrecedence then "(#{rv})" else rv
 
-  # expressions
-    # { array: [ expr* ] }
-    # { map: [ [ expr, expr ]* ] }
-    # { struct: [ { name?, expression: expr }* ] }
-
 exports.dumpExpr = dumpExpr
 
 # # build a simple string representation of a parsed expression
 # dumpExpr = (expr) ->
-#   if expr.struct?
-#     fields = for field in expr.struct
-#       if field.name?
-#         field.name + " = " + dumpExpr(field.expression)
-#       else
-#         dumpExpr(field.expression)
-#     return "(" + fields.join(", ") + ")"
 #   if expr.code?
 #     return "{ " + (dumpExpr(e) for e in expr.code).join("; ") + " }"
 #   if expr.local?
@@ -91,4 +85,3 @@ exports.dumpExpr = dumpExpr
 #       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
 #     codes = for x in expr.body then dumpExpr(x)
 #     return "prototype " + expr.proto + "(" + params.join(", ") + ") { " + codes.join("; ") + " }"
-#   "???" + inspect(expr)

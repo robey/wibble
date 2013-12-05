@@ -17,9 +17,9 @@
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
-    symbol := ":"? SYMBOL_NAME
+    symbol := "'"? SYMBOL_NAME
 
-    opref := ":" operator
+    opref := "'" operator
 
 ## expressions
 

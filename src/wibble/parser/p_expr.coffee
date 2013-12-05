@@ -4,6 +4,7 @@ p_common = require './p_common'
 p_const = require './p_const'
 
 commaSeparated = p_common.commaSeparated
+commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 constant = p_const.constant
 linespace = p_common.linespace
 SYMBOL_NAME = p_common.SYMBOL_NAME
@@ -14,13 +15,13 @@ whitespace = p_common.whitespace
 #
 
 # { array: [] }
-arrayExpr = pr([ pr(/\[\s*/).drop(), commaSeparated(-> expression), pr(/\s*\]/).drop() ]).onMatch (m) ->
-  { array: m[0] }
+arrayExpr = commaSeparatedSurrounded("[", (-> expression), "]", "Expected array item").onMatch (m) ->
+  { array: m }
 
 # { map: [ [name, _] ] }
 mapItem = pr([ (-> expression), pr(/\s*:\s*/).drop(), (-> expression) ])
-mapExpr = pr([ pr(/\{\s*/).drop(), commaSeparated(mapItem), pr(/\s*\}/).drop() ]).onMatch (m) ->
-  { map: m[0] }
+mapExpr = commaSeparatedSurrounded("{", mapItem, "}", "Expected map item").onMatch (m) ->
+  { map: m }
 
 structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m) ->
   if m[0].length > 0
@@ -28,10 +29,10 @@ structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> 
   else
     { expression: m[1] }
 
-struct = pr([ pr(/\(\s*/).drop(), commaSeparated(structMember), pr(/\s*\)/).drop() ]).onMatch (m) ->
+struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item").onMatch (m) ->
   # AST optimization: "(expr)" is just a precedence-bumped expression.
-  if m[0].length == 1 and (not m[0][0].name?) then return m[0][0].expression
-  { struct: m[0] }
+  if m.length == 1 and (not m[0].name?) then return m[0].expression
+  { struct: m }
 
 # FIXME: func, block
 atom = pr.alt(constant, arrayExpr, mapExpr, struct).describe("atom")

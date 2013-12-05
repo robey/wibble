@@ -6,12 +6,9 @@ wibble = "../lib/wibble"
 p_const = require "#{wibble}/parser/p_const"
 test_util = require './test_util'
 
-parseWith = test_util.parseWith
-parseFailedWith = test_util.parseFailedWith
-
 describe "Parse constants", ->
-  parse = (line, options) -> parseWith(p_const.constant, line, options)
-  parseFailed = (line, options) -> parseFailedWith(p_const.constant, line, options)
+  parse = (line, options) -> test_util.parseWith(p_const.constant, line, options)
+  parseFailed = (line, options) -> test_util.parseFailedWith(p_const.constant, line, options)
 
   it "int", ->
     parse("23").should.eql(number: "base10", value: "23")
@@ -46,14 +43,14 @@ describe "Parse constants", ->
     parse("a3").should.eql(symbol: "a3")
 
   it "symbolref", ->
-    parse(":hello").should.eql(symbol: "hello")
-    parse(":true").should.eql(symbol: "true")
+    parse("'hello").should.eql(symbol: "hello")
+    parse("'true").should.eql(symbol: "true")
 
   it "opref", ->
-    parse(":+").should.eql(symbol: "+")
-    parse(":>").should.eql(symbol: ">")
-    parse(":>>").should.eql(symbol: ">>")
-    parseFailed(":?").should.match(/constant/)
+    parse("'+").should.eql(symbol: "+")
+    parse("'>").should.eql(symbol: ">")
+    parse("'>>").should.eql(symbol: ">>")
+    parseFailed("'?").should.match(/Invalid symbol/)
 
   describe "string", ->
     it "empty", ->
