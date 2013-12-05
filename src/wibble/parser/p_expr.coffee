@@ -65,16 +65,16 @@ comparison = binary(shifty, pr.alt("==", ">=", "<=", "!=", "<", ">"))
 logical = binary(comparison, pr.alt("and", "or"))
 
 condition = pr([
-  pr("if").drop()
+  pr("if").commit().drop()
   linespace
   -> expression
   linespace
-  pr("then").drop()
+  pr("then").commit().drop()
   linespace
   -> expression
   pr([
     linespace
-    pr("else").drop()
+    pr("else").commit().drop()
     linespace
     -> expression
   ]).optional([])

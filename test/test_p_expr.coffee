@@ -36,6 +36,9 @@ describe "Parse expressions", ->
     it "multi-line", ->
       parse("[\n  true\n  false\n]").should.eql(array: [ { boolean: true }, { boolean: false } ])
 
+    it "failing", ->
+      parseFailed("[ ??? ]").should.match(/Expected array/)
+
   describe "map", ->
     it "empty", ->
       parse("{}").should.eql(map: [])
@@ -65,6 +68,10 @@ describe "Parse expressions", ->
         [ { string: "b" }, { boolean: false } ]
       ])
 
+    it "failing", ->
+      parseFailed("{ ??? }").should.match(/Expected map/)
+      parseFailed("{ 3: ??? }").should.match(/Expected map/)
+
   describe "struct", ->
     it "without names", ->
       parse("(x, y)").should.eql(
@@ -84,6 +91,10 @@ describe "Parse expressions", ->
 
     it "single-valued", ->
       parse("(true)").should.eql(boolean: true)
+
+    it "failing", ->
+      parseFailed("(???)").should.match(/Expected struct/)
+      parseFailed("(x = ???)").should.match(/Expected struct/)
 
   it "unary", ->
     parse("not true").should.eql(unary: "not", right: { boolean: true })
@@ -243,7 +254,10 @@ describe "Parse expressions", ->
         ifElse: { number: "base10", value: "9" }
       )
 
-
+    it "failing", ->
+      parseFailed("if ???").should.match(/Expected expression/)
+      parseFailed("if 3 then ???").should.match(/Expected expression/)
+      parseFailed("if 3 then 3 else ???").should.match(/Expected expression/)
 
 
 
