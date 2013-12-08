@@ -1,11 +1,13 @@
 pr = require 'packrattle'
 util = require 'util'
+p_code = require './p_code'
 p_common = require './p_common'
 p_const = require './p_const'
 
 commaSeparated = p_common.commaSeparated
 commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 constant = p_const.constant
+functionx = -> p_code.functionx
 linespace = p_common.linespace
 SYMBOL_NAME = p_common.SYMBOL_NAME
 whitespace = p_common.whitespace
@@ -35,7 +37,7 @@ struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item"
   { struct: m }
 
 # FIXME: func, block
-atom = pr.alt(constant, arrayExpr, mapExpr, struct).describe("atom")
+atom = pr.alt(constant, arrayExpr, mapExpr, struct, functionx).describe("atom")
 
 unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m) ->
   if m[0].length > 0
@@ -85,5 +87,6 @@ condition = pr([
     { condition: m[0], ifThen: m[1] }
 
 expression = pr.alt(condition, logical).onFail("Expected expression")
+
 
 exports.expression = expression

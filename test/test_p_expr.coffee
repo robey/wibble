@@ -1,4 +1,3 @@
-packrattle = require 'packrattle'
 should = require 'should'
 util = require 'util'
 
