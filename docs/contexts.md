@@ -326,6 +326,46 @@ the $A, $B are just blanks, like in mad-libs, for filling in the actual type
 later.
 
 
+# symbols
+
+santa clara -- 6 dec 2013
+
+i'm going to have to give up on using bare words as symbols. it's too
+confusing to have a bare word mean "maybe a symbol, or maybe a reference to a
+local variable or something from another scope".
+
+i see two possible solutions:
+
+1. prefix all variable references with a piece of linenoise. for example,
+"$global", "^local", "@field".
+
+2. prefix symbols with linenoise.
+
+if i do neither, then the following code would do something unexpected:
+
+    val contains = 4
+    s contains "cat"
+
+in the best case, it would give a compile-time error about 's' being unable to
+receive an int. but probably "string(int)" would return the character at that
+position, so it would be an error about the character (string) being unable to
+receive another string. a worse case would be if 's' were actually a
+collection of functions, or something else able to receive a string.
+
+prefixing variable references seems like it would make code too messy.
+
+    val ^area = ^r * ^r * $PI
+
+i've already played around with changing the symbol prefix (for operators)
+from ':' to a single quote ('), and that looked okay, i think. what if i
+changed it to dot ('.') and made it mandatory?
+
+    s .contains "cat"
+
+it can mimic the normal "x.foo" syntax, then, which is pretty cool. i could
+probably make an exception for symbols that are unambiguous, though rus has
+convinced me that this type of infix code isn't really that useful. it matters
+more for operators, which i already have a solution for.
 
 
 
