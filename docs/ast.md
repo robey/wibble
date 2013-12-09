@@ -20,3 +20,16 @@ X = eliminated by transformations
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
+
+## types
+
+    { type: string }
+    { namedType: type, name: string }
+    { compoundType: type* }
+    { functionType: type, argType: type }
+    { templateType: string, parameters: type* }
+
+## code
+
+    { local, value: expr }
+    { functionx: expr, parameters: { name, type, value: expr }* }

@@ -14,7 +14,7 @@ TYPE_NAME = p_common.TYPE_NAME
 simpleType = pr.alt("@", pr(TYPE_NAME).onMatch((m) -> m[0])).onMatch (m) ->
   { type: m }
 
-namedType = pr([ pr([ SYMBOL_NAME, pr(":").drop(), linespace ]).optional([]), (-> typedecl) ]).onMatch (m) ->
+namedType = pr([ pr([ SYMBOL_NAME, linespace, pr(":").drop(), linespace ]).optional([]), (-> typedecl) ]).onMatch (m) ->
   if m[0].length > 0
     { namedType: m[1], name: m[0][0][0] }
   else
