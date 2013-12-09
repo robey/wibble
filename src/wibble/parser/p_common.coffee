@@ -76,13 +76,19 @@ commaSeparated = (p) ->
 commaSeparatedSurrounded = (open, p, close, message) ->
   pr([ pr(open).commit().drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).commit().drop() ]).onMatch (m) -> m[0]
 
+lineSeparated = (p) ->
+  pr.repeat([ whitespace, p, whitespace, pr(/[\n;]/).optional().drop() ]).onMatch (m) ->
+    m.map (x) -> x[0]
+
 # repeat 'p' separated by linefeeds or ; inside { }
 blockOf = (p) ->
   pr([
     pr("{").commit().drop()
-    pr.repeatSeparated(pr([ whitespace, p, whitespace ]).onMatch((m) -> m[0]), /[\n;]/, 0)
+    whitespace
+    lineSeparated(p).optional([])
+    whitespace
     pr("}").commit().drop()
-  ])
+  ]).onMatch (m) -> m[0]
 
 
 exports.blockOf = blockOf

@@ -28,8 +28,7 @@ describe "Parse code", ->
           right: { number: "base10", value: "2" }
       )
 
-    it "complex type", ->
-      console.log util.inspect(parse("(a: Map(String, Int), b: String -> Int) -> false"), depth: null)
+    it "complex parameters", ->
       parse("(a: Map(String, Int), b: String -> Int) -> false").should.eql(
         parameters: [
           {
@@ -53,6 +52,18 @@ describe "Parse code", ->
         functionx: { boolean: false }
       )
 
+    it "default values", ->
+      parse("(x: Int = 4, y: Int = 5) -> x + y").should.eql(
+        parameters: [
+          { name: "x", type: { type: "Int" }, value: { number: "base10", value: "4" } }
+          { name: "y", type: { type: "Int" }, value: { number: "base10", value: "5" } }
+        ]
+        functionx:
+          binary: "+"
+          left: { symbol: "x" }
+          right: { symbol: "y" }
+      )
+
     it "via expression", ->
       parse = (line, options) -> parseWith(p_expr.expression, line, options)
       parse("-> ()").should.eql(parameters: [], functionx: { nothing: true })
@@ -64,3 +75,40 @@ describe "Parse code", ->
           parameters: []
           functionx: { number: "base10", value: "69" }
       )
+
+  describe "code", ->
+    parse = (line, options) -> parseWith(p_code.code, line, options)
+    parseFailed = (line, options) -> parseFailedWith(p_code.code, line, options)
+
+    it "expression", ->
+      parse("x + y").should.eql(
+        binary: "+"
+        left: { symbol: "x" }
+        right: { symbol: "y" }
+      )
+
+    it "local val", ->
+      parse("val x = 100").should.eql(
+        local: "x"
+        value: { number: "base10", value: "100" }
+      )
+
+  describe "block of code", ->
+    parse = (line, options) -> parseWith(p_code.codeBlock, line, options)
+    parseFailed = (line, options) -> parseFailedWith(p_code.codeBlock, line, options)
+
+    it "empty", ->
+      parse("{}").should.eql([])
+      parse("{  }").should.eql([])
+
+    it "separated by ;", ->
+      parse("{ 3; 4 }").should.eql([
+        { number: "base10", value: "3" }
+        { number: "base10", value: "4" }
+      ])
+
+    it "separated by linefeed", ->
+      parse("{\n  true\n  false\n}").should.eql([
+        { boolean: true }
+        { boolean: false }
+      ])

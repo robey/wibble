@@ -5,16 +5,12 @@ p_const = require './p_const'
 p_expr = require './p_expr'
 p_type = require './p_type'
 
+blockOf = p_common.blockOf
 commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 expression = p_expr.expression
 linespace = p_common.linespace
 SYMBOL_NAME = p_common.SYMBOL_NAME
 typedecl = p_type.typedecl
-
-
-# commaSeparated = p_common.commaSeparated
-# constant = p_const.constant
-# whitespace = p_common.whitespace
 
 #
 # parse code
@@ -32,16 +28,16 @@ parameterList = commaSeparatedSurrounded("(", parameter, ")", "Expected function
 functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), linespace, (-> expression) ]).onMatch (m) ->
   { parameters: m[0], functionx: m[1] }
 
+localVal = pr([ pr("val").commit().drop(), linespace, SYMBOL_NAME, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m) ->
+  { local: m[0][0], value: m[1] }
 
+code = pr.alt(localVal, expression).onFail("Expected declaration or expression")
+
+
+exports.code = code
+exports.codeBlock = blockOf(code)
 exports.functionx = functionx
 
-
-# local = parser.seq(
-#   parser.drop("val")
-#   NAME
-#   parser.drop("=")
-#   expression
-# ).onMatch (x) -> { local: x[0][0], value: x[1] }
 
 # method = parser.seq(
 #   parser.drop("def"),
@@ -51,6 +47,3 @@ exports.functionx = functionx
 #   expression
 # ).onMatch (x) ->
 #   { method: x[0].symbol, params: x[1], body: x[2] }
-
-# blockCode = local.or(method).or(expression).onFail("Expected local or expression")
-# exports.blockCode = blockCode
