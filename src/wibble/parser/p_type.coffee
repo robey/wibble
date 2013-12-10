@@ -31,4 +31,5 @@ templateType = pr([ TYPE_NAME, pr("(").drop(), commaSeparated(-> typedecl), pr("
 
 typedecl = pr.alt(templateType, simpleType, compoundType, functionType).onFail("Expected type")
 
+
 exports.typedecl = typedecl
