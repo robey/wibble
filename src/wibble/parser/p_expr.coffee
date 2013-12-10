@@ -4,6 +4,7 @@ p_code = require './p_code'
 p_common = require './p_common'
 p_const = require './p_const'
 
+codeBlock = -> p_code.codeBlock
 commaSeparated = p_common.commaSeparated
 commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 constant = p_const.constant
@@ -20,11 +21,6 @@ whitespace = p_common.whitespace
 arrayExpr = commaSeparatedSurrounded("[", (-> expression), "]", "Expected array item").onMatch (m) ->
   { array: m }
 
-# { map: [ [name, _] ] }
-mapItem = pr([ (-> expression), pr(/\s*:\s*/).drop(), (-> expression) ])
-mapExpr = commaSeparatedSurrounded("{", mapItem, "}", "Expected map item").onMatch (m) ->
-  { map: m }
-
 structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m) ->
   if m[0].length > 0
     { name: m[0][0][0], expression: m[1] }
@@ -36,8 +32,7 @@ struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item"
   if m.length == 1 and (not m[0].name?) then return m[0].expression
   { struct: m }
 
-# FIXME: func, block
-atom = pr.alt(constant, arrayExpr, mapExpr, struct, functionx).describe("atom")
+atom = pr.alt(constant, arrayExpr, struct, functionx, codeBlock).describe("atom")
 
 unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m) ->
   if m[0].length > 0

@@ -98,17 +98,21 @@ describe "Parse code", ->
     parseFailed = (line, options) -> parseFailedWith(p_code.codeBlock, line, options)
 
     it "empty", ->
-      parse("{}").should.eql([])
-      parse("{  }").should.eql([])
+      parse("{}").should.eql(code: [])
+      parse("{  }").should.eql(code: [])
 
     it "separated by ;", ->
-      parse("{ 3; 4 }").should.eql([
-        { number: "base10", value: "3" }
-        { number: "base10", value: "4" }
-      ])
+      parse("{ 3; 4 }").should.eql(
+        code: [
+          { number: "base10", value: "3" }
+          { number: "base10", value: "4" }
+        ]
+      )
 
     it "separated by linefeed", ->
-      parse("{\n  true\n  false\n}").should.eql([
-        { boolean: true }
-        { boolean: false }
-      ])
+      parse("{\n  true\n  false\n}").should.eql(
+        code: [
+          { boolean: true }
+          { boolean: false }
+        ]
+      )

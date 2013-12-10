@@ -33,17 +33,10 @@ localVal = pr([ pr("val").commit().drop(), linespace, SYMBOL_NAME, linespace, pr
 
 code = pr.alt(localVal, expression).onFail("Expected declaration or expression")
 
+codeBlock = blockOf(code).onMatch (m) ->
+  { code: m }
+
 
 exports.code = code
-exports.codeBlock = blockOf(code)
+exports.codeBlock = codeBlock
 exports.functionx = functionx
-
-
-# method = parser.seq(
-#   parser.drop("def"),
-#   symbol.or(opref).or(symbolref),
-#   functionParameters,
-#   parser.drop("="),
-#   expression
-# ).onMatch (x) ->
-#   { method: x[0].symbol, params: x[1], body: x[2] }

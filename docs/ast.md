@@ -14,7 +14,6 @@ X = eliminated by transformations
 ## expressions
 
     { array: [ expr* ] }
-    { map: [ [ expr, expr ]* ] }
     { struct: [ { name?, expression: expr }* ] }
     X: { unary: "+"/"-"/"not", right: expr }
     { call: expr, arg: expr }

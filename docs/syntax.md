@@ -45,11 +45,9 @@
 
     unary := ("-" | "not") atom
 
-    atom := constant | array | map | struct | function
+    atom := constant | array | struct | function
 
     array := "[" (ws* expression ws* ","?)* ws* "]"
-
-    map := "{" (ws* expression ws* ":" ws* expression ws* ","?)* ws* "}"
 
     struct := "(" (ws* structMember ws* ","?)* ws* ")"
 

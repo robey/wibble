@@ -38,39 +38,6 @@ describe "Parse expressions", ->
     it "failing", ->
       parseFailed("[ ??? ]").should.match(/Expected array/)
 
-  describe "map", ->
-    it "empty", ->
-      parse("{}").should.eql(map: [])
-      parse("{  }").should.eql(map: [])
-      
-    it "single", ->
-      parse("{ 3: \"\" }").should.eql(map: [ [ { number: "base10", value: "3" }, { string: "" } ] ])
-
-    it "multiple", ->
-      parse("{ true: \"a\", false: \"b\" }").should.eql(map: [ [ { boolean: true }, { string: "a" } ], [ { boolean: false }, { string: "b" } ] ])
-
-    it "trailing comma", ->
-      parse("{\"a\":true,}").should.eql(map: [ [ { string: "a" }, { boolean: true } ] ])
-
-    it "nested", ->
-      parse("{ \"a\":{ \"b\": false }}").should.eql(map: [
-        [
-          { string: "a" }, { map: [
-            [ { string: "b" }, { boolean: false } ]
-          ]}
-        ]
-      ])
-
-    it "multi-line", ->
-      parse("{\n  \"a\": true\n  \"b\": false\n}").should.eql(map: [
-        [ { string: "a" }, { boolean: true } ],
-        [ { string: "b" }, { boolean: false } ]
-      ])
-
-    it "failing", ->
-      parseFailed("{ ??? }").should.match(/Expected map/)
-      parseFailed("{ 3: ??? }").should.match(/Expected map/)
-
   describe "struct", ->
     it "without names", ->
       parse("(x, y)").should.eql(
@@ -233,16 +200,16 @@ describe "Parse expressions", ->
         ifElse: { symbol: "x" }
       )
 
-    # it "if {block} then _ else _", ->
-    #   parse("if { 3; true } then 1 else 2").should.eql(
-    #     condition:
-    #       code: [
-    #         { number: "base10", value: "3" }
-    #         { boolean: true }
-    #       ]
-    #     ifThen: { number: "base10", value: "1" }
-    #     ifElse: { number: "base10", value: "2" }
-    #   )
+    it "if {block} then _ else _", ->
+      parse("if { 3; true } then 1 else 2").should.eql(
+        condition:
+          code: [
+            { number: "base10", value: "3" }
+            { boolean: true }
+          ]
+        ifThen: { number: "base10", value: "1" }
+        ifElse: { number: "base10", value: "2" }
+      )
 
     it "nested", ->
       parse("if a then (if b then 3) else 9").should.eql(
@@ -257,7 +224,5 @@ describe "Parse expressions", ->
       parseFailed("if ???").should.match(/Expected expression/)
       parseFailed("if 3 then ???").should.match(/Expected expression/)
       parseFailed("if 3 then 3 else ???").should.match(/Expected expression/)
-
-
 
 
