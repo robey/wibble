@@ -70,7 +70,7 @@ describe "Parse expressions", ->
   describe "call", ->
     it "simple", ->
       parse("a b").should.eql(call: { symbol: "a" }, arg: { symbol: "b" })
-      parse("3 '+").should.eql(
+      parse("3 .+").should.eql(
         call: { number: "base10", value: "3" }
         arg: { symbol: "+" }
       )

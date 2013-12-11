@@ -49,11 +49,11 @@ symbolRaw = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (
   { symbol: m[0] }
 
 symbolRef = pr([
-  pr("'").commit().drop()
+  pr(".").commit().drop()
   pr.alt(
     pr(SYMBOL_NAME).onMatch((m) -> m[0]),
     OPERATORS...
-  ).onFail("Invalid symbol name after '")
+  ).onFail("Invalid symbol name after .")
 ]).onMatch (m) ->
   { symbol: m[0] }
 

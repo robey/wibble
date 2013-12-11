@@ -43,14 +43,14 @@ describe "Parse constants", ->
     parse("a3").should.eql(symbol: "a3")
 
   it "symbolref", ->
-    parse("'hello").should.eql(symbol: "hello")
-    parse("'true").should.eql(symbol: "true")
+    parse(".hello").should.eql(symbol: "hello")
+    parse(".true").should.eql(symbol: "true")
 
   it "opref", ->
-    parse("'+").should.eql(symbol: "+")
-    parse("'>").should.eql(symbol: ">")
-    parse("'>>").should.eql(symbol: ">>")
-    parseFailed("'?").should.match(/Invalid symbol/)
+    parse(".+").should.eql(symbol: "+")
+    parse(".>").should.eql(symbol: ">")
+    parse(".>>").should.eql(symbol: ">>")
+    parseFailed(".?").should.match(/Invalid symbol/)
 
   describe "string", ->
     it "empty", ->

@@ -31,7 +31,7 @@ dump = (expr) ->
     return [ rv, PRECEDENCE.constant ]
   if expr.symbol?
     if RESERVED.indexOf(expr.symbol) >= 0 or OPERATORS.indexOf(expr.symbol) >= 0
-      return [ "'#{expr.symbol}", PRECEDENCE.constant ]
+      return [ ".#{expr.symbol}", PRECEDENCE.constant ]
     else
       return [ expr.symbol, PRECEDENCE.constant ]
   if expr.string?
@@ -50,7 +50,7 @@ dump = (expr) ->
   if expr.call?
     return [ parenthesize(expr.call, PRECEDENCE.call + 1) + " " + parenthesize(expr.arg, PRECEDENCE.call), PRECEDENCE.call ]
   if expr.binary?
-    return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE.binary ]
+    return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE[expr.binary] ]
   if expr.condition?
     condition = parenthesize(expr.condition, PRECEDENCE.ifThen)
     ifThen = parenthesize(expr.ifThen, PRECEDENCE.ifThen)
@@ -61,6 +61,7 @@ dump = (expr) ->
 parenthesize = (expr, myPrecedence) ->
   [ rv, p ] = dump(expr)
   if p >= myPrecedence then "(#{rv})" else rv
+
 
 exports.dumpExpr = dumpExpr
 

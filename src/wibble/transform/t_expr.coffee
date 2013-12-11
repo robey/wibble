@@ -41,6 +41,7 @@ transformExpr = (expr) ->
   expr = flattenInfix(expr)
   expr
 
+
 exports.flattenInfix = flattenInfix
 exports.transformExpr = transformExpr
 
