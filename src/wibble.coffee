@@ -8,20 +8,8 @@ exports.dumpExpr = d_expr.dumpExpr
 t_expr = require './wibble/transform/t_expr'
 exports.transformExpr = t_expr.transformExpr
 
+scope = require './wibble/runtime/scope'
+exports.Scope = scope.Scope
 
-runtime_base = require("./wibble/runtime_base")
-exports.Scope = runtime_base.Scope
-
-object = require("./wibble/object")
-exports.WObject = object.WObject
-
-types = require("./wibble/types")
-exports.WInt = types.WInt
-
-runtime = require("./wibble/runtime")
-exports.Context = runtime.Context
-exports.Runtime = runtime.Runtime
-
-transform = require("./wibble/transform")
-exports.transform = transform.transform
-#exports.dumpExpr = transform.dumpExpr
+r_expr = require './wibble/runtime/r_expr'
+exports.evalExpr = r_expr.evalExpr

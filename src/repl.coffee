@@ -10,6 +10,7 @@ main = ->
   println()
 
   parser = wibble.parser.expression
+  globals = new wibble.Scope()
 
   repl (line) ->
     if not line?
@@ -34,6 +35,13 @@ main = ->
     expr = wibble.transformExpr(expr)
     printColor("f80", "\u2691")
     println(" " + wibble.dumpExpr(expr))
+
+    try
+      rv = wibble.evalExpr(expr, globals, ((e) -> console.log("eval: #{e}")))
+      printColor("00f", rv.toDebug() + "\n")
+    catch e
+      printColor("f00", e.toString() + "\n")
+
 
 repl = (handler) ->
   process.stdin.setEncoding('utf8')
