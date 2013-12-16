@@ -25,25 +25,6 @@ describe "Runtime", ->
     runtime = new wibble.Runtime()
     xeval("3 + 2", runtime).toDebugType().should.eql([ "Int", "5" ])
 
-  describe "scope", ->
-    it "is set locally", ->
-      runtime = new wibble.Runtime()
-      scope = new wibble.Scope(runtime.globals)
-      xeval("val x = 12", runtime, scope)
-      scope.symtab.x.toDebugType().should.eql([ "Int", "12" ])
-
-    it "finds globals", ->
-      runtime = new wibble.Runtime()
-      scope = new wibble.Scope(runtime.globals)
-      runtime.globals.set("x", new wibble.WInt(23))
-      xeval("x", runtime, scope).toDebugType().should.eql([ "Int", "23" ])
-
-    it "overlays globals", ->
-      runtime = new wibble.Runtime()
-      scope = new wibble.Scope(runtime.globals)
-      runtime.globals.set("x", new wibble.WInt(23))
-      xeval("val x = 12", runtime, scope)
-      xeval("x", runtime, scope).toDebugType().should.eql([ "Int", "12" ])
 
   describe "functions", ->
     it "can be created", ->

@@ -1,5 +1,5 @@
 
-exports.uncstring = (s) ->
+uncstring = (s) ->
   s.replace /\\(u(.{0,4})|.)/g, (match, c, hex) ->
     if hex?
       # uHHHH
@@ -13,7 +13,7 @@ exports.uncstring = (s) ->
       when 't' then "\t"
       else c
 
-exports.cstring = (s) ->
+cstring = (s) ->
   s.replace /[^\u0020-\u007e]|\"/g, (c) ->
     if c == '"' then return "\\\""
     n = c.charCodeAt(0)
@@ -27,3 +27,15 @@ exports.cstring = (s) ->
         escape = "000" + n.toString(16)
         "\\u" + escape[escape.length - 4 ...]
 
+spaces = (count) ->
+  ([0 ... count].map (n) -> " ").join("")
+
+pad = (s, count) ->
+  if s.length >= count then return s
+  pad(" " + s, count)
+
+
+exports.cstring = cstring
+exports.pad = pad
+exports.spaces = spaces
+exports.uncstring = uncstring
