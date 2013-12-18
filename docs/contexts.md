@@ -368,6 +368,26 @@ convinced me that this type of infix code isn't really that useful. it matters
 more for operators, which i already have a solution for.
 
 
+# mutable / optional
+
+flight to charlotte -- 18 dec 2013
+
+two random ideas: first, there should be syntactic sugar for marking a type
+as being optional. these two lines should be equivalent:
+
+    (name: String, nickname: Optional(String)) -> Cat
+    (name: String, nickname: String?) -> Cat
+
+second, a global called "mutable" could be a factory for turning a type into
+a cell for that type.
+
+    val count = mutable 0  # count: Mutable(Int)
+
+wrapping vals in Mutable could be an easy way to allow but discourage mutable
+variables. it also makes it nicely explicit what's going on: that a cell is
+being created to hold the value. (it should be fine to optimize away, though.)
+
+
 
 
 
