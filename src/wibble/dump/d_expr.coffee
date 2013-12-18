@@ -30,12 +30,11 @@ dump = (expr) ->
       when "long-float" then "#{expr.value}L"
     return [ rv, PRECEDENCE.constant ]
   if expr.symbol?
-    if RESERVED.indexOf(expr.symbol) >= 0 or OPERATORS.indexOf(expr.symbol) >= 0
-      return [ ".#{expr.symbol}", PRECEDENCE.constant ]
-    else
-      return [ expr.symbol, PRECEDENCE.constant ]
+    return [ ".#{expr.symbol}", PRECEDENCE.constant ]
   if expr.string?
     return [ "\"" + misc.cstring(expr.string) + "\"", PRECEDENCE.constant ]
+  if expr.reference?
+    return [ expr.reference, PRECEDENCE.constant ]
   if expr.array?
     if expr.array.length == 0 then return [ "[]", PRECEDENCE.atom ]
     return [ "[ " + expr.array.map(dumpExpr).join(", ") + " ]", PRECEDENCE.atom ]
@@ -48,7 +47,10 @@ dump = (expr) ->
   if expr.unary?
     return [ expr.unary + parenthesize(expr.right, PRECEDENCE.unary), PRECEDENCE.unary ]
   if expr.call?
-    return [ parenthesize(expr.call, PRECEDENCE.call + 1) + " " + parenthesize(expr.arg, PRECEDENCE.call), PRECEDENCE.call ]
+    # prettify symbol-calls, and paren-wrapped args.
+    arg = parenthesize(expr.arg, PRECEDENCE.call)
+    space = if expr.arg.symbol? or arg[0] == "(" then "" else " "
+    return [ parenthesize(expr.call, PRECEDENCE.call + 1) + space + arg, PRECEDENCE.call ]
   if expr.binary?
     return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE[expr.binary] ]
   if expr.condition?

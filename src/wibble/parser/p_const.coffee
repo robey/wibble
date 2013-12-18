@@ -5,7 +5,6 @@ misc = require '../misc'
 
 commaSeparated = p_common.commaSeparated
 OPERATORS = p_common.OPERATORS
-RESERVED = p_common.RESERVED
 SYMBOL_NAME = p_common.SYMBOL_NAME
 
 #
@@ -44,10 +43,6 @@ number = pr(/-?[0-9]+(\.[0-9]+)?(L?)/).onMatch (m) ->
 cstring = pr([ pr(/"(([^"\\]|\\.)*)/).commit(), pr('"').onFail("Unterminated string") ]).onMatch (m) ->
   { string: misc.uncstring(m[0][1]) }
 
-# { symbol: "" }
-symbolRaw = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
-  { symbol: m[0] }
-
 symbolRef = pr([
   pr(".").commit().drop()
   pr.alt(
@@ -57,7 +52,7 @@ symbolRef = pr([
 ]).onMatch (m) ->
   { symbol: m[0] }
 
-constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRaw, symbolRef).onFail("Expected constant")
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRef).onFail("Expected constant")
 
 
 exports.constant = constant

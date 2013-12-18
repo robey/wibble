@@ -24,7 +24,7 @@ describe "Parse code", ->
         ]
         functionx:
           binary: "*"
-          left: { symbol: "x" }
+          left: { reference: "x" }
           right: { number: "base10", value: "2" }
       )
 
@@ -60,8 +60,8 @@ describe "Parse code", ->
         ]
         functionx:
           binary: "+"
-          left: { symbol: "x" }
-          right: { symbol: "y" }
+          left: { reference: "x" }
+          right: { reference: "y" }
       )
 
     it "via expression", ->
@@ -83,8 +83,8 @@ describe "Parse code", ->
     it "expression", ->
       parse("x + y").should.eql(
         binary: "+"
-        left: { symbol: "x" }
-        right: { symbol: "y" }
+        left: { reference: "x" }
+        right: { reference: "y" }
       )
 
     it "local val", ->

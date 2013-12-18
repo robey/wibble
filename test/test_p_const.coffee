@@ -38,13 +38,9 @@ describe "Parse constants", ->
     parse("()").should.eql(nothing: true)
 
   it "symbol", ->
-    parse("hello").should.eql(symbol: "hello")
-    parse("xx_").should.eql(symbol: "xx_")
-    parse("a3").should.eql(symbol: "a3")
-
-  it "symbolref", ->
     parse(".hello").should.eql(symbol: "hello")
-    parse(".true").should.eql(symbol: "true")
+    parse(".xx_").should.eql(symbol: "xx_")
+    parse(".a3").should.eql(symbol: "a3")
 
   it "opref", ->
     parse(".+").should.eql(symbol: "+")

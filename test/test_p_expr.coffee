@@ -12,6 +12,10 @@ describe "Parse expressions", ->
   parse = (line, options) -> parseWith(p_expr.expression, line, options)
   parseFailed = (line, options) -> parseFailedWith(p_expr.expression, line, options)
 
+  it "reference", ->
+    parse("x").should.eql(reference: "x")
+    parse("hello").should.eql(reference: "hello")
+
   describe "array", ->
     it "empty", ->
       parse("[]").should.eql(array: [])
@@ -42,8 +46,8 @@ describe "Parse expressions", ->
     it "without names", ->
       parse("(x, y)").should.eql(
         struct: [
-          { expression: { symbol: "x" } }
-          { expression: { symbol: "y" } }
+          { expression: { reference: "x" } }
+          { expression: { reference: "y" } }
         ]
       )
 
@@ -65,36 +69,36 @@ describe "Parse expressions", ->
   it "unary", ->
     parse("not true").should.eql(unary: "not", right: { boolean: true })
     parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5" })
-    parse("+a").should.eql(unary: "+", right: { symbol: "a" })
+    parse("+a").should.eql(unary: "+", right: { reference: "a" })
 
   describe "call", ->
     it "simple", ->
-      parse("a b").should.eql(call: { symbol: "a" }, arg: { symbol: "b" })
+      parse("a b").should.eql(call: { reference: "a" }, arg: { reference: "b" })
       parse("3 .+").should.eql(
         call: { number: "base10", value: "3" }
         arg: { symbol: "+" }
       )
 
     it "compound", ->
-      parse("widget draw()").should.eql(
+      parse("widget.draw()").should.eql(
         call:
-          call: { symbol: "widget" }
+          call: { reference: "widget" }
           arg: { symbol: "draw" }
         arg: { nothing: true }
       )
-      parse("widget height subtract 3").should.eql(
+      parse("widget .height .subtract 3").should.eql(
         call:
           call:
-            call: { symbol: "widget" }
+            call: { reference: "widget" }
             arg: { symbol: "height" }
           arg: { symbol: "subtract" }
         arg: { number: "base10", value: "3" }
       )
 
     it "with struct", ->
-      parse("b add(4, 5)").should.eql(
+      parse("b.add(4, 5)").should.eql(
         call:
-          call: { symbol: "b" }
+          call: { reference: "b" }
           arg: { symbol: "add" }
         arg:
           struct: [
@@ -104,9 +108,9 @@ describe "Parse expressions", ->
       )
 
     it "multi-line", ->
-      parse("a b \\\n  c").should.eql(
+      parse("a .b \\\n  .c").should.eql(
         call:
-          call: { symbol: "a" }
+          call: { reference: "a" }
           arg: { symbol: "b" }
         arg: { symbol: "c" }
       )
@@ -129,10 +133,10 @@ describe "Parse expressions", ->
           binary: "/"
           left:
             binary: "*"
-            left: { symbol: "a" }
-            right: { symbol: "b" }
-          right: { symbol: "c" }
-        right: { symbol: "d" }
+            left: { reference: "a" }
+            right: { reference: "b" }
+          right: { reference: "c" }
+        right: { reference: "d" }
       )
 
     it "+ -", ->
@@ -140,9 +144,9 @@ describe "Parse expressions", ->
         binary: "-"
         left:
           binary: "+"
-          left: { symbol: "a" }
-          right: { symbol: "b" }
-        right: { symbol: "c" }
+          left: { reference: "a" }
+          right: { reference: "b" }
+        right: { reference: "c" }
       )
 
     it "* vs + precedence", ->
@@ -150,25 +154,25 @@ describe "Parse expressions", ->
         binary: "+"
         left:
           binary: "+"
-          left: { symbol: "a" }
+          left: { reference: "a" }
           right:
             binary: "*"
-            left: { symbol: "b" }
-            right: { symbol: "c" }
-        right: { symbol: "d" }
+            left: { reference: "b" }
+            right: { reference: "c" }
+        right: { reference: "d" }
       )
 
     it "+, ==, and precedence", ->
       parse("a and b + c == d").should.eql(
         binary: "and"
-        left: { symbol: "a" }
+        left: { reference: "a" }
         right:
           binary: "=="
           left:
             binary: "+"
-            left: { symbol: "b" }
-            right: { symbol: "c" }
-          right: { symbol: "d" }
+            left: { reference: "b" }
+            right: { reference: "c" }
+          right: { reference: "d" }
       )
 
     it "can span multiple lines", ->
@@ -183,21 +187,21 @@ describe "Parse expressions", ->
       parse("if x < 0 then x").should.eql(
         condition:
           binary: "<"
-          left: { symbol: "x" }
+          left: { reference: "x" }
           right: { number: "base10", value: "0" }
-        ifThen: { symbol: "x" }
+        ifThen: { reference: "x" }
       )
 
     it "if _ then _ else _", ->
       parse("if x < 0 then -x else x").should.eql(
         condition:
           binary: "<"
-          left: { symbol: "x" }
+          left: { reference: "x" }
           right: { number: "base10", value: "0" }
         ifThen:
           unary: "-"
-          right: { symbol: "x" }
-        ifElse: { symbol: "x" }
+          right: { reference: "x" }
+        ifElse: { reference: "x" }
       )
 
     it "if {block} then _ else _", ->
@@ -213,9 +217,9 @@ describe "Parse expressions", ->
 
     it "nested", ->
       parse("if a then (if b then 3) else 9").should.eql(
-        condition: { symbol: "a" }
+        condition: { reference: "a" }
         ifThen:
-          condition: { symbol: "b" }
+          condition: { reference: "b" }
           ifThen: { number: "base10", value: "3" }
         ifElse: { number: "base10", value: "9" }
       )

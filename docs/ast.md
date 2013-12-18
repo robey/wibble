@@ -13,6 +13,7 @@ X = eliminated by transformations
 
 ## expressions
 
+    { reference: "" }
     { array: [ expr* ] }
     { struct: [ { name?, expression: expr }* ] }
     X: { unary: "+"/"-"/"not", right: expr }

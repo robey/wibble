@@ -19,9 +19,7 @@
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
-    symbol := "'"? SYMBOL_NAME
-
-    opref := "'" operator
+    symbol := "." (SYMBOL_NAME | operator)
 
 ## expressions
 
@@ -45,8 +43,10 @@
 
     unary := ("-" | "not") atom
 
-    atom := constant | array | struct | function
+    atom := constant | reference | array | struct | function
 
+    reference := SYMBOL_NAME
+    
     array := "[" (ws* expression ws* ","?)* ws* "]"
 
     struct := "(" (ws* structMember ws* ","?)* ws* ")"

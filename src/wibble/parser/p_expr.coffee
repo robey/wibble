@@ -10,12 +10,17 @@ commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 constant = p_const.constant
 functionx = -> p_code.functionx
 linespace = p_common.linespace
+RESERVED = p_common.RESERVED
 SYMBOL_NAME = p_common.SYMBOL_NAME
 whitespace = p_common.whitespace
 
 #
 # parse expressions
 #
+
+# { reference: "" }
+reference = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
+  { reference: m[0] }
 
 # { array: [] }
 arrayExpr = commaSeparatedSurrounded("[", (-> expression), "]", "Expected array item").onMatch (m) ->
@@ -32,7 +37,7 @@ struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item"
   if m.length == 1 and (not m[0].name?) then return m[0].expression
   { struct: m }
 
-atom = pr.alt(constant, arrayExpr, struct, functionx, codeBlock).describe("atom")
+atom = pr.alt(constant, reference, arrayExpr, struct, functionx, codeBlock).describe("atom")
 
 unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m) ->
   if m[0].length > 0
