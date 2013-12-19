@@ -1,7 +1,7 @@
 util = require 'util'
 misc = require '../misc'
 
-# a scope is a map of (symbol -> value), possibly chained to a parent scope.
+# a scope is a map of (string -> WObject), possibly chained to a parent scope.
 class Scope
   constructor: (@parent) ->
     @symtab = {}
@@ -23,13 +23,26 @@ class Scope
   setNew: (name, value) ->
     @symtab[name] = value
 
+  keys: ->
+    # Set, Tennessee-style.
+    rv = {}
+    for k, v of @symtab then rv[k] = true
+    if @parent? then for k in @parent.keys() then rv[k] = true
+    Object.keys(rv).sort()
+
+  equals: (other) ->
+    keys = @keys()
+    if keys != other.keys() then return false
+    for k in keys then if @get(k) != other.get(k) then return false
+    true
+    
   toDebug: (indent = 0) ->
     keys = Object.keys(@symtab).sort()
     lines = [
       "<Scope:"
       @parent?.toDebug(indent + 2) or ""
     ].concat(
-      keys.map (k) -> "  #{k} = #{@symtab[k]?.toDebug() or '?'}"
+      keys.map (k) -> "  #{k} = #{@symtab[k]?.toRepr() or '?'}"
     ).concat [
       ">"
     ]

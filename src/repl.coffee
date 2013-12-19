@@ -30,15 +30,20 @@ main = ->
       return
 
     expr = rv.match
-    printColor("yellow", "\u2691")
-    println(" " + wibble.dumpExpr(expr))
+    printColor("yellow", "  \u2691 ")
+    println(wibble.dumpExpr(expr))
     expr = wibble.transformExpr(expr)
-    printColor("f80", "\u2691")
-    println(" " + wibble.dumpExpr(expr))
+    printColor("f80", "  \u2691 ")
+    println(wibble.dumpExpr(expr))
 
     try
-      rv = wibble.evalExpr(expr, globals, ((e) -> console.log("eval: #{e}")))
-      printColor("00f", rv.toDebug() + "\n")
+      logger = (line) ->
+        printColor("a50", "  \u2691 ")
+        println(line)
+      rv = wibble.evalExpr(expr, globals, logger)
+      printColor("55f", "#{rv.type.toRepr()} ")
+      printColor("88f", rv.toRepr())
+      println()
     catch e
       printColor("f00", e.toString() + "\n")
 

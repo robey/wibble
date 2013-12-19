@@ -7,7 +7,7 @@ class WInt extends object.WObject
     super(types.WIntType)
     @value = bigint(value, base)
 
-  toDebug: -> @value.toString()
+  toRepr: -> @value.toString()
 
   equals: (other) ->
     (other instanceof WInt) and (other.value.eq(@value))

@@ -4,7 +4,9 @@ class WType extends object.WObject
   constructor: (@name) ->
     super(WTypeType)
 
-  toDebug: -> @name
+  toRepr: -> @name
+
+  equals: (other) -> @ == other
 
   # can 'otherType' be coerced to be this type?
   coerce: (otherType) -> otherType == @
@@ -22,8 +24,13 @@ WAnyType = new WType("Any")
 WIntType = new WType("Int")
 WSymbolType = new WType("Symbol")
 
+class WFunctionType extends WType
+  constructor: (@inType, @outType) ->
+    super("#{@inType.name} -> #{@outType.name}")
+
 
 exports.WAnyType = WAnyType
+exports.WFunctionType = WFunctionType
 exports.WIntType = WIntType
 exports.WNothingType = WNothingType
 exports.WSymbolType = WSymbolType
