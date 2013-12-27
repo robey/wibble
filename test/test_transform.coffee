@@ -8,13 +8,13 @@ describe "Transform", ->
   it "binary operations into calls", ->
     expr =
       binary: "**"
-      left: { symbol: "x" }
-      right: { symbol: "y" }
+      left: { reference: "x" }
+      right: { reference: "y" }
     transform(expr).should.eql(
       call:
-        call: { symbol: "x" }
+        call: { reference: "x" }
         arg: { symbol: "**" }
-      arg: { symbol: "y" }
+      arg: { reference: "y" }
     )
 
   it "binary operations into calls even when deeply nested", ->
@@ -24,7 +24,7 @@ describe "Transform", ->
       ]
       func:
         code: [
-          { binary: "+", left: { symbol: "x" }, right: { symbol: "y" } }
+          { binary: "+", left: { reference: "x" }, right: { reference: "y" } }
         ]
     transform(expr).should.eql(
       params: [
@@ -34,9 +34,9 @@ describe "Transform", ->
         code: [
           {
             call:
-              call: { symbol: "x" }
+              call: { reference: "x" }
               arg: { symbol: "+" }
-            arg: { symbol: "y" }
+            arg: { reference: "y" }
           }
         ]
     )
@@ -49,8 +49,8 @@ describe "Transform", ->
       ]
       body:
         binary: "*"
-        left: { symbol: "x" }
-        right: { symbol: "x" }
+        left: { reference: "x" }
+        right: { reference: "x" }
     transform(expr).should.eql(
       local: "square"
       value:
@@ -59,9 +59,9 @@ describe "Transform", ->
         ]
         func:
           call:
-            call: { symbol: "x" }
+            call: { reference: "x" }
             arg: { symbol: "*" }
-          arg: { symbol: "x" }
+          arg: { reference: "x" }
     )
 
 #  it "handlers into contexts", ->
