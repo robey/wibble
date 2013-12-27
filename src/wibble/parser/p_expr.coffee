@@ -57,7 +57,7 @@ binary = (subexpr, op) ->
     sep,
     accumulator=((x) -> x),
     reducer=((left, op, right) -> { binary: op, left: left, right: right })
-  ).describe("binary(#{op.message()})")
+  ).describe("binary(#{op.description()})")
 
 power = binary(call, "**")
 factor = binary(power, pr.alt("*", "/", "%"))
