@@ -388,8 +388,36 @@ variables. it also makes it nicely explicit what's going on: that a cell is
 being created to hold the value. (it should be fine to optimize away, though.)
 
 
+# new / on
 
+flight from charlotte -- 26 dec 2013
 
+i've decided that it's overly clever to have any block with an "on" statement
+turn into a new object with an event handler. it makes it hard to see new
+objects when they're created, because they look just like other code, with one
+tiny difference: the presence of a magic statement somewhere in the block.
+
+instead, i think code blocks and new objects should be distinguished by a
+keyword. to create a new object that's actually a function:
+
+    new {
+      on (x: Int) -> x * 2
+    }
+
+to group statements into a single expression, bare braces is fine:
+
+    {
+      val f = (x: Int) -> x * 2
+      f
+    }
+
+this implies that the desugared way of defining a method would be:
+
+    type Int {
+      on .+ -> new {
+        on (n: Int) -> <...>
+      }
+    }
 
 
 
