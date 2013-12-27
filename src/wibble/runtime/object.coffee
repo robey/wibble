@@ -1,4 +1,14 @@
+util = require 'util'
 scope = require './scope'
+
+# wrapper for the handlers in an object:
+#   - guard: value or type (depending on the kind of handler) to match against
+#   - outType: return type of the expression
+#   - expr: expression, or possibly a native function
+# FIXME after type checking is implemented, the expression should probably contain its own outType.
+class WHandler
+  constructor: (@guard, @outType, @expr) ->
+
 
 # an Object:
 # - has a type
@@ -8,9 +18,7 @@ class WObject
   constructor: (@type) ->
     # local state
     @state = new scope.Scope()
-    # list of (value, handler)
     @valueHandlers = []
-    # list of (type, handler)
     @typeHandlers = []
 
   toRepr: ->
@@ -19,18 +27,43 @@ class WObject
 
   equals: (other) ->
     @type.equals(other.type) and @state.equals(other.state)
-    
+
+  handlerForMessage: (message) ->
+    for handler in @valueHandlers
+      if message.equals(handler.guard) then return handler
+    @handlerForType(message.type) or @type.handlerForMessage(message)
+
+  handlerForType: (type) ->
+    for handler in @typeHandlers
+      if type.canCoerceTo(handler.guard) then return handler
+    null
+
+  on: (guard, outType, expr) ->
+    # avoid dependency loops:
+    symbol = require './symbol'
+    types = require './types'
+    # shortcut for internal use:
+    if typeof guard == "string" then guard = new symbol.WSymbol(guard)
+    handler = new WHandler(guard, outType, expr)
+    if guard instanceof types.WType
+      @typeHandlers.push handler
+    else
+      @valueHandlers.push handler
+
   # helper for native implementations
-  nativeMethod: (name, inType, outType, func) ->
-    ftype = new WFunctionType(inType, outType)
-    # the symbol should return a function
-    wfunc = (runtime, self, message) ->
-      # and the function should call the natiwe function
-      func1 = (runtime, self1, message1) ->
-        func(runtime, self, message1)
-      new WFunction(ftype, func1)
-    handler = new Handler(ftype, wfunc)
-    @on name, handler
+  nativeMethod: (name, inType, outType, nativeFunction) ->
+    types = require './types'
+    # on <symbol> -> <method>
+    methodType = new types.WFunctionType(inType, outType)
+    method = (context, message) ->
+      # now create a native function
+      f = new WObject(methodType)
+      # FIXME this is just a quick hack to approximate @
+      f.on inType, outType, (x, message) -> nativeFunction(context, message)
+      f.toRepr = -> "<native>"
+      f.equals = (other) -> f is other
+      f
+    @on name, methodType, method
 
 
 exports.WObject = WObject

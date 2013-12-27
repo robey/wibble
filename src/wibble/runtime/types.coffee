@@ -1,3 +1,4 @@
+util = require 'util'
 object = require './object'
 
 class WType extends object.WObject
@@ -8,31 +9,35 @@ class WType extends object.WObject
 
   equals: (other) -> @ == other
 
-  # can 'otherType' be coerced to be this type?
-  coerce: (otherType) -> otherType == @
+  # the only legal coercion is to Any
+  canCoerceTo: (other) ->
+    @equals(other) or (other == WAnyType)
 
-  # can 'value' be coerced to be this type? if so, return a new value with
-  # that coercion. otherwise return null.
-  coerceValue: (value) ->
-    if @ == value.type then return value
-    null
 
 WTypeType = new WType("Type")
+WTypeType.handlerForMessage = (message) ->
+  # need to cut off recursive lookups here.
+  null
 
 WNothingType = new WType("Nothing")
 WAnyType = new WType("Any")
 WIntType = new WType("Int")
 WSymbolType = new WType("Symbol")
+WStringType = new WType("String")
 
 class WFunctionType extends WType
   constructor: (@inType, @outType) ->
     super("#{@inType.name} -> #{@outType.name}")
+
+  equals: (other) ->
+    (other instanceof WFunctionType) and (@inType.equals other.inType) and (@outType.equals other.outType)
 
 
 exports.WAnyType = WAnyType
 exports.WFunctionType = WFunctionType
 exports.WIntType = WIntType
 exports.WNothingType = WNothingType
+exports.WStringType = WStringType
 exports.WSymbolType = WSymbolType
 exports.WType = WType
 exports.WTypeType = WTypeType
