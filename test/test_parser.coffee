@@ -36,37 +36,8 @@ describe "Parse", ->
           ]
       )
 
-      parse("(x: Int = 4, y: Int = 5) -> { x }").should.eql(
-        params: [
-          { name: "x", type: "Int", value: { number: "int", value: "4" } }
-          { name: "y", type: "Int", value: { number: "int", value: "5" } }
-        ]
-        func:
-          code: [ { symbol: "x" } ]
-      )
 
-    it "an anonymous function in an expression", ->
-      parse("(x: Int) -> x * 2").should.eql(
-        params: [
-          { name: "x", type: "Int", value: undefined }
-        ]
-        func:
-          binary: "*"
-          left: { symbol: "x" }
-          right: { number: "int", value: "2" }
-      )
 
-    it "an anonymous function with no parameters", ->
-      parse("-> 69").should.eql(
-        params: []
-        func: { number: "int", value: "69" }
-      )
-      parse("-> -> 69").should.eql(
-        params: []
-        func:
-          params: []
-          func: { number: "int", value: "69" }
-      )
 
     it "an anonymous function that's immediately called", ->
       parse("{ 3 } ()").should.eql(

@@ -182,6 +182,10 @@ describe "Parse expressions", ->
         right: { number: "base10", value: "4" }
       )
 
+    it "notices a missing argument", ->
+      parseFailed("3 +").should.eql "Expected operand"
+      parseFailed("3 + 6 *").should.eql "Expected operand"
+
   describe "if", ->
     it "if _ then _", ->
       parse("if x < 0 then x").should.eql(

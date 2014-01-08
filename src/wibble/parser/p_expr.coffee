@@ -51,12 +51,12 @@ call = pr([ unary, pr.repeatIgnore(linespace, atom) ]).onMatch (m) ->
 # helper
 binary = (subexpr, op) ->
   op = pr(op)
-  sep = pr([ linespace, op, linespace ]).onMatch (m) -> m[0]
+  sep = pr([ whitespace, op, whitespace ]).commit().onMatch (m) -> m[0]
   pr.reduce(
-    subexpr,
+    pr(subexpr).onFail("Expected operand"),
     sep,
-    accumulator=((x) -> x),
-    reducer=((left, op, right) -> { binary: op, left: left, right: right })
+    ((x) -> x),
+    ((left, op, right) -> { binary: op, left: left, right: right })
   ).describe("binary(#{op.description()})")
 
 power = binary(call, "**")
@@ -86,7 +86,7 @@ condition = pr([
   else
     { condition: m[0], ifThen: m[1] }
 
-expression = pr.alt(condition, logical).onFail("Expected expression")
+expression = pr.alt(condition, logical).describe("expression")
 
 
 exports.expression = expression

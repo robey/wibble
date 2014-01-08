@@ -52,7 +52,7 @@ symbolRef = pr([
 ]).onMatch (m) ->
   { symbol: m[0] }
 
-constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRef).onFail("Expected constant")
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRef).describe("constant")
 
 
 exports.constant = constant

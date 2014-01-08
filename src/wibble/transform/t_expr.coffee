@@ -24,6 +24,7 @@ digExpr = (expr, match, transform) ->
     # { call: expr, arg: expr }
     # { binary: (op), left: expr, right: expr }
     # { condition: expr, ifThen: expr, ifElse: expr }
+    # function
 
 # turn all binary/unary expressions into calls.
 flattenInfix = (expr) ->

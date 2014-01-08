@@ -13,3 +13,6 @@ exports.Scope = scope.Scope
 
 r_expr = require './wibble/runtime/r_expr'
 exports.evalExpr = r_expr.evalExpr
+
+types = require './wibble/runtime/types'
+exports.types = types

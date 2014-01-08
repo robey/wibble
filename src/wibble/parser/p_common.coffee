@@ -62,10 +62,10 @@ PRECEDENCE =
   ifThen: 11
 
 # line may be continued with "\"
-linespace = pr(/([ ]+|\\\n)*/).optional().drop()
+linespace = pr(/([ ]+|\\\n)*/).drop()
 
 # linefeed is acceptable whitespace here
-whitespace = pr(/([ \n]+|\\\n)*/).optional().drop()
+whitespace = pr(/([ \n]+|\\\n)*/).drop()
 
 # repeat 'p' with optional whitespace around it, separated by commas, with a trailing comma OK
 commaSeparated = (p) ->
