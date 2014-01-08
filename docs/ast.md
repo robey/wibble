@@ -20,6 +20,7 @@ X = eliminated by transformations
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
+    { functionx: expr, parameters: { name, type, value: expr }* }
 
 ## types
 
@@ -32,4 +33,4 @@ X = eliminated by transformations
 ## code
 
     { local, value: expr }
-    { functionx: expr, parameters: { name, type, value: expr }* }
+    { code: [ expr* ] }

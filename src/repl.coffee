@@ -1,18 +1,27 @@
 antsy = require 'antsy'
 packrattle = require 'packrattle'
 readline = require 'readline'
+util = require 'util'
+
 wibble = require './wibble'
 
+
+parseWibble = (line) ->
+  rv = packrattle.consume(wibble.parser.expression, line)
+  if not rv.ok
+    e = new Error(rv.message)
+    e.state = rv.state
+    throw e
+  rv.match    
 
 main = ->
   println()
   printlnColor("080", "Hello!")
   println()
 
-  parser = wibble.parser.expression
   globals = new wibble.Scope()
 
-  repl (line) ->
+  repl "| ", "|.. ", (line) ->
     if not line?
       println()
       println()
@@ -20,16 +29,19 @@ main = ->
       println()
       process.exit(0)
 
-    rv = packrattle.consume(parser, line)
-    if not rv.ok
-      printlnColor("f88", rv.state.line())
-      print((for i in [0 ... rv.state.xpos] then " ").join(""))
-      printlnColor("f4f", "^")
+    try
+      expr = parseWibble(line)
+    catch e
+      # if the parse error is at the end, let the human continue typing.
+      if e.state.pos == line.length then return false
+      [ line, squiggles ] = e.state.toSquiggles()
+      printlnColor("f88", line)
+      printlnColor("f4f", squiggles)
       printColor("f00", "\u2639\u2639\u2639 ")
-      println("[#{rv.state.lineno + 1}] #{rv.message}")
-      return
+      println("[#{e.state.lineno + 1}] #{e.message}")
+      return true
 
-    expr = rv.match
+    buffer = ""
     printColor("yellow", "  \u2691 ")
     println(wibble.dumpExpr(expr))
     expr = wibble.transformExpr(expr)
@@ -46,14 +58,15 @@ main = ->
       println()
     catch e
       printColor("f00", e.toString() + "\n")
+    true
 
 
-repl = (handler) ->
+repl = (prompt, contPrompt, handler) ->
   process.stdin.setEncoding('utf8')
   process.stdin.resume()
   r = readline.createInterface(process.stdin, process.stdout)
   # the 3 is because readline is bad at unicode len()
-  r.setPrompt("\u2605> ", 3)
+  r.setPrompt(prompt, prompt.length)
   r.prompt()
   buffer = ""
   r.addListener 'line', (line) ->
@@ -66,9 +79,9 @@ repl = (handler) ->
       r.prompt()
       return
     line = buffer + line
-    handler(line)
-    buffer = ""
-    r.setPrompt("\u2605> ", 3)
+    if handler(line) then buffer = "" else buffer = line + "\n"
+    p = if buffer.length > 0 then contPrompt else prompt
+    r.setPrompt(p, p.length)
     r.prompt()
   r.addListener 'close', ->
     handler(null)
