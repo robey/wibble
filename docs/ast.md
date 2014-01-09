@@ -3,6 +3,8 @@
 
 X = eliminated by transformations
 
+everything has a "state" field.
+
 ## constants
 
     { nothing: true }

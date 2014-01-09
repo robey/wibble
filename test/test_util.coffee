@@ -1,13 +1,21 @@
 packrattle = require 'packrattle'
 util = require 'util'
 
+# convert the (large, unwieldy) state object into the raw position ints, for
+# easy testing.
+stateToPos = (x) ->
+  return x unless typeof x == "object"
+  if Array.isArray(x) then return x.map(stateToPos)
+  if x.state?
+    x.pos = [ x.state.pos, x.state.endpos ]
+    delete x.state
+  for k, v of x then if k != 'pos' then x[k] = stateToPos(v)
+  x
+
 parseWith = (parser, line, options) ->
   rv = packrattle.consume(parser, line, options)
   rv.ok.should.eql(true)
-  if rv.match.state?
-    rv.match.pos = [ rv.match.state.pos, rv.match.state.endpos ]
-    delete rv.match.state
-  rv.match
+  stateToPos(rv.match)
 
 parseFailedWith = (parser, line, options) ->
   rv = packrattle.consume(parser, line, options)

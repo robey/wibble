@@ -71,7 +71,7 @@ whitespace = pr(/([ \n]+|\\\n)*/).drop()
 
 # repeat 'p' with optional whitespace around it, separated by commas, with a trailing comma OK
 commaSeparated = (p) ->
-  pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ]).onMatch (m) ->
+  pr.repeat([ whitespace, p, whitespace, pr(/,\s*/).optional().drop() ]).onMatch (m) ->
     m.map (x) -> x[0]
 
 # same as commaSeparated, but with a surrounding group syntax like [ ], and committing after the open and close

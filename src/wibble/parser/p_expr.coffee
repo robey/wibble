@@ -20,34 +20,34 @@ whitespace = p_common.whitespace
 #
 
 # { reference: "" }
-reference = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m) ->
-  { reference: m[0] }
+reference = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m, state) ->
+  { reference: m[0], state }
 
 # { array: [] }
-arrayExpr = commaSeparatedSurroundedCommit("[", (-> expression), "]", "Expected array item").onMatch (m) ->
-  { array: m }
+arrayExpr = commaSeparatedSurroundedCommit("[", (-> expression), "]", "Expected array item").onMatch (m, state) ->
+  { array: m, state }
 
-structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m) ->
+structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m, state) ->
   if m[0].length > 0
-    { name: m[0][0][0], expression: m[1] }
+    { name: m[0][0][0], expression: m[1], state }
   else
-    { expression: m[1] }
+    { expression: m[1], state }
 
-struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item").onMatch (m) ->
+struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item").onMatch (m, state) ->
   # AST optimization: "(expr)" is just a precedence-bumped expression.
   if m.length == 1 and (not m[0].name?) then return m[0].expression
-  { struct: m }
+  { struct: m, state }
 
 atom = pr.alt(constant, reference, arrayExpr, struct, functionx, codeBlock).describe("atom")
 
-unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m) ->
+unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m, state) ->
   if m[0].length > 0
-    { unary: m[0][0], right: m[1] }
+    { unary: m[0][0], right: m[1], state }
   else
     m[1]
 
-call = pr([ unary, pr.repeatIgnore(linespace, atom) ]).onMatch (m) ->
-  [ m[0] ].concat(m[1]).reduce (x, y) -> { call: x, arg: y }
+call = pr([ unary, pr.repeatIgnore(linespace, atom.onMatch((m, state) -> { atom: m, state: state })) ]).onMatch (m, state) ->
+  [ m[0] ].concat(m[1]).reduce (x, y) -> { call: x, arg: y.atom, state: y.state.backfill(x.state) }
 
 # helper
 binary = (subexpr, op) ->

@@ -13,31 +13,35 @@ describe "Parse expressions", ->
   parseFailed = (line, options) -> parseFailedWith(p_expr.expression, line, options)
 
   it "reference", ->
-    parse("x").should.eql(reference: "x")
-    parse("hello").should.eql(reference: "hello")
+    parse("x").should.eql(reference: "x", pos: [ 0, 1 ])
+    parse("hello").should.eql(reference: "hello", pos: [ 0, 5 ])
 
   describe "array", ->
     it "empty", ->
-      parse("[]").should.eql(array: [])
-      parse("[  ]").should.eql(array: [])
+      parse("[]").should.eql(array: [], pos: [ 0, 2 ])
+      parse("[  ]").should.eql(array: [], pos: [ 0, 4 ])
 
     it "single", ->
-      parse("[ 3 ]").should.eql(array: [ { number: "base10", value: "3" } ])
+      parse("[ 3 ]").should.eql(array: [ { number: "base10", value: "3", pos: [ 2, 3 ] } ], pos: [ 0, 5 ])
 
     it "multiple", ->
-      parse("[ true, true, false ]").should.eql(array: [ { boolean: true }, { boolean: true }, { boolean: false } ])
+      parse("[ true, true, false ]").should.eql(array: [
+        { boolean: true, pos: [ 2, 6 ] }
+        { boolean: true, pos: [ 8, 12 ] }
+        { boolean: false, pos: [ 14, 19 ] }
+      ], pos: [ 0, 21 ])
 
     it "trailing comma", ->
-      parse("[9,]").should.eql(array: [ { number: "base10", value: "9" } ])
+      parse("[9,]").should.eql(array: [ { number: "base10", value: "9", pos: [ 1, 2 ] } ], pos: [ 0, 4 ])
 
     it "nested", ->
       parse("[ [true], [false] ]").should.eql(array: [
-        { array: [ { boolean: true } ] }
-        { array: [ { boolean: false } ] }
-      ])
+        { array: [ { boolean: true, pos: [ 3, 7 ] } ], pos: [ 2, 8 ] }
+        { array: [ { boolean: false, pos: [ 11, 16 ] } ], pos: [ 10, 17 ] }
+      ], pos: [ 0, 19 ])
 
     it "multi-line", ->
-      parse("[\n  true\n  false\n]").should.eql(array: [ { boolean: true }, { boolean: false } ])
+      parse("[\n  true\n  false\n]").should.eql(array: [ { boolean: true, pos: [ 4, 8 ] }, { boolean: false, pos: [ 11, 16 ] } ], pos: [ 0, 18 ])
 
     it "failing", ->
       parseFailed("[ ??? ]").should.match(/Expected array/)
@@ -46,53 +50,65 @@ describe "Parse expressions", ->
     it "without names", ->
       parse("(x, y)").should.eql(
         struct: [
-          { expression: { reference: "x" } }
-          { expression: { reference: "y" } }
+          { expression: { reference: "x", pos: [ 1, 2 ] }, pos: [ 1, 2 ] }
+          { expression: { reference: "y", pos: [ 4, 5 ] }, pos: [ 4, 5 ] }
         ]
+        pos: [ 0, 6 ]
       )
 
     it "with names", ->
       parse("(  x=3,y = 4)").should.eql(
         struct: [
-          { name: "x", expression: { number: "base10", value: "3" } }
-          { name: "y", expression: { number: "base10", value: "4" } }
+          { name: "x", expression: { number: "base10", value: "3", pos: [ 5, 6 ] }, pos: [ 3, 6 ] }
+          { name: "y", expression: { number: "base10", value: "4", pos: [ 11, 12 ] }, pos: [ 7, 12 ] }
         ]
+        pos: [ 0, 13 ]
       )
 
     it "single-valued", ->
-      parse("(true)").should.eql(boolean: true)
+      parse("(true)").should.eql(boolean: true, pos: [ 1, 5 ])
 
     it "failing", ->
       parseFailed("(???)").should.match(/Expected expression/)
       parseFailed("(x = ???)").should.match(/Expected expression/)
 
   it "unary", ->
-    parse("not true").should.eql(unary: "not", right: { boolean: true })
-    parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5" })
-    parse("+a").should.eql(unary: "+", right: { reference: "a" })
+    parse("not true").should.eql(unary: "not", right: { boolean: true, pos: [ 4, 8 ] }, pos: [ 0, 8 ])
+    parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5", pos: [ 3, 4 ] }, pos: [ 0, 4 ])
+    parse("+a").should.eql(unary: "+", right: { reference: "a", pos: [ 1, 2 ] }, pos: [ 0, 2 ])
 
   describe "call", ->
     it "simple", ->
-      parse("a b").should.eql(call: { reference: "a" }, arg: { reference: "b" })
+      parse("a b").should.eql(
+        call: { reference: "a", pos: [ 0, 1 ] }
+        arg: { reference: "b", pos: [ 2, 3 ] }
+        pos: [ 0, 3 ]
+      )
       parse("3 .+").should.eql(
-        call: { number: "base10", value: "3" }
-        arg: { symbol: "+" }
+        call: { number: "base10", value: "3", pos: [ 0, 1 ] }
+        arg: { symbol: "+", pos: [ 2, 4 ] }
+        pos: [ 0, 4 ]
       )
 
     it "compound", ->
       parse("widget.draw()").should.eql(
         call:
-          call: { reference: "widget" }
-          arg: { symbol: "draw" }
-        arg: { nothing: true }
+          call: { reference: "widget", pos: [ 0, 6 ] }
+          arg: { symbol: "draw", pos: [ 6, 11 ] }
+          pos: [ 0, 11 ]
+        arg: { nothing: true, pos: [ 11, 13 ] }
+        pos: [ 0, 13 ]
       )
       parse("widget .height .subtract 3").should.eql(
         call:
           call:
-            call: { reference: "widget" }
-            arg: { symbol: "height" }
-          arg: { symbol: "subtract" }
-        arg: { number: "base10", value: "3" }
+            call: { reference: "widget", pos: [ 0, 6 ] }
+            arg: { symbol: "height", pos: [ 7, 14 ] }
+            pos: [ 0, 14 ]
+          arg: { symbol: "subtract", pos: [ 15, 24 ] }
+          pos: [ 0, 24 ]
+        arg: { number: "base10", value: "3", pos: [ 25, 26 ] }
+        pos: [ 0, 26 ]
       )
 
     it "with struct", ->
