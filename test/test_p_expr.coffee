@@ -63,8 +63,8 @@ describe "Parse expressions", ->
       parse("(true)").should.eql(boolean: true)
 
     it "failing", ->
-      parseFailed("(???)").should.match(/Expected struct/)
-      parseFailed("(x = ???)").should.match(/Expected struct/)
+      parseFailed("(???)").should.match(/Expected expression/)
+      parseFailed("(x = ???)").should.match(/Expected expression/)
 
   it "unary", ->
     parse("not true").should.eql(unary: "not", right: { boolean: true })

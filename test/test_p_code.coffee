@@ -76,6 +76,16 @@ describe "Parse code", ->
           functionx: { number: "base10", value: "69" }
       )
 
+    it "in expr", ->
+      parse = (line, options) -> parseWith(p_expr.expression, line, options)
+      parse("-> 3").should.eql(parameters: [], functionx: { number: "base10", value: "3" })
+      parse("(x: Int) -> 3").should.eql(
+        parameters: [
+          { name: "x", type: { type: "Int" }, value: undefined }
+        ]
+        functionx: { number: "base10", value: "3" }
+      )
+
   describe "code", ->
     parse = (line, options) -> parseWith(p_code.code, line, options)
     parseFailed = (line, options) -> parseFailedWith(p_code.code, line, options)

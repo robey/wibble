@@ -1,6 +1,7 @@
 util = require 'util'
 misc = require '../misc'
 p_common = require '../parser/p_common'
+d_type = require './d_type'
 
 OPERATORS = p_common.OPERATORS
 PRECEDENCE = p_common.PRECEDENCE
@@ -38,8 +39,6 @@ dump = (expr) ->
   if expr.array?
     if expr.array.length == 0 then return [ "[]", PRECEDENCE.atom ]
     return [ "[ " + expr.array.map(dumpExpr).join(", ") + " ]", PRECEDENCE.atom ]
-  if expr.map?
-    return [ "{ " + expr.map.map(([ key, value ]) -> dumpExpr(key) + ": " + dumpExpr(value)).join(", ") + " }", PRECEDENCE.atom ]
   if expr.struct?
     items = expr.struct.map (item) ->
       (if item.name? then "#{item.name} = " else "") + dumpExpr(item.expression)
@@ -58,7 +57,14 @@ dump = (expr) ->
     ifThen = parenthesize(expr.ifThen, PRECEDENCE.ifThen)
     ifElse = if expr.ifElse then parenthesize(expr.ifElse, PRECEDENCE.ifThen) else null
     return [ "if #{condition} then #{ifThen}" + (if ifElse then " else #{ifElse}" else ""), PRECEDENCE.ifThen ]
-  "???(#{util.inspect(expr)})"
+  if expr.functionx?
+    parameters = expr.parameters.map (p) -> p.name + (if p.type? then ": " + d_type.dumpType(p.type) else "") + (if p.value? then " = " + dumpExpr(p.value) else "")
+    return [ (if parameters.length > 0 then "(" + parameters.join(", ") + ") " else "") + "-> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
+  if expr.local?
+    return [ "val #{expr.local} = #{dumpExpr(expr.value)}", PRECEDENCE.code ]
+  if expr.code?
+    return [ "{ " + expr.code.map(dumpExpr).join('; ') + " }", PRECEDENCE.constant ]
+  [ "???(#{util.inspect(expr)})", PRECEDENCE.none ]
 
 parenthesize = (expr, myPrecedence) ->
   [ rv, p ] = dump(expr)
@@ -66,25 +72,3 @@ parenthesize = (expr, myPrecedence) ->
 
 
 exports.dumpExpr = dumpExpr
-
-# # build a simple string representation of a parsed expression
-# dumpExpr = (expr) ->
-#   if expr.code?
-#     return "{ " + (dumpExpr(e) for e in expr.code).join("; ") + " }"
-#   if expr.local?
-#     return "val :" + expr.local + " = " + dumpExpr(expr.value)
-#   if expr.func?
-#     params = for p in expr.params
-#       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-#     return "((" + params.join(", ") + ") -> " + dumpExpr(expr.func) + ")"
-#   if expr.on?
-#     return "on " + dumpExpr(expr.on) + " -> " + dumpExpr(expr.handler)
-#   if expr.method?
-#     params = for p in expr.params
-#       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-#     return "def :" + expr.method + "(" + params.join(", ") + ") -> " + dumpExpr(expr.body) + ")"
-#   if expr.proto?
-#     params = for p in expr.params
-#       p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-#     codes = for x in expr.body then dumpExpr(x)
-#     return "prototype " + expr.proto + "(" + params.join(", ") + ") { " + codes.join("; ") + " }"

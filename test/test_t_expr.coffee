@@ -14,6 +14,15 @@ describe "Transform expressions", ->
     d_expr.dumpExpr(parse("\"abc\\u000adef\"")).should.eql("\"abc\\ndef\"")
     d_expr.dumpExpr(parse("\"wut\\u0123\\\"\"")).should.eql("\"wut\\u0123\\\"\"")
 
+  it "dump functions", ->
+    d_expr.dumpExpr(parse("-> 3")).should.eql("-> 3")
+    d_expr.dumpExpr(parse("(x: Int, y: Int) -> x * y")).should.eql("(x: Int, y: Int) -> x * y")
+    d_expr.dumpExpr(parse("(a: Boolean = false) -> true")).should.eql("(a: Boolean = false) -> true")
+    d_expr.dumpExpr(parse("(x: (List(String), String)) -> true")).should.eql("(x: (List(String), String)) -> true")
+
+  it "dump locals", ->
+    d_expr.dumpExpr(parse("{ val x = 9 + a }")).should.eql("{ val x = 9 + a }")
+
   describe "flattenInfix", ->
     infix = (line, options) -> d_expr.dumpExpr(t_expr.flattenInfix(parse(line, options)))
 

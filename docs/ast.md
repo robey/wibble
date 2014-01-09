@@ -8,8 +8,8 @@ X = eliminated by transformations
     { nothing: true }
     { boolean: true/false }
     { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
-    { string: "" }
     { symbol: "" }
+    { string: "" }
 
 ## expressions
 

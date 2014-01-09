@@ -7,6 +7,7 @@ p_const = require './p_const'
 codeBlock = -> p_code.codeBlock
 commaSeparated = p_common.commaSeparated
 commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
+commaSeparatedSurroundedCommit = p_common.commaSeparatedSurroundedCommit
 constant = p_const.constant
 functionx = -> p_code.functionx
 linespace = p_common.linespace
@@ -23,7 +24,7 @@ reference = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (
   { reference: m[0] }
 
 # { array: [] }
-arrayExpr = commaSeparatedSurrounded("[", (-> expression), "]", "Expected array item").onMatch (m) ->
+arrayExpr = commaSeparatedSurroundedCommit("[", (-> expression), "]", "Expected array item").onMatch (m) ->
   { array: m }
 
 structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m) ->

@@ -11,6 +11,7 @@ expression = p_expr.expression
 linespace = p_common.linespace
 SYMBOL_NAME = p_common.SYMBOL_NAME
 typedecl = p_type.typedecl
+whitespace = p_common.whitespace
 
 #
 # parse code
@@ -25,7 +26,7 @@ parameter = pr([
 
 parameterList = commaSeparatedSurrounded("(", parameter, ")", "Expected function parameter")
 
-functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), linespace, (-> expression) ]).onMatch (m) ->
+functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), whitespace, (-> expression) ]).onMatch (m) ->
   { parameters: m[0], functionx: m[1] }
 
 localVal = pr([ pr("val").commit().drop(), linespace, SYMBOL_NAME, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m) ->

@@ -60,6 +60,8 @@ PRECEDENCE =
   "and": 10
   "or": 10
   ifThen: 11
+  code: 12
+  none: 99
 
 # line may be continued with "\"
 linespace = pr(/([ ]+|\\\n)*/).drop()
@@ -72,8 +74,11 @@ commaSeparated = (p) ->
   pr.repeat([ whitespace, p, whitespace, pr(",").optional().drop() ]).onMatch (m) ->
     m.map (x) -> x[0]
 
-# same as commaSeparated, but with a surrounding group syntax like [ ]
+# same as commaSeparated, but with a surrounding group syntax like [ ], and committing after the open and close
 commaSeparatedSurrounded = (open, p, close, message) ->
+  pr([ pr(open).drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).drop() ]).onMatch (m) -> m[0]
+
+commaSeparatedSurroundedCommit = (open, p, close, message) ->
   pr([ pr(open).commit().drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).commit().drop() ]).onMatch (m) -> m[0]
 
 lineSeparated = (p) ->
@@ -94,6 +99,7 @@ blockOf = (p) ->
 exports.blockOf = blockOf
 exports.commaSeparated = commaSeparated
 exports.commaSeparatedSurrounded = commaSeparatedSurrounded
+exports.commaSeparatedSurroundedCommit = commaSeparatedSurroundedCommit
 exports.linespace = linespace
 exports.OPERATORS = OPERATORS
 exports.PRECEDENCE = PRECEDENCE
