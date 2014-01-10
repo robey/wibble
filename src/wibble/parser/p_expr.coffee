@@ -54,10 +54,10 @@ binary = (subexpr, op) ->
   op = pr(op)
   sep = pr([ whitespace, op, whitespace ]).commit().onMatch (m) -> m[0]
   pr.reduce(
-    pr(subexpr).onFail("Expected operand"),
+    pr(subexpr).onFail("Expected operand")#.onMatch((m, state) -> { operand: m, state: state }),
     sep,
     ((x) -> x),
-    ((left, op, right) -> { binary: op, left: left, right: right })
+    ((left, op, right) -> { binary: op, left: left, right: right, state: right.state.backfill(left.state) })
   ).describe("binary(#{op.description()})")
 
 power = binary(call, "**")
@@ -81,11 +81,11 @@ condition = pr([
     linespace
     -> expression
   ]).optional([])
-]).describe("condition").onMatch (m) ->
+]).describe("condition").onMatch (m, state) ->
   if m[2].length > 0
-    { condition: m[0], ifThen: m[1], ifElse: m[2][0] }
+    { condition: m[0], ifThen: m[1], ifElse: m[2][0], state }
   else
-    { condition: m[0], ifThen: m[1] }
+    { condition: m[0], ifThen: m[1], state }
 
 expression = pr.alt(condition, logical).describe("expression")
 

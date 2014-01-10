@@ -114,21 +114,26 @@ describe "Parse expressions", ->
     it "with struct", ->
       parse("b.add(4, 5)").should.eql(
         call:
-          call: { reference: "b" }
-          arg: { symbol: "add" }
+          call: { reference: "b", pos: [ 0, 1 ] }
+          arg: { symbol: "add", pos: [ 1, 5 ] }
+          pos: [ 0, 5 ]
         arg:
           struct: [
-            { expression: { number: "base10", value: "4" } }
-            { expression: { number: "base10", value: "5" } }
+            { expression: { number: "base10", value: "4", pos: [ 6, 7 ] }, pos: [ 6, 7 ] }
+            { expression: { number: "base10", value: "5", pos: [ 9, 10 ] }, pos: [ 9, 10 ] }
           ]
+          pos: [ 5, 11 ]
+        pos: [ 0, 11 ]
       )
 
     it "multi-line", ->
       parse("a .b \\\n  .c").should.eql(
         call:
-          call: { reference: "a" }
-          arg: { symbol: "b" }
-        arg: { symbol: "c" }
+          call: { reference: "a", pos: [ 0, 1 ] }
+          arg: { symbol: "b", pos: [ 2, 4 ] }
+          pos: [ 0, 4 ]
+        arg: { symbol: "c", pos: [ 9, 11 ] }
+        pos: [ 0, 11 ]
       )
 
   describe "binary", ->
@@ -137,9 +142,11 @@ describe "Parse expressions", ->
         binary: "**"
         left:
           binary: "**"
-          left: { number: "base10", value: "2" }
-          right: { number: "base10", value: "3" }
-        right: { number: "base10", value: "4" }
+          left: { number: "base10", value: "2", pos: [ 0, 1 ] }
+          right: { number: "base10", value: "3", pos: [ 5, 6 ] }
+          pos: [ 0, 6 ]
+        right: { number: "base10", value: "4", pos: [ 10, 11 ] }
+        pos: [ 0, 11 ]
       )
 
     it "* / %", ->
@@ -149,10 +156,13 @@ describe "Parse expressions", ->
           binary: "/"
           left:
             binary: "*"
-            left: { reference: "a" }
-            right: { reference: "b" }
-          right: { reference: "c" }
-        right: { reference: "d" }
+            left: { reference: "a", pos: [ 0, 1 ] }
+            right: { reference: "b", pos: [ 4, 5 ] }
+            pos: [ 0, 5 ]
+          right: { reference: "c", pos: [ 8, 9 ] }
+          pos: [ 0, 9 ]
+        right: { reference: "d", pos: [ 12, 13 ] }
+        pos: [ 0, 13 ]
       )
 
     it "+ -", ->
@@ -160,9 +170,11 @@ describe "Parse expressions", ->
         binary: "-"
         left:
           binary: "+"
-          left: { reference: "a" }
-          right: { reference: "b" }
-        right: { reference: "c" }
+          left: { reference: "a", pos: [ 0, 1 ] }
+          right: { reference: "b", pos: [ 4, 5 ] }
+          pos: [ 0, 5 ]
+        right: { reference: "c", pos: [ 8, 9 ] }
+        pos: [ 0, 9 ]
       )
 
     it "* vs + precedence", ->
@@ -170,32 +182,39 @@ describe "Parse expressions", ->
         binary: "+"
         left:
           binary: "+"
-          left: { reference: "a" }
+          left: { reference: "a", pos: [ 0, 1 ] }
           right:
             binary: "*"
-            left: { reference: "b" }
-            right: { reference: "c" }
-        right: { reference: "d" }
+            left: { reference: "b", pos: [ 4, 5 ] }
+            right: { reference: "c", pos: [ 8, 9 ] }
+            pos: [ 4, 9 ]
+          pos: [ 0, 9 ]
+        right: { reference: "d", pos: [ 12, 13 ] }
+        pos: [ 0, 13 ]
       )
 
     it "+, ==, and precedence", ->
       parse("a and b + c == d").should.eql(
         binary: "and"
-        left: { reference: "a" }
+        left: { reference: "a", pos: [ 0, 1 ] }
         right:
           binary: "=="
           left:
             binary: "+"
-            left: { reference: "b" }
-            right: { reference: "c" }
-          right: { reference: "d" }
+            left: { reference: "b", pos: [ 6, 7 ] }
+            right: { reference: "c", pos: [ 10, 11 ] }
+            pos: [ 6, 11 ]
+          right: { reference: "d", pos: [ 15, 16 ] }
+          pos: [ 6, 16 ]
+        pos: [ 0, 16 ]
       )
 
     it "can span multiple lines", ->
       parse("3 + \\\n 4").should.eql(
         binary: "+"
-        left: { number: "base10", value: "3" }
-        right: { number: "base10", value: "4" }
+        left: { number: "base10", value: "3", pos: [ 0, 1 ] }
+        right: { number: "base10", value: "4", pos: [ 7, 8 ] }
+        pos: [ 0, 8 ]
       )
 
     it "notices a missing argument", ->
@@ -207,41 +226,50 @@ describe "Parse expressions", ->
       parse("if x < 0 then x").should.eql(
         condition:
           binary: "<"
-          left: { reference: "x" }
-          right: { number: "base10", value: "0" }
-        ifThen: { reference: "x" }
+          left: { reference: "x", pos: [ 3, 4 ] }
+          right: { number: "base10", value: "0", pos: [ 7, 8 ] }
+          pos: [ 3, 8 ]
+        ifThen: { reference: "x", pos: [ 14, 15 ] }
+        pos: [ 0, 15 ]
       )
 
     it "if _ then _ else _", ->
       parse("if x < 0 then -x else x").should.eql(
         condition:
           binary: "<"
-          left: { reference: "x" }
-          right: { number: "base10", value: "0" }
+          left: { reference: "x", pos: [ 3, 4 ] }
+          right: { number: "base10", value: "0", pos: [ 7, 8 ] }
+          pos: [ 3, 8 ]
         ifThen:
           unary: "-"
-          right: { reference: "x" }
-        ifElse: { reference: "x" }
+          right: { reference: "x", pos: [ 15, 16 ] }
+          pos: [ 14, 16 ]
+        ifElse: { reference: "x", pos: [ 22, 23 ] }
+        pos: [ 0, 23 ]
       )
 
     it "if {block} then _ else _", ->
       parse("if { 3; true } then 1 else 2").should.eql(
         condition:
           code: [
-            { number: "base10", value: "3" }
-            { boolean: true }
+            { number: "base10", value: "3", pos: [ 5, 6 ] }
+            { boolean: true, pos: [ 8, 12 ] }
           ]
-        ifThen: { number: "base10", value: "1" }
-        ifElse: { number: "base10", value: "2" }
+          pos: [ 3, 14 ]
+        ifThen: { number: "base10", value: "1", pos: [ 20, 21 ] }
+        ifElse: { number: "base10", value: "2", pos: [ 27, 28 ] }
+        pos: [ 0, 28 ]
       )
 
     it "nested", ->
       parse("if a then (if b then 3) else 9").should.eql(
-        condition: { reference: "a" }
+        condition: { reference: "a", pos: [ 3, 4 ] }
         ifThen:
-          condition: { reference: "b" }
-          ifThen: { number: "base10", value: "3" }
-        ifElse: { number: "base10", value: "9" }
+          condition: { reference: "b", pos: [ 14, 15 ] }
+          ifThen: { number: "base10", value: "3", pos: [ 21, 22 ] }
+          pos: [ 11, 22 ]
+        ifElse: { number: "base10", value: "9", pos: [ 29, 30 ] }
+        pos: [ 0, 30 ]
       )
 
     it "failing", ->

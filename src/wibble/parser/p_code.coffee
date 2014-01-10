@@ -18,24 +18,24 @@ whitespace = p_common.whitespace
 #
 
 parameter = pr([
-  SYMBOL_NAME
+  pr(SYMBOL_NAME).onMatch((m, state) -> { name: m[0], state })
   pr([ linespace, pr(":").drop(), linespace, typedecl ]).optional([])
   pr([ linespace, pr("=").drop(), linespace, (-> expression) ]).optional([])
 ]).onMatch (m) ->
-  { name: m[0][0], type: m[1][0], value: m[2][0] }
+  { name: m[0].name, type: m[1][0], value: m[2][0], state: m[0].state }
 
 parameterList = commaSeparatedSurrounded("(", parameter, ")", "Expected function parameter")
 
-functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), whitespace, (-> expression) ]).onMatch (m) ->
-  { parameters: m[0], functionx: m[1] }
+functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), whitespace, (-> expression) ]).onMatch (m, state) ->
+  { parameters: m[0], functionx: m[1], state }
 
-localVal = pr([ pr("val").commit().drop(), linespace, SYMBOL_NAME, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m) ->
-  { local: m[0][0], value: m[1] }
+localVal = pr([ pr("val").commit().drop(), linespace, SYMBOL_NAME, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m, state) ->
+  { local: m[0][0], value: m[1], state }
 
 code = pr.alt(localVal, expression).onFail("Expected declaration or expression")
 
-codeBlock = blockOf(code).onMatch (m) ->
-  { code: m }
+codeBlock = blockOf(code).onMatch (m, state) ->
+  { code: m, state }
 
 
 exports.code = code
