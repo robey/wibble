@@ -9,8 +9,8 @@ transform = require './wibble/transform'
 exports.transform = transform
 
 # ---
-scope = require './wibble/runtime/scope'
-exports.Scope = scope.Scope
+r_scope = require './wibble/runtime/r_scope'
+exports.Scope = r_scope.Scope
 
 r_expr = require './wibble/runtime/r_expr'
 exports.evalExpr = r_expr.evalExpr

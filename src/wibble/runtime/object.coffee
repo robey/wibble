@@ -1,5 +1,5 @@
 util = require 'util'
-scope = require './scope'
+r_scope = require './r_scope'
 
 # wrapper for the handlers in an object:
 #   - guard: value or type (depending on the kind of handler) to match against
@@ -17,16 +17,16 @@ class WHandler
 class WObject
   constructor: (@type) ->
     # local state
-    @state = new scope.Scope()
+    @scope = new r_scope.Scope()
     @valueHandlers = []
     @typeHandlers = []
 
   toRepr: ->
-    fields = @state.keys().map (k) -> "#{k} = #{@state.get(k).toRepr()}"
+    fields = @scope.keys().map (k) -> "#{k} = #{@scope.get(k).toRepr()}"
     "#{@type.toRepr()}(#{fields.join ', '})"
 
   equals: (other) ->
-    @type.equals(other.type) and @state.equals(other.state)
+    @type.equals(other.type) and @scope.equals(other.scope)
 
   handlerForMessage: (message) ->
     for handler in @valueHandlers
