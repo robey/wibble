@@ -1,45 +1,54 @@
 util = require 'util'
+t_error = require './t_error'
 
-# traverse an expression, looking for objects where 'match(obj)' returns
-# true. for those, replace the object with whatever is returned by
-# 'transform(obj)'. for the rest, leave them alone. for all objects, nested
-# expressions are recursively dug.
-digExpr = (expr, match, transform) ->
+# traverse an expression tree, sending each expression object through the
+# 'transform' function.
+# transform(expr, state, copy) -> [ newExpr, newState ]
+digExpr = (expr, state, transform) ->
+  dig = (e) -> digExpr(e, state, transform)
+
+  # FIXME should be elsewhere, probably
+  copy = (changes) ->
+    rv = {}
+    for k, v of expr then rv[k] = v
+    for k, v of changes then rv[k] = v
+    Object.freeze(rv)
+
   if not expr? then return expr
-  dig = (x) -> digExpr(x, match, transform)
+  rv = transform(expr, state, copy)
+  [ expr, state ] = if Array.isArray(rv) then rv else [ rv, state ]
 
-  if match(expr) then expr = transform(expr)
-
-  if expr.array? then return { array: expr.array.map(dig) }
-  if expr.struct? then return { struct: expr.struct.map (s) -> { name: s.name, expression: dig(s.expression) } }
-  if expr.unary? then return { unary: expr.unary, right: dig(expr.right) }
-  if expr.call? then return { call: dig(expr.call), arg: dig(expr.arg) }
-  if expr.binary? then return { binary: expr.binary, left: dig(expr.left), right: dig(expr.right) }
-  if expr.condition? then return { condition: dig(expr.condition), ifThen: dig(expr.ifThen), ifElse: dig(expr.ifElse) }
+  if expr.array? then return copy(array: expr.array.map(dig))
+  if expr.struct? then return copy(struct: expr.struct.map (s) -> { name: s.name, expression: dig(s.expression) })
+  if expr.unary? then return copy(unary: expr.unary, right: dig(expr.right))
+  if expr.call? then return copy(call: dig(expr.call), arg: dig(expr.arg))
+  if expr.binary? then return copy(binary: expr.binary, left: dig(expr.left), right: dig(expr.right))
+  if expr.condition? then return copy(condition: dig(expr.condition), ifThen: dig(expr.ifThen), ifElse: dig(expr.ifElse))
   if expr.functionx?
     parameters = expr.parameters?.map (p) -> { name: p.name, type: p.type, value: (if p.value? then dig(p.value) else null) }
-    return { functionx: dig(expr.functionx), parameters: parameters }
-  if expr.local? then return { local: local, value: dig(expr) }
-  if expr.code? then return { code: expr.code.map(dig) }
+    return copy(functionx: dig(expr.functionx), parameters: parameters)
+  if expr.local? then return copy(value: dig(expr.value))
+  if expr.code? then return copy(code: expr.code.map(dig))
   expr
-
 
 # turn all binary/unary expressions into calls.
 flattenInfix = (expr) ->
-  digExpr expr, ((x) -> x.binary? or x.unary?), (x) ->
-    if x.binary?
-      { call: { call: x.left, arg: { symbol: x.binary } }, arg: x.right }
-    else if x.unary?
-      op = switch x.unary
+  digExpr expr, {}, (expr, state, copy) ->
+    if not (expr.binary? or expr.unary?) then return expr
+    if expr.binary?
+      copy(binary: null, call: { call: expr.left, arg: { symbol: expr.binary } }, arg: expr.right)
+    else if expr.unary?
+      op = switch expr.unary
         when "+" then "positive"
         when "-" then "negative"
-        else x.unary
-      { call: { call: x.right, arg: { symbol: op } }, arg: { nothing: true } }
+        else expr.unary
+      copy(unary: null, call: { call: expr.right, arg: { symbol: op } }, arg: { nothing: true })
 
 transformExpr = (expr) ->
   expr = flattenInfix(expr)
   expr
 
 
+exports.digExpr = digExpr
 exports.flattenInfix = flattenInfix
 exports.transformExpr = transformExpr

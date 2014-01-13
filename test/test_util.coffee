@@ -4,18 +4,20 @@ util = require 'util'
 # convert the (large, unwieldy) state object into the raw position ints, for
 # easy testing.
 stateToPos = (x) ->
-  return x unless typeof x == "object"
+  copy = (changes) ->
+    rv = {}
+    for k, v of x when not (k in [ "scope", "state" ]) then rv[k] = stateToPos(v)
+    for k, v of changes then rv[k] = v
+    Object.freeze(rv)
+
+  return x unless x? and (typeof x == "object")
   if Array.isArray(x) then return x.map(stateToPos)
-  if x.state?
-    x.pos = [ x.state.pos, x.state.endpos ]
-    delete x.state
-  for k, v of x then if k != 'pos' then x[k] = stateToPos(v)
-  x
+  if x.state? then return copy(pos: [ x.state.pos, x.state.endpos ])
+  copy()
 
 parseWith = (parser, line, options) ->
-  rv = packrattle.consume(parser, line, options)
-  rv.ok.should.eql(true)
-  stateToPos(rv.match)
+  rv = parser.run(line, options)
+  stateToPos(rv)
 
 parseFailedWith = (parser, line, options) ->
   rv = packrattle.consume(parser, line, options)
@@ -30,3 +32,4 @@ exports.DEBUG = DEBUG
 exports.INFO = INFO
 exports.parseWith = parseWith
 exports.parseFailedWith = parseFailedWith
+exports.stateToPos = stateToPos

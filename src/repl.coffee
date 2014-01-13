@@ -20,8 +20,8 @@ main = ->
   printlnColor("080", "Hello!")
   println()
 
-  globals = new wibble.Scope()
-  locals = new wibble.Locals()
+  globalScope = new wibble.Scope()
+  globals = null # FIXME
 
   repl "| ", ": ", (line) ->
     if not line?
@@ -45,8 +45,8 @@ main = ->
       printColor("yellow", "  \u2691 ")
       println(wibble.dumpExpr(expr))
     try
-      expr = wibble.transformExpr(expr)
-      expr = wibble.packLocals(locals, expr)
+      expr = wibble.transform.transformExpr(expr)
+      expr = wibble.transform.packLocals(globalScope, expr)
     catch e
       if e.state?
         displayError(e)
