@@ -20,8 +20,8 @@ main = ->
   printlnColor("080", "Hello!")
   println()
 
-  globalScope = new wibble.Scope()
-  globals = null # FIXME
+  globalScope = new wibble.transform.Scope()
+  globals = new wibble.Scope() # FIXME
 
   repl "| ", ": ", (line) ->
     if not line?
@@ -141,16 +141,20 @@ repl = (prompt, contPrompt, handler) ->
     if line == "exit"
       r.close()
       return
-    if line[line.length - 1] == "\\"
-      buffer += line + "\n"
-      r.setPrompt(" \\ ", 3)
-      r.prompt()
-      return
     line = buffer + line
-    if handler(line) then buffer = "" else buffer = line + "\n"
+    if line[line.length - 1] != "\\" and handler(line) then buffer = "" else buffer = line + "\n"
     p = if buffer.length > 0 then contPrompt else prompt
     r.setPrompt(p, p.length)
     r.prompt()
+  r.addListener 'SIGINT', ->
+    printlnColor "f00", "^C"
+    if buffer.length > 0
+      buffer = ""
+      r.setPrompt(prompt, prompt.length)
+      r.prompt()
+    else
+      handler(null)
+      process.stdin.destroy()
   r.addListener 'close', ->
     handler(null)
     process.stdin.destroy()
