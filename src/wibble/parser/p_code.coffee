@@ -29,13 +29,16 @@ parameterList = commaSeparatedSurrounded("(", parameter, ")", "Expected function
 functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), whitespace, (-> expression) ]).onMatch (m, state) ->
   { parameters: m[0], functionx: m[1], state }
 
-localVal = pr([ pr("val").commit().drop(), linespace, SYMBOL_NAME, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m, state) ->
-  { local: m[0][0], value: m[1], state }
+# preserve location of name
+localName = pr(SYMBOL_NAME).onMatch (m, state) -> { name: m[0], state: state }
+
+localVal = pr([ pr("val").commit().drop(), linespace, localName, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m, state) ->
+  { local: m[0], value: m[1], state: state }
 
 code = pr.alt(localVal, expression).onFail("Expected declaration or expression")
 
 codeBlock = blockOf(code).onMatch (m, state) ->
-  { code: m, state }
+  { code: m, state: state }
 
 
 exports.code = code

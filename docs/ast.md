@@ -34,5 +34,5 @@ everything has a "state" field.
 
 ## code
 
-    { local, value: expr }
+    { local: { name }, value: expr }
     { code: [ expr* ] }

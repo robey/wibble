@@ -61,7 +61,7 @@ dump = (expr) ->
     parameters = expr.parameters.map (p) -> p.name + (if p.type? then ": " + d_type.dumpType(p.type) else "") + (if p.value? then " = " + dumpExpr(p.value) else "")
     return [ (if parameters.length > 0 then "(" + parameters.join(", ") + ") " else "") + "-> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
   if expr.local?
-    return [ "val #{expr.local} = #{dumpExpr(expr.value)}", PRECEDENCE.code ]
+    return [ "val #{expr.local.name} = #{dumpExpr(expr.value)}", PRECEDENCE.code ]
   if expr.code?
     return [ "{ " + expr.code.map(dumpExpr).join('; ') + " }", PRECEDENCE.constant ]
   [ "???(#{util.inspect(expr)})", PRECEDENCE.none ]
