@@ -1,5 +1,7 @@
 antsy = require 'antsy'
+fs = require 'fs'
 packrattle = require 'packrattle'
+path = require 'path'
 readline = require 'readline'
 util = require 'util'
 
@@ -9,6 +11,9 @@ env =
   debugParse: false
   debugCompile: false
   debugEval: false
+  maxHistory: 100
+  historyFilename: path.join(process.env["HOME"] or process.env["USERPROFILE"], ".wibble_history")
+
 
 main = ->
   println()
@@ -16,6 +21,7 @@ main = ->
   println()
 
   globals = new wibble.Scope()
+  locals = new wibble.Locals()
 
   repl "| ", ": ", (line) ->
     if not line?
@@ -31,18 +37,25 @@ main = ->
     catch e
       # if the parse error is at the end, let the human continue typing.
       if e.state.pos == line.length then return false
-      [ line, squiggles ] = e.state.toSquiggles()
-      printlnColor("f88", line)
-      printlnColor("f4f", squiggles)
-      printColor("f00", "*** ")
-      println("[#{e.state.lineno + 1}] #{e.message}")
+      displayError(e)
       return true
 
     buffer = ""
     if env.debugParse
       printColor("yellow", "  \u2691 ")
       println(wibble.dumpExpr(expr))
-    expr = wibble.transformExpr(expr)
+    try
+      expr = wibble.transformExpr(expr)
+      expr = wibble.packLocals(locals, expr)
+    catch e
+      if e.state?
+        displayError(e)
+      else
+        # internal compiler error
+        printColor("f00", e.toString() + "\n")
+        println e.stack
+      return true
+
     if env.debugCompile
       printColor("f80", "  \u2691 ")
       println(wibble.dumpExpr(expr))
@@ -57,16 +70,23 @@ main = ->
       printColor("88f", rv.toRepr())
       println()
     catch e
-      printColor("f00", e.toString() + "\n")
+      if e.state?
+        displayError(e)
+      else
+        # internal compiler error
+        printColor("f00", e.toString() + "\n")
+        println e.stack
     true
 
 parseWibble = (line) ->
-  rv = packrattle.consume(wibble.parser.expression, line)
-  if not rv.ok
-    e = new Error(rv.message)
-    e.state = rv.state
-    throw e
-  rv.match    
+  wibble.parser.expression.run(line)
+
+displayError = (e) ->
+  [ line, squiggles ] = e.state.toSquiggles()
+  printlnColor("f88", line)
+  printlnColor("f4f", squiggles)
+  printColor("f00", "*** ")
+  println("[#{e.state.lineno + 1}] #{e.message}")
 
 command = (line) ->
   # FIXME maybe use packrattle for this ;)
@@ -99,8 +119,21 @@ commandDebug = (options) ->
 repl = (prompt, contPrompt, handler) ->
   process.stdin.setEncoding('utf8')
   process.stdin.resume()
+  if readline.kHistorySize < env.maxHistory then readline.kHistorySize = env.maxHistory
   r = readline.createInterface(process.stdin, process.stdout)
-  # the 3 is because readline is bad at unicode len()
+  # fucking history
+  r._old_addHistory = r._addHistory
+  r._addHistory = ->
+    line = @_old_addHistory()
+    writeHistoryFile(@history)
+    line
+  # inject old history
+  try
+    lines = fs.readFileSync(env.historyFilename, encoding: "utf-8").split("\n").filter (x) -> x != ""
+    for line in lines then r.history.push(line)
+  catch e
+    # forget it. 
+  # the length must be handed on a silver platter because readline is bad at unicode len()
   r.setPrompt(prompt, prompt.length)
   r.prompt()
   buffer = ""
@@ -121,6 +154,9 @@ repl = (prompt, contPrompt, handler) ->
   r.addListener 'close', ->
     handler(null)
     process.stdin.destroy()
+
+writeHistoryFile = (lines) ->
+  fs.writeFileSync env.historyFilename, lines.join("\n") + "\n"
 
 print = (text) -> process.stdout.write(text)
 println = (text = "") -> process.stdout.write(text + "\n")
