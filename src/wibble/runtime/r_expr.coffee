@@ -4,7 +4,13 @@ int = require './int'
 nothing = require './nothing'
 symbol = require './symbol'
 
-evalExpr = (expr, scope, logger) ->
+# FIXME move this
+error = (message, state) ->
+  e = new Error(message)
+  e.state = state
+  throw e
+
+evalExpr = (expr, locals, logger) ->
   logger?("#{d_expr.dumpExpr(expr)}")
   if expr.nothing? then return nothing.WNothing
   if expr.number?
@@ -14,22 +20,38 @@ evalExpr = (expr, scope, logger) ->
       when "base16" then return new int.WInt(expr.value, 16)
 #    { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
   if expr.symbol? then return new symbol.WSymbol(expr.symbol)
-
+  # string
+  if expr.reference?
+    rv = locals.get(expr.reference)
+    if not rv? then error("Missing reference '#{expr.reference}'", expr.state)
+    return rv
+  # array
+  # struct
   if expr.call?
-    left = evalExpr(expr.call, scope, logger)
-    right = evalExpr(expr.arg, scope, logger)
+    left = evalExpr(expr.call, locals, logger)
+    right = evalExpr(expr.arg, locals, logger)
     logger?("call: (#{left.toRepr()}) #{right.toRepr()}")
-    rv = evalCall(left, right, logger)
+    rv = evalCall(left, right, expr.state, logger)
     logger?("  \u21b3 #{rv.toRepr()}")
     return rv
 
-  throw new Error("Not yet.")
+  if expr.local?
+    rv = evalExpr(expr.value, locals, logger)
+    locals.set(expr.local.name, rv)
+    return rv
+  if expr.code?
+    rv = nothing.WNothing
+    for x in expr.code
+      rv = evalExpr(x, locals, logger)
+    return rv
 
-evalCall = (target, message, logger) ->
+  error("Not yet implemented", expr.state)
+
+evalCall = (target, message, state, logger) ->
   handler = target.handlerForMessage(message)
   if not handler?
     logger?("No handler for message <#{message.toRepr()}> in #{target.toRepr()}")
-    throw new Error("Object [#{target.type.toRepr()}] #{target.toRepr()} can't handle message #{message.toRepr()}")
+    error("Object [#{target.type.toRepr()}] #{target.toRepr()} can't handle message #{message.toRepr()}", state)
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)

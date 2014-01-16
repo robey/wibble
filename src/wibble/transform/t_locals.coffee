@@ -12,12 +12,12 @@ packLocals = (scope, expr) ->
     if expr.local?
       if scope.exists(expr.local.name) then t_error.error("Redefined local '#{expr.local.name}'", expr.local.state)
       scope.add(expr.local.name, expr.value)
-      expr
+      [ expr, scope ]
     if expr.reference?
       if not scope.get(expr.reference)?
         # try to find a similar local
         t_error.error("Unknown reference '#{expr.reference}'", expr.state)
-    expr
+    [ expr, scope ]
 
 
 exports.packLocals = packLocals
