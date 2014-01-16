@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "antsy": "*",
-    "bigint": "*",
+    "big-integer": "*",
     "coffee-script": "*",
     "packrattle": "*"
   },
