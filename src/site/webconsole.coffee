@@ -44,7 +44,19 @@ class WebConsole
   redrawLine: (y) ->
     span = $(@div.text.children("span")[y])
     span.empty()
-    span.append(@lines[y].map((cell) -> cell.char).join(""))
+    currentSpan = null
+    currentColor = null
+    for cell in @lines[y]
+      if cell.color != currentColor
+        if currentSpan? then span.append(currentSpan)
+        currentSpan = $("<span></span>")
+        colorName = "ff" + cell.color.toString(16)
+        colorName = colorName[colorName.length - 3 ... colorName.length]
+        currentSpan.css("color", "\##{colorName}")
+        currentColor = cell.color
+      code = cell.char.charCodeAt(0)
+      currentSpan.append(if code <= 32 then "&nbsp;" else "&\#x#{code.toString(16)};")
+    if currentSpan? then span.append(currentSpan)
 
   calculateEm: ->
     # gerg-style: non-retina computers may use fractional pixel-widths for text

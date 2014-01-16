@@ -43,8 +43,10 @@ $(document).ready ->
 
 @randChar = ->
   if Math.random() <= 0.2
-    document.webconsole.putChar("&nbsp;")
+    document.webconsole.putChar(" ")
   else
+    if Math.random() <= 0.1
+      document.webconsole.color = ((Math.floor(Math.random() * 5) + 10) << 8) + ((Math.floor(Math.random() * 5) + 10) << 4) + ((Math.floor(Math.random() * 5) + 10))
     ch = Math.floor(Math.random() * 25 + 97)
     if ch < 97 or ch > 126 then console.log "WUT #{ch}"
     document.webconsole.putChar(String.fromCharCode(ch))
