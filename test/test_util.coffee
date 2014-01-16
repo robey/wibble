@@ -12,7 +12,7 @@ stateToPos = (x) ->
 
   return x unless x? and (typeof x == "object")
   if Array.isArray(x) then return x.map(stateToPos)
-  if x.state? then return copy(pos: [ x.state.pos, x.state.endpos ])
+  if x.state? then return copy(pos: [ x.state.pos(), x.state.endpos() ])
   copy()
 
 parseWith = (parser, line, options) ->

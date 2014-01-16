@@ -36,7 +36,7 @@ main = ->
       expr = parseWibble(line)
     catch e
       # if the parse error is at the end, let the human continue typing.
-      if e.state.pos == line.length then return false
+      if e.state.pos() == line.length then return false
       displayError(e)
       return true
 
