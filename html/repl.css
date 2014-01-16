@@ -17,7 +17,7 @@ body {
 .console {
   /* hide until js has a chance to set the size */
   display: none;
-  border: solid 1px yellow;
+  xborder: solid 1px yellow;
   overflow-x: hidden;
   overflow-y: scroll;
   padding: 5px;

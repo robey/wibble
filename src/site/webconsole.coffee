@@ -14,15 +14,37 @@ class WebConsole
 
   init: ->
     @calculateEm()
-    @lineHeight = parseInt(@element.css("line-height"))
     @cursor =
       x: 0
       y: 0
+    @lines = []
+    @color = 0xfff
+    @addLine()
 
   resize: ->
-
-  redraw: ->
+    @lineHeight = parseInt(@element.css("line-height"))
+    @width = Math.floor(@div.text.width() / @em)
     @startCursor()
+
+  putChar: (c) ->
+    if @cursor.x >= @width
+      @addLine()
+      @cursor.x = 0
+      @cursor.y += 1
+    @lines[@cursor.y][@cursor.x] = { color: @color, char: c }
+    @redrawLine(@cursor.y)
+    @cursor.x += 1
+    @moveCursor()
+
+  addLine: ->
+    @lines.push []
+    @div.text.append($("<span></span><br>"))
+    # FIXME: scroll
+
+  redrawLine: (y) ->
+    span = $(@div.text.children("span")[y])
+    span.empty()
+    span.append(@lines[y].map((cell) -> cell.char).join(""))
 
   calculateEm: ->
     # gerg-style: non-retina computers may use fractional pixel-widths for text
@@ -44,7 +66,7 @@ class WebConsole
       after 25, => @calculateEm()
       return
     @em = em0
-    @redraw()
+    @resize()
 
   stopCursor: ->
     if @cursorTimer? then stopTimer(@cursorTimer)
@@ -56,7 +78,6 @@ class WebConsole
     @moveCursor()
 
   blinkCursor: ->
-    @moveCursor()
     @div.cursor.css("display", if @div.cursor.css("display") == "none" then "block" else "none")
 
   moveCursor: ->

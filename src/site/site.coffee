@@ -15,7 +15,7 @@ after = (msec, f) -> setTimeout(f, msec)
 
 $(document).ready ->
   # don't try to race chrome.
-  document.console = new webconsole.WebConsole($(".console"))
+  document.webconsole = new webconsole.WebConsole($(".console"))
   after 1, -> @resized()
   $(window).resize (event) ->
     after 1, -> @resized()
@@ -39,3 +39,13 @@ $(document).ready ->
     console.log "h=#{h}"
     $(".console").scrollTop(parseInt(h))
     console.log "top=#{$(".console").scrollTop()}"
+    @randChar()
+
+@randChar = ->
+  if Math.random() <= 0.2
+    document.webconsole.putChar("&nbsp;")
+  else
+    ch = Math.floor(Math.random() * 25 + 97)
+    if ch < 97 or ch > 126 then console.log "WUT #{ch}"
+    document.webconsole.putChar(String.fromCharCode(ch))
+  after 20 + 50 * Math.random(), => @randChar()
