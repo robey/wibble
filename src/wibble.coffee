@@ -17,3 +17,7 @@ exports.evalExpr = r_expr.evalExpr
 
 types = require './wibble/runtime/types'
 exports.types = types
+
+# ---
+repl = require './repl'
+exports.repl = repl

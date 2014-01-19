@@ -2,8 +2,9 @@ packrattle = require 'packrattle'
 path = require 'path'
 util = require 'util'
 
-unix_terminal = require './unix_terminal'
 wibble = require './wibble'
+package_json = require '../package.json'
+build_date = require './build_date'
 
 env =
   debugParse: false
@@ -15,9 +16,14 @@ env =
 
 main = (terminal) ->
   if not terminal?
+    unix_terminal = require './unix_terminal'
     terminal = new unix_terminal.UnixTerminal(env.historyFilename, env.maxHistory)
-  terminal.println()
-  terminal.printlnColor("080", "Hello!")
+  terminal.printColor("0c0", "wibble")
+  terminal.println(" jsrepl v#{package_json.version}.#{build_date.build_date}")
+  terminal.println("(c) 2014-2019 Regents of Despair")
+  terminal.print("Use ")
+  terminal.printColor("0c0", "/help")
+  terminal.println(" for help with meta-commands.")
   terminal.println()
 
   globalScope = new wibble.transform.Scope()
@@ -66,8 +72,8 @@ main = (terminal) ->
           terminal.printColor("a50", "  @ ")
           terminal.println(line)
       rv = wibble.evalExpr(expr, globals, logger)
-      terminal.printColor("55f", "#{rv.type.toRepr()}: ")
-      terminal.printColor("88f", rv.toRepr())
+      terminal.printColor("66f", "#{rv.type.toRepr()}: ")
+      terminal.printColor("99f", rv.toRepr())
       terminal.println()
     catch e
       if e.state?
@@ -86,7 +92,7 @@ displayError = (terminal, e) ->
   terminal.printlnColor("f88", line)
   terminal.printlnColor("f4f", squiggles)
   terminal.printColor("f00", "*** ")
-  terminal.println("[#{e.state.lineno + 1}] #{e.message}")
+  terminal.println("[#{e.state.lineno() + 1}] #{e.message}")
 
 command = (terminal, line) ->
   # FIXME maybe use packrattle for this ;)
@@ -94,6 +100,7 @@ command = (terminal, line) ->
   switch args[0]
     when "debug" then commandDebug(terminal, args[1...])
     else commandHelp(terminal)
+  true
 
 commandHelp = (terminal) ->
   terminal.println "Meta-commands:"
