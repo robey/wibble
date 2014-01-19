@@ -4,8 +4,4 @@ load "mocha"
 settings.clean = [ "lib" ]
 settings.distclean = [ "node_modules" ]
 
-task "browserify", watch: "lib/**/*", depends: "build", run: ->
-  mkdir "-p", "html/js/built"
-  exec "browserify --fast -o html/js/built/index.js lib/site/site.js"
-
 task "run", run: ->

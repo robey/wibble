@@ -14,12 +14,9 @@
     "packrattle": "*"
   },
   "devDependencies": {
-    "fibers": "*",
-    "glob": "*",
     "mocha": "*",
     "plz": "*",
-    "should": "*",
-    "sync": "*"
+    "should": "*"
   },
   "main": "./lib/wibble",
   "files": [
