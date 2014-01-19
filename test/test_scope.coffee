@@ -2,7 +2,7 @@ should = require 'should'
 util = require 'util'
 
 wibble = "../lib/wibble"
-scope = require "#{wibble}/runtime/scope"
+scope = require "#{wibble}/runtime/r_scope"
 test_util = require './test_util'
 
 describe "Scope", ->
