@@ -11,7 +11,7 @@ env =
   debugCompile: false
   debugEval: false
   maxHistory: 100
-  historyFilename: path.join(process.env["HOME"] or process.env["USERPROFILE"], ".wibble_history")
+  historyFilename: path.join(process.env["HOME"] or process.env["USERPROFILE"] or ".", ".wibble_history")
 
 
 main = (terminal) ->
@@ -19,6 +19,7 @@ main = (terminal) ->
     unix_terminal = require './unix_terminal'
     terminal = new unix_terminal.UnixTerminal(env.historyFilename, env.maxHistory)
   terminal.printColor("0c0", "wibble")
+  terminal.printColor("080", " ¤")
   terminal.println(" jsrepl v#{package_json.version}.#{build_date.build_date}")
   terminal.println("(c) 2014-2019 Regents of Despair")
   terminal.print("Use ")
@@ -48,7 +49,7 @@ main = (terminal) ->
 
     buffer = ""
     if env.debugParse
-      terminal.printColor("ff0", "  % ")
+      terminal.printColor("ff0", "  p ")
       terminal.println(wibble.dumpExpr(expr))
     try
       expr = wibble.transform.transformExpr(expr)
@@ -63,13 +64,13 @@ main = (terminal) ->
       return true
 
     if env.debugCompile
-      terminal.printColor("f80", "  $ ")
+      terminal.printColor("f80", "  c ")
       terminal.println(wibble.dumpExpr(expr))
 
     try
       logger = (line) ->
         if env.debugEval
-          terminal.printColor("a50", "  @ ")
+          terminal.printColor("c70", "  × ")
           terminal.println(line)
       rv = wibble.evalExpr(expr, globals, logger)
       terminal.printColor("66f", "#{rv.type.toRepr()}: ")
@@ -103,6 +104,9 @@ command = (terminal, line) ->
   true
 
 commandHelp = (terminal) ->
+  terminal.println "Type any wibble expression to have it evaluated."
+  terminal.println "(January edition: only supports integer math.)"
+  terminal.println ""
   terminal.println "Meta-commands:"
   terminal.println "  /debug [options...]"
   terminal.println "      turn on/off various debug logging (parse, compile, eval)"

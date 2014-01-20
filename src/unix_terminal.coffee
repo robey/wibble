@@ -5,6 +5,7 @@ readline = require 'readline'
 # abstract the unix terminal into a few simple functions, so the website can inject its own.
 class UnixTerminal
   constructor: (@historyFilename, @maxHistory) ->
+    @println ""
 
   print: (text) -> process.stdout.write(text)
   println: (text = "") -> process.stdout.write(text + "\n")
@@ -42,9 +43,6 @@ class UnixTerminal
     r.prompt()
     buffer = ""
     r.addListener 'line', (line) =>
-      if line == "exit"
-        r.close()
-        return
       line = buffer + line
       if line[line.length - 1] != "\\" and handler(line) then buffer = "" else buffer = line + "\n"
       p = if buffer.length > 0 then contPrompt else prompt
