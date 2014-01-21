@@ -420,6 +420,47 @@ this implies that the desugared way of defining a method would be:
     }
 
 
+# binding @
+
+san francisco -- 20 jan 2014
+
+calling a method on an object is a two-stage process:
+
+    hash.process(imageData)
+
+1. Send message `.process` to `hash`. Returns a function, with `@` bound to
+   `hash`.
+2. Send message `imageData` to the function. Probably returns a count or a
+   final hash result. `@` isn't re-bound.
+
+So a key difference between objects and functions is that when objects receive
+a message, `@` is bound to the object that actually received the message. When
+a function receives a message, it leaves `@` alone.
+
+As much as possible, I want to keep the property that most of the language's
+internals can be written in itself, out of primitives. So I think `@` should
+not be bound by default. Instead, some builtin function wraps a function by
+binding `@` to the recipient:
+
+    val bind: ($A -> $B) -> ($A -> $B)
+
+    on .process -> bind (new {
+      on (imageData: Buffer) -> <...>
+    })
+
+Additionally, I hate the parentheses around the function there, so I think
+wibble should borrow the `$` operator from Haskell, but maybe use something
+less weird-looking, like `:`. The precedence-dropping operator would treat
+everything after it as a single argument.
+
+    on .process -> bind: new {
+      on (imageData: Buffer) -> <...>
+    }
+
+    on .process -> bind: (imageData: Buffer) -> <...>
+
+Need to think about that a bit, though. `:` might be too ambiguous, for one.
+
 
 
 
