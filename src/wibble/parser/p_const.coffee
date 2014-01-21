@@ -56,3 +56,4 @@ constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, 
 
 
 exports.constant = constant
+exports.symbolRef = symbolRef

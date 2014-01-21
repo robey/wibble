@@ -51,7 +51,7 @@ class Repl
 
       buffer = ""
       if env.debugParse
-        @terminal.printColor("ff0", "  p ")
+        @terminal.printColor("ff0", "  ) ")
         @terminal.println(wibble.dumpExpr(expr))
       try
         expr = wibble.transform.transformExpr(expr)
@@ -66,13 +66,13 @@ class Repl
         return true
 
       if env.debugCompile
-        @terminal.printColor("f80", "  c ")
+        @terminal.printColor("f80", "  * ")
         @terminal.println(wibble.dumpExpr(expr))
 
       try
         logger = (line) =>
           if env.debugEval
-            @terminal.printColor("c70", "  × ")
+            @terminal.printColor("c70", "  > ")
             @terminal.println(line)
         rv = wibble.evalExpr(expr, @globals, logger)
         @terminal.printColor("66f", "#{rv.type.toRepr()}: ")

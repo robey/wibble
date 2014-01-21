@@ -29,6 +29,7 @@ digExpr = (expr, state, transform) ->
     return copy(functionx: dig(expr.functionx), parameters: parameters)
   if expr.local? then return copy(value: dig(expr.value))
   if expr.code? then return copy(code: expr.code.map(dig))
+  if expr.on? then return copy(handler: dig(expr.handler))
   expr
 
 # turn all binary/unary expressions into calls.

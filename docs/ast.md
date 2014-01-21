@@ -35,4 +35,5 @@ everything has a "state" field.
 ## code
 
     { local: { name }, value: expr }
+    { on: { symbol | parameters }, handler: expr }
     { code: [ expr* ] }

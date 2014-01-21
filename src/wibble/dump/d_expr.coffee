@@ -58,13 +58,20 @@ dump = (expr) ->
     ifElse = if expr.ifElse then parenthesize(expr.ifElse, PRECEDENCE.ifThen) else null
     return [ "if #{condition} then #{ifThen}" + (if ifElse then " else #{ifElse}" else ""), PRECEDENCE.ifThen ]
   if expr.functionx?
-    parameters = expr.parameters.map (p) -> p.name + (if p.type? then ": " + d_type.dumpType(p.type) else "") + (if p.value? then " = " + dumpExpr(p.value) else "")
-    return [ (if parameters.length > 0 then "(" + parameters.join(", ") + ") " else "") + "-> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
+    return [ dumpParameters(expr.parameters) + " -> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
   if expr.local?
     return [ "val #{expr.local.name} = #{dumpExpr(expr.value)}", PRECEDENCE.code ]
+  if expr.on?
+    parameters = if expr.on.parameters? then dumpParameters(expr.on.parameters) else ".#{expr.on.symbol}"
+    return [ "on #{parameters} -> " + dumpExpr(expr.handler), PRECEDENCE.code ]
   if expr.code?
     return [ "{ " + expr.code.map(dumpExpr).join('; ') + " }", PRECEDENCE.constant ]
   [ "???(#{util.inspect(expr)})", PRECEDENCE.none ]
+
+dumpParameters = (parameters) ->
+  parameters = parameters.map (p) ->
+    p.name + (if p.type? then ": " + d_type.dumpType(p.type) else "") + (if p.value? then " = " + dumpExpr(p.value) else "")
+  "(" + parameters.join(", ") + ")"
 
 parenthesize = (expr, myPrecedence) ->
   [ rv, p ] = dump(expr)

@@ -79,3 +79,7 @@
 
     localVal := "val" ws* SYMBOL_NAME ws* "=" ws* expression
 
+    handler := "on" ws* (symbol | parameterList) ws* "->" ws* expression
+
+
+

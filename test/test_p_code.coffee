@@ -115,6 +115,28 @@ describe "Parse code", ->
         pos: [ 0, 11 ]
       )
 
+    it "handler", ->
+      parse("on .peek -> 3").should.eql(
+        on: { symbol: "peek", pos: [ 3, 8 ] }
+        handler: { number: "base10", value: "3", pos: [ 12, 13 ] }
+      )
+      parse("on () -> true").should.eql(
+        on: { parameters: [], pos: [ 3, 5 ] }
+        handler: { boolean: true, pos: [ 9, 13 ] }
+      )
+      parse("on (x: Int) -> x * 2").should.eql(
+        on:
+          parameters: [
+            { name: "x", type: { type: "Int" }, value: undefined, pos: [ 4, 5 ] }
+          ]
+          pos: [ 3, 11 ]
+        handler:
+          binary: "*"
+          left: { reference: "x", pos: [ 15, 16 ] }
+          right: { number: "base10", value: "2", pos: [ 19, 20 ] }
+          pos: [ 15, 20 ]
+      )
+
   describe "block of code", ->
     parse = (line, options) -> parseWith(p_code.codeBlock, line, options)
     parseFailed = (line, options) -> parseFailedWith(p_code.codeBlock, line, options)
