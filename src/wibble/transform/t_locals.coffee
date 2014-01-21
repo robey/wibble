@@ -3,14 +3,15 @@ t_error = require './t_error'
 t_expr = require './t_expr'
 t_scope = require './t_scope'
 
-packLocals = (scope, expr) ->
+packLocals = (scope, expr, options = {}) ->
   t_expr.digExpr expr, scope, (expr, scope, copy) ->
     if expr.code?
       # open up a new (chained) scope
       scope = new t_scope.Scope(scope)
       return [ copy(scope: scope), scope ]
     if expr.local?
-      if scope.exists(expr.local.name) then t_error.error("Redefined local '#{expr.local.name}'", expr.local.state)
+      if scope.exists(expr.local.name) and not options.allowOverride
+        t_error.error("Redefined local '#{expr.local.name}'", expr.local.state)
       scope.add(expr.local.name, expr.value)
       [ expr, scope ]
     if expr.reference?
