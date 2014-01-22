@@ -112,17 +112,19 @@ describe "Parse code", ->
       parse("val x = 100").should.eql(
         local: { name: "x", pos: [ 4, 5 ] }
         value: { number: "base10", value: "100", pos: [ 8, 11 ] }
-        pos: [ 0, 11 ]
+        pos: [ 0, 3 ]
       )
 
     it "handler", ->
       parse("on .peek -> 3").should.eql(
         on: { symbol: "peek", pos: [ 3, 8 ] }
         handler: { number: "base10", value: "3", pos: [ 12, 13 ] }
+        pos: [ 0, 2 ]
       )
       parse("on () -> true").should.eql(
         on: { parameters: [], pos: [ 3, 5 ] }
         handler: { boolean: true, pos: [ 9, 13 ] }
+        pos: [ 0, 2 ]
       )
       parse("on (x: Int) -> x * 2").should.eql(
         on:
@@ -135,7 +137,11 @@ describe "Parse code", ->
           left: { reference: "x", pos: [ 15, 16 ] }
           right: { number: "base10", value: "2", pos: [ 19, 20 ] }
           pos: [ 15, 20 ]
+        pos: [ 0, 2 ]
       )
+
+    it "handler error", ->
+      parseFailed("on 3 -> 3").should.match /symbol or parameters/
 
   describe "block of code", ->
     parse = (line, options) -> parseWith(p_code.codeBlock, line, options)

@@ -230,7 +230,7 @@ describe "Parse expressions", ->
           right: { number: "base10", value: "0", pos: [ 7, 8 ] }
           pos: [ 3, 8 ]
         ifThen: { reference: "x", pos: [ 14, 15 ] }
-        pos: [ 0, 15 ]
+        pos: [ 0, 2 ]
       )
 
     it "if _ then _ else _", ->
@@ -245,7 +245,7 @@ describe "Parse expressions", ->
           right: { reference: "x", pos: [ 15, 16 ] }
           pos: [ 14, 16 ]
         ifElse: { reference: "x", pos: [ 22, 23 ] }
-        pos: [ 0, 23 ]
+        pos: [ 0, 2 ]
       )
 
     it "if {block} then _ else _", ->
@@ -258,7 +258,7 @@ describe "Parse expressions", ->
           pos: [ 3, 14 ]
         ifThen: { number: "base10", value: "1", pos: [ 20, 21 ] }
         ifElse: { number: "base10", value: "2", pos: [ 27, 28 ] }
-        pos: [ 0, 28 ]
+        pos: [ 0, 2 ]
       )
 
     it "nested", ->
@@ -267,9 +267,9 @@ describe "Parse expressions", ->
         ifThen:
           condition: { reference: "b", pos: [ 14, 15 ] }
           ifThen: { number: "base10", value: "3", pos: [ 21, 22 ] }
-          pos: [ 11, 22 ]
+          pos: [ 11, 13 ]
         ifElse: { number: "base10", value: "9", pos: [ 29, 30 ] }
-        pos: [ 0, 30 ]
+        pos: [ 0, 2 ]
       )
 
     it "failing", ->

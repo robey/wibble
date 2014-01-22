@@ -11,6 +11,7 @@ expression = p_expr.expression
 linespace = p_common.linespace
 symbolRef = p_const.symbolRef
 SYMBOL_NAME = p_common.SYMBOL_NAME
+toState = p_common.toState
 typedecl = p_type.typedecl
 whitespace = p_common.whitespace
 
@@ -33,13 +34,13 @@ functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop()
 # preserve location of name
 localName = pr(SYMBOL_NAME).onMatch (m, state) -> { name: m[0], state }
 
-localVal = pr([ pr("val").commit().drop(), linespace, localName, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m, state) ->
-  { local: m[0], value: m[1], state: state }
+localVal = pr([ toState("val"), linespace, localName, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m, state) ->
+  { local: m[1], value: m[2], state: m[0] }
 
-handlerReceiver = pr.alt(symbolRef, parameterList.onMatch((m, state) -> { parameters: m, state }))
+handlerReceiver = pr.alt(symbolRef, parameterList.onMatch((m, state) -> { parameters: m, state })).describe("symbol or parameters")
 
-handler = pr([ pr("on").commit().drop(), linespace, handlerReceiver, linespace, pr("->").drop(), whitespace, expression ]).onMatch (m, state) ->
-  { on: m[0], handler: m[1] }
+handler = pr([ toState("on"), linespace, handlerReceiver, linespace, pr("->").drop(), whitespace, expression ]).onMatch (m, state) ->
+  { on: m[1], handler: m[2], state: m[0] }
 
 code = pr.alt(localVal, handler, expression).onFail("Expected declaration or expression")
 

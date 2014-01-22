@@ -13,6 +13,7 @@ functionx = -> p_code.functionx
 linespace = p_common.linespace
 RESERVED = p_common.RESERVED
 SYMBOL_NAME = p_common.SYMBOL_NAME
+toState = p_common.toState
 whitespace = p_common.whitespace
 
 #
@@ -68,7 +69,7 @@ comparison = binary(shifty, pr.alt("==", ">=", "<=", "!=", "<", ">"))
 logical = binary(comparison, pr.alt("and", "or"))
 
 condition = pr([
-  pr("if").commit().drop()
+  toState("if")
   linespace
   -> expression
   linespace
@@ -82,12 +83,15 @@ condition = pr([
     -> expression
   ]).optional([])
 ]).describe("condition").onMatch (m, state) ->
-  if m[2].length > 0
-    { condition: m[0], ifThen: m[1], ifElse: m[2][0], state }
+  if m[3].length > 0
+    { condition: m[1], ifThen: m[2], ifElse: m[3][0], state: m[0] }
   else
-    { condition: m[0], ifThen: m[1], state }
+    { condition: m[1], ifThen: m[2], state: m[0] }
 
-expression = pr.alt(condition, logical).describe("expression")
+newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->
+  { newObject: m[1], state: m[0] }
+
+expression = pr.alt(condition, newObject, logical).describe("expression")
 
 
 exports.expression = expression

@@ -69,6 +69,10 @@ linespace = pr(/([ ]+|\\\n)*/).drop()
 # linefeed is acceptable whitespace here
 whitespace = pr(/([ \n]+|\\\n)*/).drop()
 
+# match a keyword, commit on it, and turn it into its state (covering span)
+toState = (p) ->
+  pr(p).commit().onMatch((m, state) -> state)
+
 # repeat 'p' with optional whitespace around it, separated by commas, with a trailing comma OK
 commaSeparated = (p) ->
   pr.repeat([ whitespace, p, whitespace, pr(/,\s*/).optional().drop() ]).onMatch (m) ->
@@ -105,5 +109,6 @@ exports.OPERATORS = OPERATORS
 exports.PRECEDENCE = PRECEDENCE
 exports.RESERVED = RESERVED
 exports.SYMBOL_NAME = SYMBOL_NAME
+exports.toState = toState
 exports.TYPE_NAME = TYPE_NAME
 exports.whitespace = whitespace
