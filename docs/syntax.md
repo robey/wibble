@@ -23,9 +23,11 @@
 
 ## expressions
 
-    expression := condition | logical
+    expression := condition | new | logical
 
     condition := "if" ws* expression ws* "then" ws* expression (ws* "else" ws* expression)?
+
+    new := "new" ws* codeBlock
 
     logical := comparison (("and" | "or") comparison)*
 
@@ -43,7 +45,7 @@
 
     unary := ("-" | "not") atom
 
-    atom := constant | reference | array | struct | function
+    atom := constant | reference | array | struct | function | codeBlock
 
     reference := SYMBOL_NAME
     
@@ -58,6 +60,8 @@
     parameterList := "(" (ws* parameter ws* ","?)* ")"
 
     parameter := SYMBOL_NAME (ws? ":" ws* typedecl)? (ws* "=" ws* expression)?
+
+    codeBlock := "{" (ws* code ws* ";"?)* "}"
 
 ## typedecl
 
@@ -75,7 +79,7 @@
 
 ## code
 
-    code := localVal | expression
+    code := localVal | handler | expression
 
     localVal := "val" ws* SYMBOL_NAME ws* "=" ws* expression
 

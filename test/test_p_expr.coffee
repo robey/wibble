@@ -277,4 +277,12 @@ describe "Parse expressions", ->
       parseFailed("if 3 then ???").should.match(/Expected expression/)
       parseFailed("if 3 then 3 else ???").should.match(/Expected expression/)
 
-
+  it "new", ->
+    parse("new { true }").should.eql(
+      newObject:
+        code: [
+          { boolean: true, pos: [ 6, 10 ] }
+        ]
+        pos: [ 4, 12 ]
+      pos: [ 0, 3 ]
+    )

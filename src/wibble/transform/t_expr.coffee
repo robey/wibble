@@ -27,6 +27,8 @@ digExpr = (expr, state, transform) ->
   if expr.functionx?
     parameters = expr.parameters?.map (p) -> { name: p.name, type: p.type, value: (if p.value? then dig(p.value) else null) }
     return copy(functionx: dig(expr.functionx), parameters: parameters)
+  if expr.newObject? then return copy(newObject: dig(expr.newObject))
+
   if expr.local? then return copy(value: dig(expr.value))
   if expr.code? then return copy(code: expr.code.map(dig))
   if expr.on? then return copy(handler: dig(expr.handler))

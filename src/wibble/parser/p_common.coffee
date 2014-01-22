@@ -9,6 +9,7 @@ SYMBOL_NAME = /[a-z][A-Za-z_0-9]*/
 TYPE_NAME = /[A-Z][A-Za-z_0-9]*/
 
 RESERVED = [
+  "if"
   "then"
   "else"
   "match"
@@ -19,6 +20,7 @@ RESERVED = [
   "on"
   "val"
   "def"
+  "new"
 ]
 
 OPERATORS = [

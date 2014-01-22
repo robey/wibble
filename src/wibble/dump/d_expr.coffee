@@ -59,6 +59,8 @@ dump = (expr) ->
     return [ "if #{condition} then #{ifThen}" + (if ifElse then " else #{ifElse}" else ""), PRECEDENCE.ifThen ]
   if expr.functionx?
     return [ dumpParameters(expr.parameters) + " -> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
+  if expr.newObject?
+    return [ "new " + dumpExpr(expr.newObject), PRECEDENCE.code ]
   if expr.local?
     return [ "val #{expr.local.name} = #{dumpExpr(expr.value)}", PRECEDENCE.code ]
   if expr.on?

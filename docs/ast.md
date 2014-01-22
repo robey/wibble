@@ -23,6 +23,7 @@ everything has a "state" field.
     X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
     { functionx: expr, parameters: { name, type, value: expr }* }
+    { newObject: code }
 
 ## types
 
