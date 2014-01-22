@@ -18,7 +18,7 @@ describe "Parse code", ->
       parse("-> ()").should.eql(
         parameters: [],
         functionx: { nothing: true, pos: [ 3, 5 ] }
-        pos: [ 0, 5 ]
+        pos: [ 0, 2 ]
       )
 
     it "simple expression", ->
@@ -31,7 +31,7 @@ describe "Parse code", ->
           left: { reference: "x", pos: [ 12, 13 ] }
           right: { number: "base10", value: "2", pos: [ 16, 17 ] }
           pos: [ 12, 17 ]
-        pos: [ 0, 17 ]
+        pos: [ 9, 11 ]
       )
 
     it "complex parameters", ->
@@ -58,7 +58,7 @@ describe "Parse code", ->
           }
         ]
         functionx: { boolean: false, pos: [ 43, 48 ] }
-        pos: [ 0, 48 ]
+        pos: [ 40, 42 ]
       )
 
     it "default values", ->
@@ -72,7 +72,7 @@ describe "Parse code", ->
           left: { reference: "x", pos: [ 28, 29 ] }
           right: { reference: "y", pos: [ 32, 33 ] }
           pos: [ 28, 33 ]
-        pos: [ 0, 33 ]
+        pos: [ 25, 27 ]
       )
 
     it "nested", ->
@@ -81,19 +81,19 @@ describe "Parse code", ->
         functionx:
           parameters: []
           functionx: { number: "base10", value: "69", pos: [ 6, 8 ] }
-          pos: [ 2, 8 ]
-        pos: [ 0, 8 ]
+          pos: [ 3, 5 ]
+        pos: [ 0, 2 ]
       )
 
     it "via expression", ->
       parse = (line, options) -> parseWith(p_expr.expression, line, options)
-      parse("-> 3").should.eql(parameters: [], functionx: { number: "base10", value: "3", pos: [ 3, 4 ] }, pos: [ 0, 4 ])
+      parse("-> 3").should.eql(parameters: [], functionx: { number: "base10", value: "3", pos: [ 3, 4 ] }, pos: [ 0, 2 ])
       parse("(x: Int) -> 3").should.eql(
         parameters: [
           { name: "x", type: { type: "Int" }, value: undefined, pos: [ 1, 2 ] }
         ]
         functionx: { number: "base10", value: "3", pos: [ 12, 13 ] }
-        pos: [ 0, 13 ]
+        pos: [ 9, 11 ]
       )
 
   describe "code", ->

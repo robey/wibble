@@ -62,7 +62,7 @@ dump = (expr) ->
   if expr.newObject?
     return [ "new " + dumpExpr(expr.newObject), PRECEDENCE.code ]
   if expr.local?
-    return [ "val #{expr.local.name} = #{dumpExpr(expr.value)}", PRECEDENCE.code ]
+    return [ "val " + expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?
     parameters = if expr.on.parameters? then dumpParameters(expr.on.parameters) else ".#{expr.on.symbol}"
     return [ "on #{parameters} -> " + dumpExpr(expr.handler), PRECEDENCE.code ]

@@ -25,7 +25,7 @@ class Repl
     @terminal.printColor("0c0", "wibble")
     @terminal.printColor("080", " ¤")
     @terminal.println(" jsrepl v#{package_json.version}.#{build_date.build_date}")
-    @terminal.println("(c) 2014-2019 Regents of Despair")
+    @terminal.println("(c) 2014-2019 Regents of Teeth-gnashing Despair")
     @terminal.print("Use ")
     @terminal.printColor("0c0", "/help")
     @terminal.println(" for help with meta-commands.")
@@ -51,7 +51,7 @@ class Repl
 
       buffer = ""
       if env.debugParse
-        @terminal.printColor("ff0", "  ) ")
+        @terminal.printColor("ff0", "  ; ")
         @terminal.println(wibble.dumpExpr(expr))
       try
         expr = wibble.transform.transformExpr(expr)
@@ -66,13 +66,13 @@ class Repl
         return true
 
       if env.debugCompile
-        @terminal.printColor("f80", "  * ")
+        @terminal.printColor("f80", "  ; ")
         @terminal.println(wibble.dumpExpr(expr))
 
       try
         logger = (line) =>
           if env.debugEval
-            @terminal.printColor("c70", "  > ")
+            @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
         rv = wibble.evalExpr(expr, @globals, logger)
         @terminal.printColor("66f", "#{rv.type.toRepr()}: ")

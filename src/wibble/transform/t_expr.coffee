@@ -1,5 +1,5 @@
 util = require 'util'
-t_error = require './t_error'
+t_common = require './t_common'
 
 # traverse an expression tree, sending each expression object through the
 # 'transform' function.
@@ -10,7 +10,7 @@ digExpr = (expr, state, transform) ->
   # FIXME should be elsewhere, probably
   copy = (changes) ->
     rv = {}
-    for k, v of expr then rv[k] = v
+    for k, v of expr when changes[k] != null then rv[k] = v
     for k, v of changes then rv[k] = v
     Object.freeze(rv)
 
@@ -47,11 +47,6 @@ flattenInfix = (expr) ->
         else expr.unary
       copy(unary: null, call: { call: expr.right, arg: { symbol: op } }, arg: { nothing: true })
 
-transformExpr = (expr) ->
-  expr = flattenInfix(expr)
-  expr
-
 
 exports.digExpr = digExpr
 exports.flattenInfix = flattenInfix
-exports.transformExpr = transformExpr

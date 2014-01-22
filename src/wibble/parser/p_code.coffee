@@ -28,8 +28,8 @@ parameter = pr([
 
 parameterList = commaSeparatedSurrounded("(", parameter, ")", "Expected function parameter")
 
-functionx = pr([ parameterList.optional([]), linespace, pr("->").commit().drop(), whitespace, (-> expression) ]).onMatch (m, state) ->
-  { parameters: m[0], functionx: m[1], state }
+functionx = pr([ parameterList.optional([]), linespace, toState("->"), whitespace, (-> expression) ]).onMatch (m, state) ->
+  { parameters: m[0], functionx: m[2], state: m[1] }
 
 # preserve location of name
 localName = pr(SYMBOL_NAME).onMatch (m, state) -> { name: m[0], state }

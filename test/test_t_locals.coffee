@@ -25,3 +25,8 @@ describe "Transform locals", ->
     x.code[1].scope.exists("x").should.eql true
     test_util.stateToPos(x.scope.get("x")).should.eql(number: "base10", value: "9", pos: [ 10, 11 ])
     test_util.stateToPos(x.code[1].scope.get("x")).should.eql(number: "base10", value: "3", pos: [ 23, 24 ])
+
+  it "generates a scope for 'on' handlers", ->
+    x = packLocals("{ on (x: Int) -> x + 2 }")
+    x.code[0].scope.exists("x").should.eql true
+    
