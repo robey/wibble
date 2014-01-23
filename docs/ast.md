@@ -22,14 +22,14 @@ everything has a "state" field.
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
-    X { functionx: expr, parameters: { name, type, value: expr }* }
+    X: { functionx: expr, parameters: { name, type, value: expr }* }
     { newObject: code }
 
 ## types
 
-    { type: string }
+    { typename: string }
     { namedType: type, name: string }
-    { compoundType: type* }
+    { compoundType: (type | namedType)* }
     { functionType: type, argType: type }
     { templateType: string, parameters: type* }
 

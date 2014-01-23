@@ -11,7 +11,7 @@ RESERVED = p_common.RESERVED
 #
 
 dumpType = (t) ->
-  if t.type? then return t.type
+  if t.typename? then return t.typename
   if t.namedType? then return "#{t.name}: #{dumpType(t.namedType)}"
   if t.compoundType?
     return "(" + t.compoundType.map(dumpType).join(", ") + ")"
