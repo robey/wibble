@@ -1,5 +1,6 @@
 util = require 'util'
 misc = require '../misc'
+d_expr = require './d_expr'
 p_common = require '../parser/p_common'
 
 OPERATORS = p_common.OPERATORS
@@ -14,12 +15,15 @@ dumpType = (t) ->
   if t.typename? then return t.typename
   if t.namedType? then return "#{t.name}: #{dumpType(t.namedType)}"
   if t.compoundType?
-    return "(" + t.compoundType.map(dumpType).join(", ") + ")"
+    return "(" + t.compoundType.map(dumpNamedType).join(", ") + ")"
   if t.functionType?
     return dumpType(t.argType) + " -> " + dumpType(t.functionType)
   if t.templateType?
     return t.templateType + "(" + t.parameters.map(dumpType).join(", ") + ")"
   return "???(#{util.inspect(t)})"
+
+dumpNamedType = (t) ->
+  "#{t.name}: #{dumpType(t.type)}" + (if t.value? then " = " + d_expr.dumpExpr(t.value) else "")
 
 
 exports.dumpType = dumpType

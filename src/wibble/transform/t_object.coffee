@@ -20,7 +20,7 @@ crushFunctions = (expr) ->
   t_expr.digExpr expr, null, (expr, _, copy) ->
     if not expr.functionx? then return expr
     handler =
-      on: { parameters: expr.parameters }
+      on: expr.parameters
       handler: expr.functionx
       state: expr.state
     copy(functionx: null, parameters: null, newObject: { code: [ handler ] })

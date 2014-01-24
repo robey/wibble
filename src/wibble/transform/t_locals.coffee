@@ -12,10 +12,10 @@ packLocals = (scope, expr, options = {}) ->
       # open up a new (chained) scope
       scope = new t_scope.Scope(scope)
       return [ copy(scope: scope), scope ]
-    if expr.on? and expr.on.parameters?
+    if expr.on? and expr.on.compoundType?
       # open up a new (chained) scope, with references for the parameters
       scope = new t_scope.Scope(scope)
-      for p in expr.on.parameters
+      for p in expr.on.compoundType
         scope.add(p.name, p.value or { nothing: true })
       return [ copy(scope: scope), scope ]
     if expr.local?

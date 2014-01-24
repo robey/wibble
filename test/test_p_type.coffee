@@ -20,24 +20,24 @@ describe "Parse types", ->
     parseFailed("int").should.match(/Expected type/)
 
   it "compound", ->
-    parse("(Int,String)").should.eql(
+    parse("(n:Int,s:String)").should.eql(
       compoundType: [
-        { typename: "Int", pos: [ 1, 4 ] }
-        { typename: "String", pos: [ 5, 11 ] }
+        { name: "n", type: { typename: "Int", pos: [ 3, 6 ] }, value: undefined, pos: [ 1, 2 ] }
+        { name: "s", type: { typename: "String", pos: [ 9, 15 ] }, value: undefined, pos: [ 7, 8 ] }
       ]
-      pos: [ 0, 12 ]
+      pos: [ 0, 16 ]
     )
-    parse("( Int, String )").should.eql(
+    parse("( n: Int, s: String )").should.eql(
       compoundType: [
-        { typename: "Int", pos: [ 2, 5 ] }
-        { typename: "String", pos: [ 7, 13 ] }
+        { name: "n", type: { typename: "Int", pos: [ 5, 8 ] }, value: undefined, pos: [ 2, 3 ] }
+        { name: "s", type: { typename: "String", pos: [ 13, 19 ] }, value: undefined, pos: [ 10, 11 ] }
       ]
-      pos: [ 0, 15 ]
+      pos: [ 0, 21 ]
     )
     parse("(x: Int, y:String)").should.eql(
       compoundType: [
-        { name: "x", namedType: { typename: "Int", pos: [ 4, 7 ] }, pos: [ 1, 7 ] }
-        { name: "y", namedType: { typename: "String", pos: [ 11, 17 ] }, pos: [ 9, 17 ] }
+        { name: "x", type: { typename: "Int", pos: [ 4, 7 ] }, value: undefined, pos: [ 1, 2 ] }
+        { name: "y", type: { typename: "String", pos: [ 11, 17 ] }, value: undefined, pos: [ 9, 10 ] }
       ]
       pos: [ 0, 18 ]
     )
@@ -77,8 +77,8 @@ describe "Parse types", ->
             { 
               functionType: {
                 compoundType: [
-                  { name: "real", namedType: { typename: "Float", pos: [ 31, 36 ] }, pos: [ 25, 36 ] }
-                  { name: "imaginary", namedType: { typename: "Float", pos: [ 49, 54 ] }, pos: [ 38, 54 ] }
+                  { name: "real", type: { typename: "Float", pos: [ 31, 36 ] }, value: undefined, pos: [ 25, 29 ] }
+                  { name: "imaginary", type: { typename: "Float", pos: [ 49, 54 ] }, value: undefined, pos: [ 38, 47 ] }
                 ]
                 pos: [ 24, 55 ]
               }
