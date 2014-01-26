@@ -23,7 +23,7 @@ everything has a "state" field.
     X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
     X: { functionx: expr, parameters: compoundType }
-    { newObject: code }
+    { newObject: code, [type] }
 
 ## types
 

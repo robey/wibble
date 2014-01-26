@@ -1,12 +1,13 @@
 util = require 'util'
 d_expr = require '../dump/d_expr'
+func = require './func'
 int = require './int'
 nothing = require './nothing'
 object = require './object'
-symbol = require './symbol'
-types = require './types'
 r_scope = require './r_scope'
 r_type = require './r_type'
+symbol = require './symbol'
+types = require './types'
 
 error = (message, state) ->
   e = new Error(message)
@@ -41,7 +42,7 @@ evalExpr = (expr, locals, logger) ->
     return rv
   # { condition: expr, ifThen: expr, ifElse: expr }
   if expr.newObject?
-    return evalNew(expr.newObject.code, locals, logger)
+    return evalNew(expr.newObject, locals, logger)
   if expr.local?
     rv = evalExpr(expr.value, locals, logger)
     locals.setNew(expr.local.name, rv)
@@ -71,11 +72,16 @@ evalCall = (target, message, state, logger) ->
     for k, v of m.values then scope.setNew(k, v)
   return evalExpr(handler.expr, scope, logger)
 
-evalNew = (code, locals, logger) ->
+evalNew = (newObject, locals, logger) ->
   # FIXME figure out types
+  type = if newObject.type? then r_type.evalType(newObject.type) else types.WAnonymousType
   state = new r_scope.Scope(locals)
-  obj = new object.WObject(types.WAnyType, state)
-  for x in code
+  obj = if type instanceof types.WFunctionType
+    # this is really just a cute hack to make the stringified version look nice
+    new func.WFunction(type, state, d_expr.dumpExpr(newObject))
+  else
+    new object.WObject(type, state)
+  for x in newObject.code
     if x.on?
       guard = if x.on.symbol? then new symbol.WSymbol(x.on.symbol) else r_type.evalType(x.on)
       obj.on guard, types.WAnyType, x.handler

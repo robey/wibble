@@ -22,6 +22,9 @@ WTypeType.handlerForMessage = (message) ->
 WAnyType = new WType("Any")
 WAnyType.canCoerceFrom = (other) -> true
 
+# used for blank 'new'
+WAnonymousType = new WType("Anonymous")
+
 WNothingType = new WType("Nothing")
 WIntType = new WType("Int")
 WSymbolType = new WType("Symbol")
@@ -74,6 +77,7 @@ class WStructType extends WType
     new struct.WStruct(@, otherValue.values)
 
 
+exports.WAnonymousType = WAnonymousType
 exports.WAnyType = WAnyType
 exports.WField = WField
 exports.WFunctionType = WFunctionType
