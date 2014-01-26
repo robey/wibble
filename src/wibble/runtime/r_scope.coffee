@@ -24,11 +24,7 @@ class Scope
     @symtab[name] = value
 
   keys: ->
-    # Set, Tennessee-style.
-    rv = {}
-    for k, v of @symtab then rv[k] = true
-    if @parent? then for k in @parent.keys() then rv[k] = true
-    Object.keys(rv).sort()
+    Object.keys(@symtab).sort()
 
   equals: (other) ->
     keys = @keys()
@@ -37,12 +33,11 @@ class Scope
     true
     
   toDebug: (indent = 0) ->
-    keys = Object.keys(@symtab).sort()
     lines = [
       "<Scope:"
       @parent?.toDebug(indent + 2) or ""
     ].concat(
-      keys.map (k) -> "  #{k} = #{@symtab[k]?.toRepr() or '?'}"
+      keys().map (k) -> "  #{k} = #{@symtab[k]?.toRepr() or '?'}"
     ).concat [
       ">"
     ]
