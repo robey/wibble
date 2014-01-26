@@ -2,7 +2,7 @@ util = require 'util'
 t_common = require './t_common'
 
 # traverse an expression tree, sending each expression object through the
-# 'transform' function.
+# 'transform' function before diving deeper.
 # transform(expr, state, copy) -> [ newExpr, newState ]
 digExpr = (expr, state, transform) ->
   dig = (e) -> digExpr(e, state, transform)
@@ -24,15 +24,22 @@ digExpr = (expr, state, transform) ->
   if expr.call? then return copy(call: dig(expr.call), arg: dig(expr.arg))
   if expr.binary? then return copy(binary: expr.binary, left: dig(expr.left), right: dig(expr.right))
   if expr.condition? then return copy(condition: dig(expr.condition), ifThen: dig(expr.ifThen), ifElse: dig(expr.ifElse))
-  if expr.functionx?
-    parameters = expr.parameters?.map (p) -> { name: p.name, type: p.type, value: (if p.value? then dig(p.value) else null) }
-    return copy(functionx: dig(expr.functionx), parameters: parameters)
+  if expr.functionx? then return copy(functionx: dig(expr.functionx), parameters: digType(expr.parameters, state, transform))
   if expr.newObject? then return copy(newObject: dig(expr.newObject))
 
   if expr.local? then return copy(value: dig(expr.value))
   if expr.code? then return copy(code: expr.code.map(dig))
-  if expr.on? then return copy(handler: dig(expr.handler))
+  if expr.on?
+    newOn = if expr.on.compoundType? then digType(expr.on) else expr.on
+    return copy(on: newOn, handler: dig(expr.handler))
   expr
+
+digType = (t, state, transform) ->
+  if t.compoundType?
+    parameters = t.compoundType.map (p) ->
+      { name: p.name, type: p.type, value: if p.value? then digExpr(p.value, state, transform) else undefined }
+    return { compoundType: parameters }
+  t
 
 # turn all binary/unary expressions into calls.
 flattenInfix = (expr) ->
