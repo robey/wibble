@@ -2,9 +2,12 @@ util = require 'util'
 d_expr = require '../dump/d_expr'
 int = require './int'
 nothing = require './nothing'
+object = require './object'
 symbol = require './symbol'
+types = require './types'
+r_scope = require './r_scope'
+r_type = require './r_type'
 
-# FIXME move this
 error = (message, state) ->
   e = new Error(message)
   e.state = state
@@ -13,14 +16,16 @@ error = (message, state) ->
 evalExpr = (expr, locals, logger) ->
   logger?("#{d_expr.dumpExpr(expr)}")
   if expr.nothing? then return nothing.WNothing
+  if expr.boolean? then
+#    { boolean: true/false }
   if expr.number?
     switch expr.number
       when "base2" then return new int.WInt(expr.value, 2)
       when "base10" then return new int.WInt(expr.value, 10)
       when "base16" then return new int.WInt(expr.value, 16)
-#    { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
+#    { number: long-base2/long-base10/long-base16/float/long-float, value: "" }
   if expr.symbol? then return new symbol.WSymbol(expr.symbol)
-  # string
+#    { string: "" }
   if expr.reference?
     rv = locals.get(expr.reference)
     if not rv? then error("Missing reference '#{expr.reference}'", expr.state)
@@ -34,15 +39,20 @@ evalExpr = (expr, locals, logger) ->
     rv = evalCall(left, right, expr.state, logger)
     logger?("  \u21b3 #{rv.toRepr()}")
     return rv
-
+  # { condition: expr, ifThen: expr, ifElse: expr }
+  if expr.newObject?
+    return evalNew(expr.newObject.code, locals, logger)
   if expr.local?
     rv = evalExpr(expr.value, locals, logger)
-    locals.set(expr.local.name, rv)
+    locals.setNew(expr.local.name, rv)
     return rv
+  if expr.on?
+    error("Orphan 'on' (shouldn't happen)", expr.state)
   if expr.code?
+    newLocals = new r_scope.Scope(locals)
     rv = nothing.WNothing
     for x in expr.code
-      rv = evalExpr(x, locals, logger)
+      rv = evalExpr(x, newLocals, logger)
     return rv
 
   error("Not yet implemented", expr.state)
@@ -55,22 +65,23 @@ evalCall = (target, message, state, logger) ->
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
+  m = handler.guard.coerce(message)
+  scope = new r_scope.Scope()
+  if m.type instanceof types.WStructType
+    for k, v of m.values then scope.setNew(k, v)
+  return evalExpr(handler.expr, scope, logger)
+
+evalNew = (code, locals, logger) ->
+  # FIXME figure out types
+  state = new r_scope.Scope(locals)
+  obj = new object.WObject(types.WAnyType, state)
+  for x in code
+    if x.on?
+      guard = if x.on.symbol? then new symbol.WSymbol(x.on.symbol) else r_type.evalType(x.on)
+      obj.on guard, types.WAnyType, x.handler
+    else
+      evalExpr(x, state, logger)
+  obj
 
 
 exports.evalExpr = evalExpr
-
-
-# call: (obj, inMessage) ->
-#   # unpack struct into locals
-#   scope = new Scope(handler.scope)
-#   if message.type instanceof types.WStructType
-#     for k, v of message.values then scope.setNew(k, v)
-#   else if message == WUnit
-#     # ok. no extra params.
-#   else if message.type == types.WSymbolType
-#     # ok. no extra params.
-#   else
-#     throw new Error("Internal error: objects always receive struct messages")
-#   @log 'call', "Nested eval: #{handler.toDebug()}"
-#   @log 'call', "Nested eval scope: #{scope.toDebug()}"
-#   @xeval(handler.expr, scope)

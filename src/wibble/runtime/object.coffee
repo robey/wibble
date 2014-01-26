@@ -15,9 +15,9 @@ class WHandler
 # - can receive messages
 # - can have registered handlers
 class WObject
-  constructor: (@type) ->
+  constructor: (@type, closure = null) ->
     # local state
-    @scope = new r_scope.Scope()
+    @scope = new r_scope.Scope(closure)
     @valueHandlers = []
     @typeHandlers = []
 
@@ -35,7 +35,7 @@ class WObject
 
   handlerForType: (type) ->
     for handler in @typeHandlers
-      if type.canCoerceTo(handler.guard) then return handler
+      if handler.guard.canCoerceFrom(type) then return handler
     null
 
   on: (guard, outType, expr) ->
