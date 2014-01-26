@@ -23,4 +23,4 @@ describe "Transform objects", ->
     checkHandlers("{ if true then { new { on .x -> 3 } } }")
 
   it "crushes functions", ->
-    d_expr.dumpExpr(crushFunctions("-> 3 + 2")).should.eql "new { on () -> 3 + 2 }"
+    d_expr.dumpExpr(crushFunctions("-> 3 + 2")).should.eql "new () -> Any { on () -> 3 + 2 }"

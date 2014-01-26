@@ -39,7 +39,10 @@ struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item"
   if m.length == 1 and (not m[0].name?) then return m[0].expression
   { struct: m, state }
 
-atom = pr.alt(constant, reference, arrayExpr, struct, functionx, codeBlock).describe("atom")
+newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->
+  { newObject: m[1], state: m[0] }
+
+atom = pr.alt(constant, reference, arrayExpr, struct, functionx, codeBlock, newObject).describe("atom")
 
 unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m, state) ->
   if m[0].length > 0
@@ -88,10 +91,7 @@ condition = pr([
   else
     { condition: m[1], ifThen: m[2], state: m[0] }
 
-newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->
-  { newObject: m[1], state: m[0] }
-
-expression = pr.alt(condition, newObject, logical).describe("expression")
+expression = pr.alt(condition, logical).describe("expression")
 
 
 exports.expression = expression

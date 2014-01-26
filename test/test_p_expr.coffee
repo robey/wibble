@@ -277,12 +277,30 @@ describe "Parse expressions", ->
       parseFailed("if 3 then ???").should.match(/Expected expression/)
       parseFailed("if 3 then 3 else ???").should.match(/Expected expression/)
 
-  it "new", ->
-    parse("new { true }").should.eql(
-      newObject:
-        code: [
-          { boolean: true, pos: [ 6, 10 ] }
-        ]
-        pos: [ 4, 12 ]
-      pos: [ 0, 3 ]
-    )
+  describe "new", ->
+    it "simple", ->
+      parse("new { true }").should.eql(
+        newObject:
+          code: [
+            { boolean: true, pos: [ 6, 10 ] }
+          ]
+          pos: [ 4, 12 ]
+        pos: [ 0, 3 ]
+      )
+
+    it "part of a call", ->
+      parse("new { on .foo -> 3 } .foo").should.eql(
+        call:
+          newObject:
+            code: [
+              {
+                on: { symbol: "foo", pos: [ 9, 13 ] }
+                handler: { number: "base10", value: "3", pos: [ 17, 18 ] }
+                pos: [ 6, 8 ]
+              }
+            ]
+            pos: [ 4, 20 ]
+          pos: [ 0, 3 ]
+        arg: { symbol: "foo", pos: [ 21, 25 ] }
+        pos: [ 0, 25 ]
+      )
