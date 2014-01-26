@@ -66,7 +66,7 @@ evalCall = (target, message, state, logger) ->
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
-  m = handler.guard.coerce(message)
+  m = if handler.guard instanceof symbol.WSymbol then message else handler.guard.coerce(message)
   scope = new r_scope.Scope()
   if m.type instanceof types.WStructType
     for k, v of m.values then scope.setNew(k, v)
