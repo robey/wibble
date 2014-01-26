@@ -19,7 +19,7 @@ class Repl
       unix_terminal = require './unix_terminal'
       @terminal = new unix_terminal.UnixTerminal(env.historyFilename, env.maxHistory)
     @globalScope = new wibble.transform.Scope()
-    @globals = new wibble.Scope() # FIXME
+    @globals = new wibble.runtime.Scope() # FIXME
 
   run: ->
     @terminal.printColor("0c0", "wibble")
@@ -74,7 +74,7 @@ class Repl
           if env.debugEval
             @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
-        rv = wibble.evalExpr(expr, @globals, logger)
+        rv = wibble.runtime.evalExpr(expr, @globals, logger)
         @terminal.printColor("66f", "#{rv.type.toRepr()}: ")
         @terminal.printColor("99f", rv.toRepr())
         @terminal.println()

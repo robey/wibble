@@ -8,16 +8,8 @@ exports.dumpExpr = d_expr.dumpExpr
 transform = require './wibble/transform'
 exports.transform = transform
 
-# ---
-r_scope = require './wibble/runtime/r_scope'
-exports.Scope = r_scope.Scope
+runtime = require './wibble/runtime'
+exports.runtime = runtime
 
-r_expr = require './wibble/runtime/r_expr'
-exports.evalExpr = r_expr.evalExpr
-
-types = require './wibble/runtime/types'
-exports.types = types
-
-# ---
 repl = require './repl'
 exports.repl = repl
