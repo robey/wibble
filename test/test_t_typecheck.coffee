@@ -12,11 +12,13 @@ test_util = require './test_util'
 
 describe "Typecheck", ->
   parse = (line, options) -> parser.code.run(line, options)
-  typecheck = (line, options = {}) -> t_typecheck.typeExpr(options.scope or new t_scope.Scope(), parse(line, options))
+  typecheck = (line, options = {}) ->
+    [ type, expr ] = t_typecheck.typeExpr(options.scope or new t_scope.Scope(), parse(line, options))
+    type
   typecheckAndPack = (line, options = {}) ->
     scope = options.scope or new t_scope.Scope()
     expr = t_locals.packLocals(scope, parse(line, options), options)
-    type = t_typecheck.typeExpr(scope, expr)
+    [ type, expr ] = t_typecheck.typeExpr(scope, expr)
     { type, expr, scope }
 
   it "constants", ->

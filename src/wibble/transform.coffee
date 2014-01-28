@@ -14,5 +14,5 @@ exports.transformExpr = (expr) ->
 
 exports.typecheck = (scope, expr, options = {}) ->
   expr1 = t_locals.packLocals(scope, expr, options)
-  type = t_typecheck.typeExpr(scope, expr1)
+  [ type, expr ] = t_typecheck.typeExpr(scope, expr1)
   [ expr, type ]
