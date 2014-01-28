@@ -55,7 +55,7 @@ class Repl
         @terminal.println(wibble.dumpExpr(expr))
       try
         expr = wibble.transform.transformExpr(expr)
-        expr = wibble.transform.packLocals(@globalScope, expr, allowOverride: true)
+        [ expr, type ] = wibble.transform.typecheck(@globalScope, expr, allowOverride: true)
       catch e
         if e.state?
           @displayError(e)
@@ -67,6 +67,7 @@ class Repl
 
       if env.debugCompile
         @terminal.printColor("f80", "  ; ")
+        @terminal.printColor("66f", "#{wibble.dumpType(type)}: ")
         @terminal.println(wibble.dumpExpr(expr))
 
       try

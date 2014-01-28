@@ -60,7 +60,7 @@ dump = (expr) ->
   if expr.functionx?
     return [ d_type.dumpType(expr.parameters) + " -> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
   if expr.newObject?
-    return [ "new " + (if expr.newObject.type? then d_type.dumpType(expr.newObject.type) + " " else "") + dumpExpr(expr.newObject), PRECEDENCE.code ]
+    return [ "new " + (if expr.type? then expr.type.toRepr() + " " else "") + dumpExpr(expr.newObject), PRECEDENCE.code ]
   if expr.local?
     return [ "val " + expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?

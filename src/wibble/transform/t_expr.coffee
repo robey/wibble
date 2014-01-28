@@ -12,7 +12,7 @@ digExpr = (expr, state, transform) ->
     rv = {}
     for k, v of expr when changes[k] != null then rv[k] = v
     for k, v of changes then rv[k] = v
-    Object.freeze(rv)
+    rv
 
   if not expr? then return expr
   rv = transform(expr, state, copy)

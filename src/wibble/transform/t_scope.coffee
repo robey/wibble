@@ -1,7 +1,7 @@
 util = require 'util'
 misc = require '../misc'
 
-# map of (string -> expr), possibly chained to a parent.
+# map of (string -> { type, expr }), possibly chained to a parent.
 class Scope
   constructor: (@parent) ->
     @symtab = {}
@@ -13,8 +13,8 @@ class Scope
     if @parent? then return @parent.get(name)
     null
 
-  add: (name, expr) ->
-    @symtab[name] = expr
+  add: (name, type, expr) ->
+    @symtab[name] = { type, expr }
 
 
 exports.Scope = Scope
