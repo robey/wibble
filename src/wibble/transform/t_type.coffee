@@ -11,32 +11,41 @@ error = t_common.error
 # handlers: [ inType, outType ]*
 # inType might be a string, meaning it's a symbol
 class TypeDescriptor
-  constructor: (@handlers = []) ->
+  constructor: (@valueHandlers = [], @typeHandlers = []) ->
 
   equals: (other) -> false
+
   canCoerceFrom: (other) -> @equals(other)
+
   toRepr: (precedence = true) -> @toDescriptor()
+
   toDescriptor: ->
-    handlerNames = @handlers.map (h) ->
-      (if typeof h[0] == "string" then ".#{h[0]}" else h[0].toRepr(true)) + " -> " + h[1].toRepr(false)
-    if @handlers.length == 1 and (@handlers[0][0] instanceof TypeDescriptor)
-      handlerNames[0]
+    valueHandlers = @valueHandlers.map (h) -> ".#{h.guard} -> #{h.type.toRepr(false)}"
+    typeHandlers = @typeHandlers.map (h) -> "#{h.guard.toRepr(true)} -> #{h.type.toRepr(false)}"
+    # make a pretty shorthand for the simple function type
+    if valueHandlers.length == 0 and typeHandlers.length == 1
+      typeHandlers[0]
     else
-      "[" + handlerNames.join("; ") + "]"
+      "[" + valueHandlers.concat(typeHandlers).join(", ") + "]"
 
   handlerTypeForMessage: (type, expr) ->
-    if expr.symbol?
-      for h in @handlers when typeof h[0] == "string"
-        if expr.symbol == h[0] then return h[1]
-    for h in @handlers when h[0] instanceof TypeDescriptor
-      if h[0].canCoerceFrom(type) then return h[1]
+    # allow "expr" to be a string, too, for native methods.
+    if expr.symbol? then expr = expr.symbol
+    if typeof expr == "string"
+      for h in @valueHandlers then if expr == h.guard then return h.type
+    else
+      for h in @typeHandlers then if h.guard.canCoerceFrom(type) then return h.type
     # FIXME warning: not type checked
     require('./builtins').DAny
 
+  addValueHandler: (value, htype) -> @valueHandlers.push { guard: value, type: htype }
+
+  addTypeHandler: (type, htype) -> @typeHandlers.push { guard: type, type: htype }
+
 
 class NamedType extends TypeDescriptor
-  constructor: (@name, handlers = []) ->
-    super(handlers)
+  constructor: (@name) ->
+    super()
 
   equals: (other) ->
     (other instanceof NamedType) and @name == other.name
@@ -48,7 +57,7 @@ class NamedType extends TypeDescriptor
 class CompoundType extends TypeDescriptor
   constructor: (@fields) ->
     # FIXME field accessors
-    super([])
+    super()
 
   equals: (other) ->
     if not (other instanceof CompoundType) then return false
@@ -73,7 +82,8 @@ class CompoundType extends TypeDescriptor
 
 class FunctionType extends TypeDescriptor
   constructor: (@argType, @functionType) ->
-    super([ [ @argType, @functionType ] ])
+    super()
+    @addTypeHandler @argType, @functionType
 
   equals: (other) ->
     if not (other instanceof FunctionType) then return false
@@ -108,26 +118,16 @@ findType = (type, typemap) ->
 
 # new anonymous type
 newType = (handlers) ->
-  new TypeDescriptor(handlers)
+  type = new TypeDescriptor()
+  for h in handlers
+    if typeof h[0] == "string"
+      type.addValueHandler h[0], h[1]
+    else
+      type.addTypeHandler h[0], h[1]
+  type
 
 
 exports.buildType = buildType
 exports.findType = findType
 exports.NamedType = NamedType
 exports.newType = newType
-
-# descriptorForType = (type, typeMap, state) ->
-#   if type.typename?
-#     d = descriptorMap[type.typename]
-#     if d? then return d
-#     error("Unknown type (no descriptor): #{type.typename}", state)
-#   if type.functionType? then return [ [ type.argType, type.functionType ] ]
-#   if type.compoundType?
-#     # FIXME
-#     error("Not implemented: compound type")
-#   if type.templateType?
-#     # FIXME
-#     error("Not implemented: template type")
-
-
-

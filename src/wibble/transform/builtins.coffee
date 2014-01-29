@@ -5,10 +5,11 @@ t_type = require './t_type'
 compileDescriptor = (type, table) ->
   handlers = []
   for k, v of table
-    argType = if k[0] == "." then k[1...] else t_type.findType(parser.typedecl.run(k), typemap)
     resultType = t_type.findType(parser.typedecl.run(v), typemap)
-    handlers.push [ argType, resultType ]
-  type.handlers = handlers
+    if k[0] == "."
+      type.addValueHandler k[1...], resultType
+    else
+      type.addTypeHandler t_type.findType(parser.typedecl.run(k), typemap), resultType
 
 DAny = new t_type.NamedType("Any")
 DBoolean = new t_type.NamedType("Boolean")
