@@ -31,7 +31,7 @@ class TypeDescriptor
     for h in @handlers when h[0] instanceof TypeDescriptor
       if h[0].canCoerceFrom(type) then return h[1]
     # FIXME warning: not type checked
-    buildType.DAny
+    require('./builtins').DAny
 
 
 class NamedType extends TypeDescriptor
@@ -96,12 +96,23 @@ buildType = (type) ->
   if type.functionType? then return new FunctionType(buildType(type.argType), buildType(type.functionType))
   error "Not implemented yet: template type"
 
+findType = (type, typemap) ->
+  if type.typename?
+    if not typemap[type.typename]? then error("Unknown type '#{type.typename}'", type.state)
+    return typemap[type.typename]
+  if type.compoundType?
+    fields = type.compoundType.map (f) -> { name: f.name, type: findType(f.type, typemap), value: f.value }
+    return new CompoundType(fields)
+  if type.functionType? then return new FunctionType(findType(type.argType, typemap), findType(type.functionType, typemap))
+  error "Not implemented yet: template type"
+
 # new anonymous type
 newType = (handlers) ->
   new TypeDescriptor(handlers)
 
 
 exports.buildType = buildType
+exports.findType = findType
 exports.NamedType = NamedType
 exports.newType = newType
 

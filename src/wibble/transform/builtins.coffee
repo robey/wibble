@@ -2,19 +2,31 @@ util = require 'util'
 parser = require '../parser'
 t_type = require './t_type'
 
-compileDescriptor = (name, table) ->
+compileDescriptor = (type, table) ->
   handlers = []
   for k, v of table
-    argType = if k[0] == "." then k[1...] else t_type.buildType(parser.typedecl.run(k))
-    resultType = t_type.buildType(parser.typedecl.run(v))
+    argType = if k[0] == "." then k[1...] else t_type.findType(parser.typedecl.run(k), typemap)
+    resultType = t_type.findType(parser.typedecl.run(v), typemap)
     handlers.push [ argType, resultType ]
-  new t_type.NamedType(name, handlers)
+  type.handlers = handlers
 
-DAny = compileDescriptor "Any", {}
+DAny = new t_type.NamedType("Any")
+DBoolean = new t_type.NamedType("Boolean")
+DInt = new t_type.NamedType("Int")
+DNothing = new t_type.NamedType("Nothing")
+DString = new t_type.NamedType("String")
+DSymbol = new t_type.NamedType("Symbol")
 
-DBoolean = compileDescriptor "Boolean", {}
+typemap = {}
+typemap[DAny.name] = DAny
+typemap[DBoolean.name] = DBoolean
+typemap[DInt.name] = DInt
+typemap[DNothing.name] = DNothing
+typemap[DString.name] = DString
+typemap[DSymbol.name] = DSymbol
 
-DInt = compileDescriptor "Int",
+# types are often self-referential, so do them after all the names are set.
+compileDescriptor DInt,
   ".+": "Int -> Int"
   ".-": "Int -> Int"
   ".*": "Int -> Int"
@@ -23,25 +35,10 @@ DInt = compileDescriptor "Int",
   ".positive": "() -> Int"
   ".negative": "() -> Int"
 
-DNothing = compileDescriptor "Nothing", {}
-
-DString = compileDescriptor "String", {}
-
-DSymbol = compileDescriptor "Symbol", {}
-
-descriptors = {}
-descriptors[DAny.name] = DAny
-descriptors[DBoolean.name] = DBoolean
-descriptors[DInt.name] = DInt
-descriptors[DNothing.name] = DNothing
-descriptors[DString.name] = DString
-descriptors[DSymbol.name] = DSymbol
-
-
 exports.DAny = DAny
 exports.DBoolean = DBoolean
 exports.DInt = DInt
 exports.DNothing = DNothing
 exports.DString = DString
 exports.DSymbol = DSymbol
-exports.descriptors = descriptors
+exports.typemap = typemap

@@ -12,58 +12,76 @@ test_util = require './test_util'
 
 describe "Typecheck", ->
   parse = (line, options) -> parser.code.run(line, options)
+
   typecheck = (line, options = {}) ->
-    [ type, expr ] = t_typecheck.typeExpr(options.scope or new t_scope.Scope(), parse(line, options))
-    type
-  typecheckAndPack = (line, options = {}) ->
     scope = options.scope or new t_scope.Scope()
-    expr = t_locals.packLocals(scope, parse(line, options), options)
-    [ type, expr ] = t_typecheck.typeExpr(scope, expr)
+    tstate = new t_typecheck.TransformState(scope, null, null, options)
+    [ type, expr ] = t_typecheck.typecheckExpr(tstate, parse(line, options))
     { type, expr, scope }
 
   it "constants", ->
-    typecheck("()").toRepr().should.eql "Nothing"
-    typecheck("true").toRepr().should.eql "Boolean"
-    typecheck("3").toRepr().should.eql "Int"
-    typecheck(".foo").toRepr().should.eql "Symbol"
-    typecheck(".*").toRepr().should.eql "Symbol"
-    typecheck("\"hello\"").toRepr().should.eql "String"
+    typecheck("()").type.toRepr().should.eql "Nothing"
+    typecheck("true").type.toRepr().should.eql "Boolean"
+    typecheck("3").type.toRepr().should.eql "Int"
+    typecheck(".foo").type.toRepr().should.eql "Symbol"
+    typecheck(".*").type.toRepr().should.eql "Symbol"
+    typecheck("\"hello\"").type.toRepr().should.eql "String"
 
   it "references", ->
     scope = new t_scope.Scope()
     scope.add("point", new t_type.NamedType("Point"), null)
-    typecheck("point", scope: scope).toRepr().should.eql "Point"
+    typecheck("point", scope: scope).type.toRepr().should.eql "Point"
 
   it "calls", ->
-    typecheck("3 .+").toRepr().should.eql "Int -> Int"
-    typecheck("(3 .+) 3").toRepr().should.eql "Int"
+    typecheck("3 .+").type.toRepr().should.eql "Int -> Int"
+    typecheck("(3 .+) 3").type.toRepr().should.eql "Int"
 
   describe "new", ->
     it "symbol", ->
-      x = typecheckAndPack("new { on .foo -> 3 }")
+      x = typecheck("new { on .foo -> 3 }")
       x.type.toRepr().should.eql "[.foo -> Int]"
       d_expr.dumpExpr(x.expr).should.eql "new [.foo -> Int] { on .foo -> 3 }"
   
     it "nothing", ->
-      x = typecheckAndPack("new { val hidden = .ok; on () -> true }")
+      x = typecheck("new { val hidden = .ok; on () -> true }")
       x.type.toRepr().should.eql "() -> Boolean"
       d_expr.dumpExpr(x.expr).should.eql "new () -> Boolean { val hidden = .ok; on () -> true }"
       # verify that inner locals were type-checked
-      x.expr.newObject.scope.get("hidden").type.toRepr().should.eql "Symbol"
+      x.expr.newObject.scope.get("hidden").toRepr().should.eql "Symbol"
 
     it "inner reference", ->
-      x = typecheckAndPack("new { on (x: Int) -> x }")
+      x = typecheck("new { on (x: Int) -> x }")
       x.type.toRepr().should.eql "(x: Int) -> Int"
       d_expr.dumpExpr(x.expr).should.eql "new (x: Int) -> Int { on (x: Int) -> x }"
 
+    it "generates a scope for 'on' handlers", ->
+      x = typecheck("new { on (x: Int) -> x .+ 2 }")
+      x.expr.newObject.code[0].scope.get("x").toRepr().should.eql "Int"
+
   it "locals", ->
-    x = typecheckAndPack("val x = 3")
+    x = typecheck("val x = 3")
     x.type.toRepr().should.eql "Int"
 
-  it "code", ->
-    x = typecheckAndPack("{ val x = true; x }")
-    x.type.toRepr().should.eql "Boolean"
-    x.expr.scope.get("x").type.toRepr().should.eql "Boolean"
-    x = typecheckAndPack("{ }")
-    x.type.toRepr().should.eql "Nothing"
+  describe "code", ->
+    it "empty", ->
+      x = typecheck("{ }")
+      x.type.toRepr().should.eql "Nothing"
+
+    it "finds a local", ->
+      x = typecheck("{ val x = 9 }")
+      x.expr.scope.get("x").toRepr().should.eql "Int"
+
+    it "resolves inner references", ->
+      x = typecheck("{ val x = true; x }")
+      x.type.toRepr().should.eql "Boolean"
+      x.expr.scope.get("x").toRepr().should.eql "Boolean"
+
+    it "gets unhappy about duped vars", ->
+      (-> typecheck("{ val x = 9; val x = 3 }")).should.throw /Redefined/
+
+    it "allows nested duped vars", ->
+      x = typecheck("{ val x = 9; { val x = 3 } }")
+      x.expr.scope.exists("x").should.eql true
+      x.expr.code[1].scope.exists("x").should.eql true
+
     

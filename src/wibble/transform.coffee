@@ -13,6 +13,6 @@ exports.transformExpr = (expr) ->
   expr
 
 exports.typecheck = (scope, expr, options = {}) ->
-  expr1 = t_locals.packLocals(scope, expr, options)
-  [ type, expr ] = t_typecheck.typeExpr(scope, expr1)
+  tstate = new t_typecheck.TransformState(scope, null, null, options)
+  [ type, expr ] = t_typecheck.typecheckExpr(tstate, expr)
   [ expr, type ]

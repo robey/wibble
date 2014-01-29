@@ -3,24 +3,40 @@ builtins = require './builtins'
 d_expr = require '../dump/d_expr'
 d_type = require '../dump/d_type'
 t_common = require './t_common'
+t_scope = require './t_scope'
 t_type = require './t_type'
 
+copy = t_common.copy
 error = t_common.error
 
-# FIXME should be elsewhere, probably
-copy = (expr, changes) ->
-  rv = {}
-  for k, v of expr when changes[k] != null then rv[k] = v
-  for k, v of changes then rv[k] = v
-  Object.freeze(rv)
+# state passed through type-checker
+class TransformState
+  constructor: (@scope, @handlers = [], @typemap = builtins.typemap, @options = {}) ->
 
-# determine the type of an expression by traversing the expression tree and
-# composing it.
-# this must happen after packLocals, so we know all references will resolve.
-# it can now fill in the type of each local as it goes.
-# returns [ type, expr ] in case it needs to modify the inner expression to
-# fill in a type descriptor on a 'new' expression.
-typeExpr = (scope, expr, typeMap = builtins.descriptors) ->
+  newScope: ->
+    new TransformState(new t_scope.Scope(@scope), @handlers, @typemap, @options)
+
+  newHandlers: ->
+    new TransformState(@scope, [], @typemap, @options)
+
+  toDebug: ->
+    handlers = @handlers.map (h) ->
+      key = if typeof h[0] == "string" then ".#{h[0]}" else h[0].toRepr()
+      "#{key} -> #{h[1].toRepr()}"
+    "{TransformState: scope=#{@scope.toDebug()}, @handlers=#{handlers}}"
+
+
+# walk an expression tree, filling in type information.
+# - add a new nested (lexical) 'scope' object to each expression node that
+#   should open a new scope.
+# - fill in types of newly-scoped variables as we find them.
+# - add a type descriptor to 'new' expressions.
+#
+# returns [ type, expr ]
+typecheckExpr = (tstate, expr) ->
+  if tstate.options.logger? then tstate.options.logger "typecheck: #{d_expr.dumpExpr(expr)} -- #{tstate.toDebug()}"
+
+  # constants
   if expr.nothing? then return [ builtins.DNothing, expr ]
   if expr.boolean? then return [ builtins.DBoolean, expr ]
   if expr.number?
@@ -31,52 +47,61 @@ typeExpr = (scope, expr, typeMap = builtins.descriptors) ->
   if expr.string? then return [ builtins.DString, expr ]
 
   if expr.reference?
-    local = scope.get(expr.reference)
-    if not local.type?
-      [ type, texpr ] = typeExpr(scope, local.expr, typeMap)
-      local.type = type
-      local.expr = texpr
-    return [ local.type, expr ]
+    type = tstate.scope.get(expr.reference)
+    if not type? then error("Unknown reference '#{expr.reference}'", expr.state)
+    return [ type, expr ]
+
   # { array: [ expr* ] }
   # { struct: [ { name?, expression: expr }* ] }
+
   if expr.call?
-    [ ltype, call ] = typeExpr(scope, expr.call)
-    [ rtype, arg ] = typeExpr(scope, expr.arg)
-    return [ ltype.handlerTypeForMessage(rtype, expr.arg), copy(expr, call: call, arg: arg) ]
+    [ ltype, call ] = typecheckExpr(tstate, expr.call)
+    [ rtype, arg ] = typecheckExpr(tstate, expr.arg)
+    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.toRepr()} :: #{rtype.toRepr()}"
+    type = ltype.handlerTypeForMessage(rtype, arg)
+    if tstate.options.logger? then tstate.options.logger "typecheck call:   -> #{type.toRepr()}"
+    return [ type, copy(expr, call: call, arg: arg) ]
+
   # { condition: expr, ifThen: expr, ifElse: expr }
+
   if expr.newObject?
-    handlers = []
-    code = expr.newObject.code.map (x) ->
-      if x.on?
-        innerScope = if x.on.symbol? then expr.scope else x.scope
-        [ type, thandler ] = typeExpr(innerScope, x.handler, typeMap)
-        handlers.push [
-          if x.on.symbol? then x.on.symbol else t_type.buildType(x.on)
-          type
-        ]
-        copy(x, handler: thandler)
-      else
-        x
-    newObject = copy(expr.newObject, code: code)
-    [ _, newObject ] = typeExpr(expr.scope, newObject, typeMap)
-    type = t_type.newType(handlers)
+    # sniff out the handler list, build a type descriptor for it, and attach it.
+    tstate = tstate.newHandlers()
+    [ _, newObject ] = typecheckExpr(tstate, expr.newObject)
+    type = t_type.newType(tstate.handlers)
     return [ type, copy(expr, newObject: newObject, type: type) ]
+
   if expr.local?
-    # same as reference, really.
-    local = scope.get(expr.local.name)
-    if not local.type?
-      [ type, texpr ] = typeExpr(scope, local.expr, typeMap)
-      local.type = type
-      local.expr = texpr
-    return [ local.type, expr ]
-  if expr.on? then return [ builtins.DNothing, expr ]
+    if tstate.scope.exists(expr.local.name) and not tstate.options.allowOverride
+      error("Redefined local '#{expr.local.name}'", expr.local.state)
+    [ type, vexpr ] = typecheckExpr(tstate, expr.value)
+    tstate.scope.add(expr.local.name, type)
+    return [ type, copy(expr, value: vexpr) ]
+
+  if expr.on?
+    if expr.on.compoundType?
+      # open up a new (chained) scope, with references for the parameters
+      tstate = tstate.newScope()
+      for p in expr.on.compoundType
+        tstate.scope.add(p.name, t_type.findType(p.type, tstate.typemap))
+      guard = t_type.findType(expr.on, tstate.typemap)
+      newScope = tstate.scope
+    else
+      guard = expr.on.symbol
+    [ htype, hexpr ] = typecheckExpr(tstate, expr.handler)
+    tstate.handlers.push [ guard, htype ]
+    return [ builtins.DNothing, copy(expr, handler: hexpr, scope: newScope) ]
+
   if expr.code?
-    rv = builtins.DNothing
+    tstate = tstate.newScope()
+    type = builtins.DNothing
     code = expr.code.map (x) ->
-      [ rv, x ] = typeExpr(expr.scope, x, typeMap)
+      [ type, x ] = typecheckExpr(tstate, x)
       x
-    return [ rv, copy(expr, code: code) ]
+    return [ type, copy(expr, code: code, scope: tstate.scope) ]
+
   error("Not implemented yet: #{d_expr.dumpExpr(expr)}", expr.state)
 
 
-exports.typeExpr = typeExpr
+exports.TransformState = TransformState
+exports.typecheckExpr = typecheckExpr

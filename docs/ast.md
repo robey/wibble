@@ -3,7 +3,11 @@
 
 X = eliminated by transformations
 
-everything has a "state" field.
+- everything has a "state" field.
+- a few nodes have a "scope" field, meaning they open a new lexical scope.
+  scope is (name -> type).
+- 'newObject' will grow a "type" field to hold the descriptor of the object
+  being created.
 
 ## constants
 
@@ -25,15 +29,15 @@ everything has a "state" field.
     X: { functionx: expr, parameters: compoundType }
     { newObject: code, [type] }
 
+## code
+
+    { local: { name }, value: expr }
+    { on: { symbol | compoundType }, handler: expr, [scope] }
+    { code: [ expr* ], [scope] }
+
 ## types
 
     { typename: string }
     { compoundType: { name: string, type: type, value: expr }* }
     { functionType: type, argType: type }
     { templateType: string, parameters: type* }
-
-## code
-
-    { local: { name }, value: expr }
-    { on: { symbol | compoundType }, handler: expr }
-    { code: [ expr* ] }
