@@ -1,5 +1,4 @@
 t_expr = require './transform/t_expr'
-t_locals = require './transform/t_locals'
 t_object = require './transform/t_object'
 t_scope = require './transform/t_scope'
 t_typecheck = require './transform/t_typecheck'
