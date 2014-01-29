@@ -42,7 +42,7 @@ evalExpr = (expr, locals, logger) ->
     return rv
   # { condition: expr, ifThen: expr, ifElse: expr }
   if expr.newObject?
-    return evalNew(expr.newObject, locals, logger)
+    return evalNew(expr, locals, logger)
   if expr.local?
     rv = evalExpr(expr.value, locals, logger)
     locals.setNew(expr.local.name, rv)
@@ -72,16 +72,16 @@ evalCall = (target, message, state, logger) ->
     for k, v of m.values then scope.setNew(k, v)
   return evalExpr(handler.expr, scope, logger)
 
-evalNew = (newObject, locals, logger) ->
+evalNew = (expr, locals, logger) ->
   # FIXME figure out types
-  type = if newObject.type? then r_type.evalType(newObject.type) else types.WAnonymousType
+  type = if expr.type? then expr.type else types.WAnonymousType
   state = new r_scope.Scope(locals)
   obj = if type instanceof types.WFunctionType
     # this is really just a cute hack to make the stringified version look nice
-    new func.WFunction(type, state, d_expr.dumpExpr(newObject))
+    new func.WFunction(type, state, d_expr.dumpExpr(expr.newObject))
   else
     new object.WObject(type, state)
-  for x in newObject.code
+  for x in expr.newObject.code
     if x.on?
       guard = if x.on.symbol? then new symbol.WSymbol(x.on.symbol) else r_type.evalType(x.on)
       obj.on guard, types.WAnyType, x.handler
