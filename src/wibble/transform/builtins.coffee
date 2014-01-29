@@ -12,6 +12,8 @@ compileDescriptor = (type, table) ->
       type.addTypeHandler t_type.findType(parser.typedecl.run(k), typemap), resultType
 
 DAny = new t_type.NamedType("Any")
+DAny.canCoerceFrom = (other) -> true
+
 DBoolean = new t_type.NamedType("Boolean")
 DInt = new t_type.NamedType("Int")
 DNothing = new t_type.NamedType("Nothing")

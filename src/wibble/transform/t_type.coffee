@@ -8,8 +8,8 @@ error = t_common.error
 # type descriptors used during the transform/compile phase, for type checking.
 #
 
-# handlers: [ inType, outType ]*
-# inType might be a string, meaning it's a symbol
+# valueHandlers: { guard: string, type: TypeDescriptor }
+# typeHandlers: { guard: TypeDescriptor, type: TypeDescriptor }
 class TypeDescriptor
   constructor: (@valueHandlers = [], @typeHandlers = []) ->
 
@@ -127,7 +127,9 @@ newType = (handlers) ->
   type
 
 
+exports.NamedType = NamedType
+exports.CompoundType = CompoundType
+exports.FunctionType = FunctionType
 exports.buildType = buildType
 exports.findType = findType
-exports.NamedType = NamedType
 exports.newType = newType
