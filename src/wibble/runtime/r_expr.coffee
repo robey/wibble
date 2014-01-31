@@ -1,13 +1,13 @@
 util = require 'util'
 d_expr = require '../dump/d_expr'
-func = require './func'
+#func = require './func'
 int = require './int'
-nothing = require './nothing'
+#nothing = require './nothing'
 object = require './object'
 r_scope = require './r_scope'
 r_type = require './r_type'
 symbol = require './symbol'
-types = require './types'
+#types = require './types'
 
 error = (message, state) ->
   e = new Error(message)
@@ -21,11 +21,11 @@ evalExpr = (expr, locals, logger) ->
 #    { boolean: true/false }
   if expr.number?
     switch expr.number
-      when "base2" then return new int.WInt(expr.value, 2)
-      when "base10" then return new int.WInt(expr.value, 10)
-      when "base16" then return new int.WInt(expr.value, 16)
+      when "base2" then return int.TInt.create(expr.value, 2)
+      when "base10" then return int.TInt.create(expr.value, 10)
+      when "base16" then return int.TInt.create(expr.value, 16)
 #    { number: long-base2/long-base10/long-base16/float/long-float, value: "" }
-  if expr.symbol? then return new symbol.WSymbol(expr.symbol)
+  if expr.symbol? then return symbol.TSymbol.create(expr.symbol)
 #    { string: "" }
   if expr.reference?
     rv = locals.get(expr.reference)
@@ -36,9 +36,9 @@ evalExpr = (expr, locals, logger) ->
   if expr.call?
     left = evalExpr(expr.call, locals, logger)
     right = evalExpr(expr.arg, locals, logger)
-    logger?("call: (#{left.toRepr()}) #{right.toRepr()}")
+    logger?("call: ([#{left.type.toRepr()}] #{left.toRepr()}) #{right.toRepr()}")
     rv = evalCall(left, right, expr.state, logger)
-    logger?("  \u21b3 #{rv.toRepr()}")
+    logger?("  \u21b3 [#{rv.type.toRepr()}] #{rv.toRepr()}")
     return rv
   # { condition: expr, ifThen: expr, ifElse: expr }
   if expr.newObject?
@@ -59,20 +59,33 @@ evalExpr = (expr, locals, logger) ->
   error("Not yet implemented", expr.state)
 
 evalCall = (target, message, state, logger) ->
-  handler = target.handlerForMessage(message)
+  handler = target.type.handlerForMessage(message)
   if not handler?
     logger?("No handler for message <#{message.toRepr()}> in #{target.toRepr()}")
     error("Object [#{target.type.toRepr()}] #{target.toRepr()} can't handle message #{message.toRepr()}", state)
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
-  m = if handler.guard instanceof symbol.WSymbol then message else handler.guard.coerce(message)
+  m = if handler.guard instanceof symbol.TSymbol then message else handler.guard.coerce(message)
   scope = new r_scope.Scope()
   if m.type instanceof types.WStructType
     for k, v of m.values then scope.setNew(k, v)
   return evalExpr(handler.expr, scope, logger)
 
 evalNew = (expr, locals, logger) ->
+  type = new r_type.Type(expr.type)
+  state = new r_scope.Scope(locals)
+  obj = new object.WObject(expr.type, state)
+
+  for x in expr.newObject.code
+    if x.on?
+      guard = if x.on.symbol? then new symbol.WSymbol(x.on.symbol) else r_type.evalType(x.on)
+      obj.on guard, types.WAnyType, x.handler
+    else
+      evalExpr(x, state, logger)
+  obj
+
+
   # FIXME figure out types
   type = if expr.type? then expr.type else types.WAnonymousType
   state = new r_scope.Scope(locals)

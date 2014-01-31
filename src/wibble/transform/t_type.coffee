@@ -1,5 +1,6 @@
 util = require 'util'
 d_expr = require '../dump/d_expr'
+parser = require '../parser'
 t_common = require './t_common'
 
 error = t_common.error
@@ -126,10 +127,22 @@ newType = (handlers) ->
       type.addTypeHandler h[0], h[1]
   type
 
+# convenience for "native" types
+addHandlers = (type, typemap, table) ->
+  handlers = []
+  for k, v of table
+    resultType = findType(parser.typedecl.run(v), typemap)
+    if k[0] == "."
+      type.addValueHandler k[1...], resultType
+    else
+      type.addTypeHandler findType(parser.typedecl.run(k), typemap), resultType
 
-exports.NamedType = NamedType
-exports.CompoundType = CompoundType
-exports.FunctionType = FunctionType
+
+exports.addHandlers = addHandlers
 exports.buildType = buildType
+exports.CompoundType = CompoundType
 exports.findType = findType
+exports.FunctionType = FunctionType
+exports.NamedType = NamedType
 exports.newType = newType
+exports.TypeDescriptor = TypeDescriptor

@@ -1,69 +1,29 @@
 util = require 'util'
 r_scope = require './r_scope'
 
-# wrapper for the handlers in an object:
-#   - guard: value or type (depending on the kind of handler) to match against
-#   - outType: return type of the expression
-#   - expr: expression, or possibly a native function
-# FIXME after type checking is implemented, the expression should probably contain its own outType.
-class WHandler
-  constructor: (@guard, @outType, @expr) ->
-
-
-# an Object:
-# - has a type
-# - can receive messages
-# - can have registered handlers
+# an Object has a type, and state.
 class WObject
   constructor: (@type, closure = null) ->
     # local state
     @scope = new r_scope.Scope(closure)
-    @valueHandlers = []
-    @typeHandlers = []
+    # native state, if this is a native object
+    @native = {}
 
-  toRepr: ->
+  toRepr: (locals, logger) ->
+    if @type[":repr"]? then return @type[":repr"](@)
+    # symbol = require './symbol'
+    # handler = @type.handlerForMessage(symbol.TSymbol.create(":repr"))
+    # if handler?
+    #   r_expr = require './r_expr'
+    #   rv = r_expr.evalCall(@, ":repr", locals, logger)
+    #   if not (typeof rv == "string") then rv = rv.toRepr()
+    #   rv
     fields = @scope.keys().map (k) -> "#{k} = #{@scope.get(k).toRepr()}"
     "#{@type.toRepr()}(#{fields.join ', '})"
 
   equals: (other) ->
-    @type.equals(other.type) and @scope.equals(other.scope)
-
-  handlerForMessage: (message) ->
-    for handler in @valueHandlers
-      if message.equals(handler.guard) then return handler
-    @handlerForType(message.type) or @type.handlerForMessage(message)
-
-  handlerForType: (type) ->
-    for handler in @typeHandlers
-      if handler.guard.canCoerceFrom(type) then return handler
-    null
-
-  on: (guard, outType, expr) ->
-    # avoid dependency loops:
-    symbol = require './symbol'
-    types = require './types'
-    # shortcut for internal use:
-    if typeof guard == "string" then guard = new symbol.WSymbol(guard)
-    handler = new WHandler(guard, outType, expr)
-    if guard instanceof types.WType
-      @typeHandlers.push handler
-    else
-      @valueHandlers.push handler
-
-  # helper for native implementations
-  nativeMethod: (name, inType, outType, nativeFunction) ->
-    types = require './types'
-    # on <symbol> -> <method>
-    methodType = new types.WFunctionType(inType, outType)
-    method = (context, message) ->
-      # now create a native function
-      f = new WObject(methodType)
-      # FIXME this is just a quick hack to approximate @
-      f.on inType, outType, (x, message) -> nativeFunction(context, message)
-      f.toRepr = -> "<native>"
-      f.equals = (other) -> f is other
-      f
-    @on name, methodType, method
+    if @type[":equals"]? then return @type[":equals"](@, other)
+    @type.equals(other.type) and @scope.equals(other.scope) and @native == other.native
 
 
 exports.WObject = WObject

@@ -2,69 +2,41 @@ should = require 'should'
 util = require 'util'
 
 wibble = "../lib/wibble"
-parser = require "#{wibble}/parser"
+builtins = require "#{wibble}/transform/builtins"
+int = require "#{wibble}/runtime/int"
+object = require "#{wibble}/runtime/object"
 r_type = require "#{wibble}/runtime/r_type"
-types = require "#{wibble}/runtime/types"
+symbol = require "#{wibble}/runtime/symbol"
+t_type = require "#{wibble}/transform/t_type"
+
+parser = require "#{wibble}/parser"
 test_util = require './test_util'
 
-describe "Runtime types", ->
-  it "singleton type equality", ->
-    types.WTypeType.equals(types.WTypeType).should.eql true
-    types.WIntType.equals(types.WSymbolType).should.eql false
+describe "Runtime type", ->
+  dToaster = new t_type.NamedType("Toaster")
+  t_type.addHandlers dToaster, builtins.typemap,
+    ".size": "Int"
+  tToaster = r_type.nativeType dToaster,
+    create: -> new object.WObject(tToaster)
+    init: ->
+      @on "size", (target, message) => int.TInt.create(target.native.size.toString())
 
-  it "function type equality", ->
-    f1 = new types.WFunctionType(types.WIntType, types.WSymbolType)
-    f2 = new types.WFunctionType(types.WStringType, types.WSymbolType)
-    f3 = new types.WFunctionType(types.WIntType, types.WSymbolType)
-    f1.equals(f2).should.eql false
-    f1.equals(f3).should.eql true
 
-  it "struct type equality", ->
-    xInt = new types.WField("x", types.WIntType)
-    nameString = new types.WField("name", types.WStringType)
-    s1 = new types.WStructType([ xInt, nameString ])
-    s2 = new types.WStructType([ nameString, xInt ])
-    s3 = new types.WStructType([ xInt ])
-    s1.equals(s1).should.eql true
-    s1.equals(s2).should.eql true
-    s1.equals(s3).should.eql false
-    s2.equals(s1).should.eql true
-    s2.equals(s2).should.eql true
-    s2.equals(s3).should.eql false
-    s3.equals(s1).should.eql false
-    s3.equals(s2).should.eql false
-    s3.equals(s3).should.eql true
+  it "builds a native type", ->
+    tToaster.toRepr().should.eql "Toaster"
+    tToaster.equals(tToaster).should.eql true
+    tToaster.equals(int.TInt).should.eql false
 
-  describe "can coerce to other types", ->
-    it "simple", ->
-      types.WTypeType.canCoerceFrom(types.WTypeType).should.eql true
-      types.WStringType.canCoerceFrom(types.WSymbolType).should.eql false
-      types.WAnyType.canCoerceFrom(types.WStringType).should.eql true
+  it "can create objects", ->
+    obj = tToaster.create()
+    obj.type.toRepr().should.eql "Toaster"
 
-    it "structs", ->
-      xInt = new types.WField("x", types.WIntType)
-      nameString = new types.WField("name", types.WStringType)
-      s1 = new types.WStructType([ xInt, nameString ])
-      s2 = new types.WStructType([ nameString, xInt ])
-      s3 = new types.WStructType([ xInt ])
-      new types.WStructType().canCoerceFrom(types.WNothingType).should.eql true
-      s3.canCoerceFrom(types.WIntType).should.eql true
-      s3.canCoerceFrom(s2).should.eql false
-      s1.canCoerceFrom(s2).should.eql true
-      s2.canCoerceFrom(s1).should.eql true
-
-  describe "evalType", ->
-    parse = (line, options) -> parser.typedecl.run(line, options)
-    evalType = (s, typeMap) -> r_type.evalType(parse(s), typeMap)
-
-    it "can find builtins", ->
-      evalType("Int").should.eql types.WIntType
-      evalType("Widget", Widget: types.WStringType).should.eql types.WStringType
-
-    it "can build compound types", ->
-      t = evalType("(x: Int, y: Int)")
-      t.equals(new types.WStructType([ new types.WField("x", types.WIntType), new types.WField("y", types.WIntType) ])).should.eql true
-
-    it "can build functions", ->
-      t = evalType("Symbol -> Int")
-      t.equals(new types.WFunctionType(types.WSymbolType, types.WIntType)).should.eql true
+  it "finds & calls message handlers", ->
+    h = tToaster.handlerForMessage(symbol.TSymbol.create("destroy"))
+    (h?).should.eql false
+    h = tToaster.handlerForMessage(symbol.TSymbol.create("size"))
+    (h?).should.eql true
+    obj = tToaster.create()
+    obj.native.size = 123
+    rv = h.expr(obj, symbol.TSymbol.create("size"))
+    rv.toRepr().should.eql "123"

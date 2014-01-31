@@ -1,34 +1,61 @@
 util = require 'util'
-types = require './types'
+builtins = require '../transform/builtins'
+t_type = require '../transform/t_type'
+object = require './object'
 
-DefaultTypemap =
-  "Any": types.WAnyType
-  "Int": types.WIntType
-  "Nothing": types.WNothingType
-  "String": types.WStringType
-  "Symbol": types.WSymbolType
+# a runtime type, which points to a compile-time (t_type) descriptor, but
+# also contains actual handlers.
+class Type
+  constructor: (@descriptor) ->
+    @valueHandlers = []
+    @typeHandlers = []
 
-error = (message, state) ->
-  e = new Error(message)
-  e.state = state
-  throw e
+  equals: (other) -> @descriptor.equals(other.descriptor)
 
-# turn a "type" from the AST into a WType
-# 'typemap' may contain (name -> WType)
-evalType = (ast, typemap = DefaultTypemap) ->
-  if ast.typename?
-    if not typemap[ast.typename]? then error("Unknown type: #{ast.typename}", ast.state)
-    return typemap[ast.typename]
-  if ast.functionType?
-    return new types.WFunctionType(evalType(ast.argType, typemap), evalType(ast.functionType, typemap))
-  if ast.compoundType?
-    fields = []
-    for f in ast.compoundType
-      # FIXME default value
-      fields.push(new types.WField(f.name, evalType(f.type, typemap)))
-    return new types.WStructType(fields)
-  # { templateType: string, parameters: type* }
-  error("Not yet implemented", ast.state)
+  toRepr: -> @descriptor.toRepr()
+
+  handlerForMessage: (message) ->
+    if not @inited
+      if @init? then @init()
+      @inited = true
+    for handler in @valueHandlers
+      if message.equals(handler.guard) then return handler
+    for handler in @typeHandlers
+      if handler.guard.canCoerceFrom(message.type.descriptor) then return handler
+    null
+
+  on: (guard, expr) ->
+    # shortcut for internal use:
+    if typeof guard == "string"
+      # avoid dependency loops:
+      symbol = require './symbol'
+      guard = symbol.TSymbol.create(guard)
+    if guard instanceof t_type.TypeDescriptor
+      @typeHandlers.push { guard, expr }
+    else
+      @valueHandlers.push { guard, expr }
+
+  # helper for native implementations
+  nativeMethod: (name, nativeFunction) ->
+    methodType = @descriptor.handlerTypeForMessage(builtins.DSymbol, name)
+    if not (methodType instanceof t_type.FunctionType) then throw new Error("Native method must be function")
+    # create a native function (arg -> expr)
+    type = new Type(methodType)
+    type.on methodType.argType, (target, message) -> nativeFunction(target.native.self, message)
+    # on <symbol> -> <method>
+    @on name, (target, message) ->
+      f = new object.WObject(type)
+      f.toRepr = -> "<native>"
+      f.equals = (other) -> f is other
+      f.native.self = target
+      f
 
 
-exports.evalType = evalType
+nativeType = (descriptor, fields) ->
+  t = new Type(descriptor)
+  for k, v of fields then t[k] = v
+  t
+
+
+exports.Type = Type
+exports.nativeType = nativeType

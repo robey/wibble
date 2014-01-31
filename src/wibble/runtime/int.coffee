@@ -1,33 +1,31 @@
+util = require 'util'
 bigint = require 'big-integer'
 object = require './object'
-types = require './types'
+r_type = require './r_type'
+builtins = require '../transform/builtins'
 
-class WInt extends object.WObject
-  constructor: (value, base) ->
-    super(types.WIntType)
+
+TInt = r_type.nativeType builtins.DInt,
+  create: (value, base = 10) ->
+    obj = new object.WObject(TInt)
     # FIXME i don't think big-integer supports bases.
-    @value = if value instanceof bigint then value else bigint(value, base)
+    obj.native.value = if value instanceof bigint then value else bigint(value, base)
+    obj
 
-  toRepr: -> @value.toString()
+  init: ->
+    @nativeMethod "+", (target, message) => @create(target.native.value.add(message.native.value))
+    @nativeMethod "-", (target, message) => @create(target.native.value.subtract(message.native.value))
+    @nativeMethod "*", (target, message) => @create(target.native.value.multiply(message.native.value))
+    @nativeMethod "/", (target, message) => @create(target.native.value.divide(message.native.value))
+    @nativeMethod "%", (target, message) => @create(target.native.value.mod(message.native.value))
+    @nativeMethod "positive", (target, message) => target.native.value
+    @nativeMethod "negative", (target, message) => @create(target.native.value.negate())
 
-  equals: (other) ->
-    (other instanceof WInt) and (other.value.eq(@value))
+  ":repr": (target) -> target.native.value.toString()
 
-  add: (arg) -> new WInt(@value.add(arg.value))
-  sub: (arg) -> new WInt(@value.subtract(arg.value))
-  mul: (arg) -> new WInt(@value.multiply(arg.value))
-  div: (arg) -> new WInt(@value.divide(arg.value))
-  mod: (arg) -> new WInt(@value.mod(arg.value))
-  negative: -> new WInt(@value.negate())
-
-
-types.WIntType.nativeMethod "+", types.WIntType, types.WIntType, (context, arg) -> context.add(arg)
-types.WIntType.nativeMethod "-", types.WIntType, types.WIntType, (context, arg) -> context.sub(arg)
-types.WIntType.nativeMethod "*", types.WIntType, types.WIntType, (context, arg) -> context.mul(arg)
-types.WIntType.nativeMethod "/", types.WIntType, types.WIntType, (context, arg) -> context.div(arg)
-types.WIntType.nativeMethod "%", types.WIntType, types.WIntType, (context, arg) -> context.mod(arg)
-types.WIntType.nativeMethod "positive", types.WNothingType, types.WIntType, (context, arg) -> context
-types.WIntType.nativeMethod "negative", types.WNothingType, types.WIntType, (context, arg) -> context.negative(arg)
+  ":equals": (target, other) ->
+    if other.type != TInt then return false
+    target.native.value.eq(other.native.value)
 
 
-exports.WInt = WInt
+exports.TInt = TInt

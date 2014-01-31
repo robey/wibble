@@ -1,13 +1,21 @@
+util = require 'util'
 object = require './object'
-types = require './types'
+r_type = require './r_type'
+builtins = require '../transform/builtins'
 
-class WSymbol extends object.WObject
-  constructor: (@name) ->
-    super(types.WSymbolType)
+TSymbol = r_type.nativeType builtins.DSymbol,
+  create: (name) ->
+    obj = new object.WObject(TSymbol)
+    obj.native.name = name
+    obj
 
-  toRepr: -> ".#{@name}"
+  init: ->
 
-  equals: (other) -> other.type == types.WSymbolType and (other.name == @name)
+  ":repr": (target) -> ".#{target.native.name}"
+
+  ":equals": (target, other) ->
+    if other.type != TSymbol then return false
+    target.native.name == other.native.name
 
 
-exports.WSymbol = WSymbol
+exports.TSymbol = TSymbol

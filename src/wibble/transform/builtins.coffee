@@ -2,15 +2,6 @@ util = require 'util'
 parser = require '../parser'
 t_type = require './t_type'
 
-compileDescriptor = (type, table) ->
-  handlers = []
-  for k, v of table
-    resultType = t_type.findType(parser.typedecl.run(v), typemap)
-    if k[0] == "."
-      type.addValueHandler k[1...], resultType
-    else
-      type.addTypeHandler t_type.findType(parser.typedecl.run(k), typemap), resultType
-
 DAny = new t_type.NamedType("Any")
 DAny.canCoerceFrom = (other) -> true
 
@@ -29,7 +20,7 @@ typemap[DString.name] = DString
 typemap[DSymbol.name] = DSymbol
 
 # types are often self-referential, so do them after all the names are set.
-compileDescriptor DInt,
+t_type.addHandlers DInt, typemap,
   ".+": "Int -> Int"
   ".-": "Int -> Int"
   ".*": "Int -> Int"
@@ -37,6 +28,7 @@ compileDescriptor DInt,
   ".%": "Int -> Int"
   ".positive": "() -> Int"
   ".negative": "() -> Int"
+  ".:repr": "String"
 
 exports.DAny = DAny
 exports.DBoolean = DBoolean
