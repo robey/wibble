@@ -104,6 +104,7 @@ class FunctionType extends TypeDescriptor
 buildType = (type) ->
   if type.typename? then return new NamedType(type.typename)
   if type.compoundType?
+    checkCompoundType(type)
     fields = type.compoundType.map (f) -> { name: f.name, type: buildType(f.type), value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(buildType(type.argType), buildType(type.functionType))
@@ -114,10 +115,18 @@ findType = (type, typemap) ->
     if not typemap[type.typename]? then error("Unknown type '#{type.typename}'", type.state)
     return typemap[type.typename]
   if type.compoundType?
+    checkCompoundType(type)
     fields = type.compoundType.map (f) -> { name: f.name, type: findType(f.type, typemap), value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(findType(type.argType, typemap), findType(type.functionType, typemap))
   error "Not implemented yet: template type"
+
+# check for repeated fields before it's too late
+checkCompoundType = (type) ->
+  seen = {}
+  for f in type.compoundType
+    if seen[f.name] then error("Field name #{f.name} is repeated", f.state)
+    seen[f.name] = true
 
 # new anonymous type
 newType = (handlers) ->

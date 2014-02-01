@@ -72,6 +72,7 @@ describe "TypeDescriptor", ->
     it "compound", ->
       build("(x: Int, y: Int)").toRepr().should.eql "(x: Int, y: Int)"
       build("(x: Int, y: Int = 3)").toRepr().should.eql "(x: Int, y: Int = 3)"
+      (-> build("(x: Int, y: Int = 3, x: Symbol)")).should.throw /repeated/
 
     it "function", ->
       build("Int -> String").toRepr().should.eql "Int -> String"

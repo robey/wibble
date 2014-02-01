@@ -30,6 +30,7 @@ describe "Typecheck", ->
     (-> typecheck("(count = 10, true)")).should.throw /Positional fields can't/
     typecheck("(x = 9)").type.toRepr().should.eql "(x: Int = 9)"
     typecheck("(.a, .b, .c)").type.toRepr().should.eql "(?0: Symbol = .a, ?1: Symbol = .b, ?2: Symbol = .c)"
+    (-> typecheck("(a = 1, b = 2, a = 1)")).should.throw /repeated/
 
   it "references", ->
     scope = new t_scope.Scope()

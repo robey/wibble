@@ -56,13 +56,16 @@ typecheckExpr = (tstate, expr) ->
   if expr.struct?
     fields = []
     positional = true
+    seen = {}
     for arg, i in expr.struct
       [ type, x ] = typecheckExpr(tstate, arg.value)
       if not arg.name
-        if not positional then error("Positional fields can't come after named fields")
+        if not positional then error("Positional fields can't come after named fields", arg.state)
         fields.push { name: "?#{i}", type: type, value: x }
       else
         positional = false
+        if seen[arg.name] then error("Field name #{arg.name} is repeated", arg.state)
+        seen[arg.name] = true
         fields.push { name: arg.name, type: type, value: x }
     type = new t_type.CompoundType(fields)
     return [ type, { struct: fields, type: type } ]
