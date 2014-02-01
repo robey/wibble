@@ -16,10 +16,16 @@ debug = (runtime) ->
 
 describe "Runtime", ->
   return
-  it "eval", ->
-    runtime = new wibble.Runtime()
-    xeval("3", runtime).toDebugType().should.eql([ "Int", "3" ])
-    xeval("x", runtime).toDebugType().should.eql([ "Symbol", ":x" ])
+
+  # scope check:
+  # {
+  #   val x = 10
+  #   {
+  #     val x = 3  
+  #     x * 2
+  #   } + x
+  # }
+
 
   it "basic int math", ->
     runtime = new wibble.Runtime()

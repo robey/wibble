@@ -51,7 +51,7 @@ evalExpr = (expr, locals, logger) ->
     error("Orphan 'on' (shouldn't happen)", expr.state)
   if expr.code?
     newLocals = new r_scope.Scope(locals)
-    rv = nothing.WNothing
+    rv = types.TNothing.create()
     for x in expr.code
       rv = evalExpr(x, newLocals, logger)
     return rv
