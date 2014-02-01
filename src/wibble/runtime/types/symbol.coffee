@@ -1,7 +1,7 @@
 util = require 'util'
-object = require './object'
-r_type = require './r_type'
-builtins = require '../transform/builtins'
+object = require '../object'
+r_type = require '../r_type'
+builtins = require '../../transform/builtins'
 
 TSymbol = r_type.nativeType builtins.DSymbol,
   create: (name) ->

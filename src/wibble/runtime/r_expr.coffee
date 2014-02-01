@@ -2,13 +2,12 @@ util = require 'util'
 builtins = require '../transform/builtins'
 d_expr = require '../dump/d_expr'
 #func = require './func'
-int = require './int'
 #nothing = require './nothing'
 object = require './object'
 r_scope = require './r_scope'
 r_type = require './r_type'
-symbol = require './symbol'
 t_type = require '../transform/t_type'
+types = require './types'
 
 error = (message, state) ->
   e = new Error(message)
@@ -22,11 +21,11 @@ evalExpr = (expr, locals, logger) ->
 #    { boolean: true/false }
   if expr.number?
     switch expr.number
-      when "base2" then return int.TInt.create(expr.value, 2)
-      when "base10" then return int.TInt.create(expr.value, 10)
-      when "base16" then return int.TInt.create(expr.value, 16)
+      when "base2" then return types.TInt.create(expr.value, 2)
+      when "base10" then return types.TInt.create(expr.value, 10)
+      when "base16" then return types.TInt.create(expr.value, 16)
 #    { number: long-base2/long-base10/long-base16/float/long-float, value: "" }
-  if expr.symbol? then return symbol.TSymbol.create(expr.symbol)
+  if expr.symbol? then return types.TSymbol.create(expr.symbol)
 #    { string: "" }
   if expr.reference?
     rv = locals.get(expr.reference)
@@ -80,7 +79,7 @@ evalNew = (expr, locals, logger) ->
 
   for x in expr.newObject.code
     if x.on?
-      guard = if x.on.symbol? then symbol.TSymbol.create(x.on.symbol) else t_type.findType(x.on, builtins.typemap)
+      guard = if x.on.symbol? then types.TSymbol.create(x.on.symbol) else t_type.findType(x.on, builtins.typemap)
       type.on guard, x.handler
     else
       evalExpr(x, state, logger)

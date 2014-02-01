@@ -1,8 +1,8 @@
 util = require 'util'
 bigint = require 'big-integer'
-object = require './object'
-r_type = require './r_type'
-builtins = require '../transform/builtins'
+object = require '../object'
+r_type = require '../r_type'
+builtins = require '../../transform/builtins'
 
 
 TInt = r_type.nativeType builtins.DInt,
