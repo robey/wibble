@@ -30,7 +30,10 @@ evalExpr = (expr, locals, logger) ->
     if not rv? then error("Missing reference '#{expr.reference}'", expr.state)
     return rv
   # array
-  # struct
+  if expr.struct?
+    values = {}
+    for f in expr.struct then values[f.name] = evalExpr(f.value, locals, logger)
+    return new types.TStruct(expr.type).create(values)
   if expr.call?
     left = evalExpr(expr.call, locals, logger)
     right = evalExpr(expr.arg, locals, logger)

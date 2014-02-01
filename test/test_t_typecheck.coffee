@@ -26,6 +26,11 @@ describe "Typecheck", ->
     typecheck(".*").type.toRepr().should.eql "Symbol"
     typecheck("\"hello\"").type.toRepr().should.eql "String"
 
+  it "structs", ->
+    (-> typecheck("(count = 10, true)")).should.throw /Positional fields can't/
+    typecheck("(x = 9)").type.toRepr().should.eql "(x: Int = 9)"
+    typecheck("(.a, .b, .c)").type.toRepr().should.eql "(?0: Symbol = .a, ?1: Symbol = .b, ?2: Symbol = .c)"
+
   it "references", ->
     scope = new t_scope.Scope()
     scope.add("point", new t_type.NamedType("Point"), null)

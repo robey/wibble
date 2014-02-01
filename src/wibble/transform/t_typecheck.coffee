@@ -52,7 +52,20 @@ typecheckExpr = (tstate, expr) ->
     return [ type, expr ]
 
   # { array: [ expr* ] }
-  # { struct: [ { name?, expression: expr }* ] }
+
+  if expr.struct?
+    fields = []
+    positional = true
+    for arg, i in expr.struct
+      [ type, x ] = typecheckExpr(tstate, arg.value)
+      if not arg.name
+        if not positional then error("Positional fields can't come after named fields")
+        fields.push { name: "?#{i}", type: type, value: x }
+      else
+        positional = false
+        fields.push { name: arg.name, type: type, value: x }
+    type = new t_type.CompoundType(fields)
+    return [ type, { struct: fields, type: type } ]
 
   if expr.call?
     [ ltype, call ] = typecheckExpr(tstate, expr.call)
