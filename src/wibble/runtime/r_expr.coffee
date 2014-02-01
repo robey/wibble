@@ -46,7 +46,7 @@ evalExpr = (expr, locals, logger) ->
     return evalNew(expr, locals, logger)
   if expr.local?
     rv = evalExpr(expr.value, locals, logger)
-    locals.setNew(expr.local.name, rv)
+    locals.set(expr.local.name, rv)
     return rv
   if expr.on?
     error("Orphan 'on' (shouldn't happen)", expr.state)
@@ -67,10 +67,13 @@ evalCall = (target, message, state, logger) ->
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
-  m = if handler.guard instanceof t_type.TypeDescriptor then handler.guard.coerce(message) else message
+  m = if handler.guard instanceof t_type.TypeDescriptor
+    new types.TStruct(handler.guard).coerce(message)
+  else
+    message
   scope = new r_scope.Scope()
-  if m.type.descriptor instanceof t_type.CompoundType
-    for k, v of m.values then scope.setNew(k, v)
+  if m.type instanceof types.TStruct
+    for k in m.scope.keys() then scope.set(k, m.scope.get(k))
   return evalExpr(handler.expr, scope, logger)
 
 evalNew = (expr, locals, logger) ->
