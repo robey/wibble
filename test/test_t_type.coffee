@@ -61,6 +61,35 @@ describe "TypeDescriptor", ->
       s1.canCoerceFrom(s2).should.eql true
       s2.canCoerceFrom(s1).should.eql true
 
+    it "structs with positionals", ->
+      xInt = { name: "x", type: descriptors.DInt }
+      nameString = { name: "name", type: descriptors.DString }
+      s1 = new t_type.CompoundType([ xInt, nameString ])
+      s2 = new t_type.CompoundType([ { name: "?0", type: descriptors.DInt }, { name: "?1", type: descriptors.DString } ])      
+      s3 = new t_type.CompoundType([ { name: "?0", type: descriptors.DSymbol }, { name: "?1", type: descriptors.DString } ])      
+      s1.canCoerceFrom(s2).should.eql true
+      s1.canCoerceFrom(s3).should.eql false
+
+    it "structs with missing fields", ->
+      s1 = new t_type.CompoundType([
+        { name: "x", type: descriptors.DInt }
+        { name: "name", type: descriptors.DString }
+        { name: "valid", type: descriptors.DBoolean, value: { boolean: true } }
+        { name: "wicket", type: descriptors.DInt }
+      ])
+      s2 = new t_type.CompoundType([
+        { name: "?0", type: descriptors.DInt }
+        { name: "wicket", type: descriptors.DInt }
+        { name: "name", type: descriptors.DString }
+      ])
+      s3 = new t_type.CompoundType([
+        { name: "?0", type: descriptors.DInt }
+        { name: "name", type: descriptors.DString }
+      ])
+      s1.canCoerceFrom(s2).should.eql true
+      s1.canCoerceFrom(s3).should.eql false
+      s3.canCoerceFrom(s2).should.eql false
+
   describe "buildType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)
     build = (line, options) -> t_type.buildType(parse(line, options))

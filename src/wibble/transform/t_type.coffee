@@ -76,7 +76,25 @@ class CompoundType extends TypeDescriptor
     # a one-element struct is the same as the type of that element (but do not recurse)
     if @fields.length == 1 and @fields[0].type.equals(other) then return true
     # check loose equality of compound types
-    @equals(other)
+    if @equals(other) then return true
+    # check for loose matching:
+    # - no extra fields
+    # - positional fields have the right type
+    # - all missing fields have default values
+    remaining = {}
+    for f in @fields then remaining[f.name] = { type: f.type, hasDefault: f.value? }
+    for f, i in other.fields
+      if f.name[0] == "?"
+        # positional
+        if i >= @fields.length then return false
+        name = @fields[i].name
+      else
+        name = f.name
+      if not remaining[name]? then return false
+      if not remaining[name].type.canCoerceFrom(f.type) then return false
+      delete remaining[name]
+    for k, v of remaining then if not v.hasDefault then return false
+    true
 
   toRepr: (precedence = true) ->
     fields = @fields.map (f) -> f.name + ": " + f.type.toRepr(true) + (if f.value? then " = " + d_expr.dumpExpr(f.value) else "")
