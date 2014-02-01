@@ -1,42 +1,13 @@
 int = require './types/int'
+nothing = require './types/nothing'
 struct = require './types/struct'
 symbol = require './types/symbol'
 
 exports.TInt = int.TInt
+exports.TNothing = nothing.TNothing
 exports.TStruct = struct.TStruct
 exports.TSymbol = symbol.TSymbol
 
-# util = require 'util'
-# object = require './object'
-# struct = require './struct'
-
-# class WType extends object.WObject
-#   constructor: (@name) ->
-#     super(WTypeType)
-
-#   toRepr: -> @name
-
-#   equals: (other) -> @ == other
-
-#   # default coercion: just say no.
-#   canCoerceFrom: (other) -> @equals(other)
-#   coerce: (otherValue) -> otherValue
-
-# WTypeType = new WType("Type")
-# WTypeType.handlerForMessage = (message) ->
-#   # need to cut off recursive lookups here.
-#   null
-
-# WAnyType = new WType("Any")
-# WAnyType.canCoerceFrom = (other) -> true
-
-# # used for blank 'new'
-# WAnonymousType = new WType("Anonymous")
-
-# WNothingType = new WType("Nothing")
-# WIntType = new WType("Int")
-# WSymbolType = new WType("Symbol")
-# WStringType = new WType("String")
 
 # class WFunctionType extends WType
 #   constructor: (@inType, @outType) ->
@@ -76,23 +47,3 @@ exports.TSymbol = symbol.TSymbol
 #     if @equals(other) then return true
 #     return super(other)
 
-#   coerce: (otherValue) ->
-#     if @fields.length == 0 then return new struct.WStruct(@, {})
-#     if @fields.length == 1
-#       values = {}
-#       values[@fields[0].name] = otherValue
-#       return new struct.WStruct(@, values)
-#     new struct.WStruct(@, otherValue.values)
-
-
-# exports.WAnonymousType = WAnonymousType
-# exports.WAnyType = WAnyType
-# exports.WField = WField
-# exports.WFunctionType = WFunctionType
-# exports.WIntType = WIntType
-# exports.WNothingType = WNothingType
-# exports.WStringType = WStringType
-# exports.WStructType = WStructType
-# exports.WSymbolType = WSymbolType
-# exports.WType = WType
-# exports.WTypeType = WTypeType

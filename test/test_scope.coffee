@@ -8,19 +8,19 @@ test_util = require './test_util'
 describe "Scope", ->
   it "is set locally", ->
     s = new scope.Scope()
-    s.setNew("x", 12)
+    s.set("x", 12)
     s.get("x").should.eql(12)
 
   it "finds chained values", ->
     s = new scope.Scope()
-    s.setNew("x", 12)
+    s.set("x", 12)
     s2 = new scope.Scope(s)
     s2.get("x").should.eql(12)
 
   it "overwrites chained values", ->
     s = new scope.Scope()
-    s.setNew("x", 12)
+    s.set("x", 12)
     s2 = new scope.Scope(s)
-    s2.set("x", 13)
+    s2.update("x", 13)
     s2.get("x").should.eql(13)
     s.get("x").should.eql(13)

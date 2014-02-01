@@ -18,9 +18,6 @@ class Scope
     @parent? and @parent.update(name, value)
 
   set: (name, value) ->
-    if not @update(name, value) then @symtab[name] = value
-
-  setNew: (name, value) ->
     @symtab[name] = value
 
   keys: ->

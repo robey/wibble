@@ -1,8 +1,6 @@
 util = require 'util'
-builtins = require '../transform/builtins'
+descriptors = require '../transform/descriptors'
 d_expr = require '../dump/d_expr'
-#func = require './func'
-#nothing = require './nothing'
 object = require './object'
 r_scope = require './r_scope'
 r_type = require './r_type'
@@ -16,7 +14,7 @@ error = (message, state) ->
 
 evalExpr = (expr, locals, logger) ->
   logger?("#{d_expr.dumpExpr(expr)}")
-  if expr.nothing? then return nothing.WNothing
+  if expr.nothing? then return types.TNothing.create()
   if expr.boolean? then
 #    { boolean: true/false }
   if expr.number?
@@ -79,7 +77,7 @@ evalNew = (expr, locals, logger) ->
 
   for x in expr.newObject.code
     if x.on?
-      guard = if x.on.symbol? then types.TSymbol.create(x.on.symbol) else t_type.findType(x.on, builtins.typemap)
+      guard = if x.on.symbol? then types.TSymbol.create(x.on.symbol) else t_type.findType(x.on, descriptors.typemap)
       type.on guard, x.handler
     else
       evalExpr(x, state, logger)

@@ -1,9 +1,9 @@
 util = require 'util'
 object = require '../object'
 r_type = require '../r_type'
-builtins = require '../../transform/builtins'
+descriptors = require '../../transform/descriptors'
 
-TSymbol = r_type.nativeType builtins.DSymbol,
+TSymbol = r_type.nativeType descriptors.DSymbol,
   create: (name) ->
     obj = new object.WObject(TSymbol)
     obj.native.name = name

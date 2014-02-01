@@ -37,7 +37,8 @@ class TypeDescriptor
     else
       for h in @typeHandlers then if h.guard.canCoerceFrom(type) then return h.type
     # FIXME warning: not type checked
-    require('./builtins').DAny
+    descriptors = require './descriptors'
+    descriptors.DAny
 
   addValueHandler: (value, htype) -> @valueHandlers.push { guard: value, type: htype }
 
@@ -57,8 +58,9 @@ class NamedType extends TypeDescriptor
 # fields are { name, type, value: expr }
 class CompoundType extends TypeDescriptor
   constructor: (@fields) ->
-    # FIXME field accessors
     super()
+    # field accessors
+    for f in @fields then @addValueHandler f.name, f.type
 
   equals: (other) ->
     if not (other instanceof CompoundType) then return false

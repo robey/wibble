@@ -6,9 +6,24 @@ class TStruct extends r_type.Type
   constructor: (descriptor) ->
     super(descriptor)
 
-  create: -> # FIXME
+  create: (values) ->
+    obj = new object.WObject(@)
+    for k, v of values then obj.scope.set(k, v)
+    obj
 
-  init: -> # FIXME
+  init: ->
+    # accessors
+    for field in @descriptor.fields then do (field) =>
+      @on field.name, (target, message) -> target.scope.get(field.name)
+
+  coerce: (other) ->
+    if @descriptor.fields.length == 0 then return @create({})
+    values = {}
+    if @descriptor.fields.length == 1
+      values[@descriptor.fields[0].name] = other
+      return @create(values)
+    for k in other.scope.keys() then values[k] = other.scope.get(k)
+    @create(values)
 
   ":repr": (target) ->
     fields = target.scope.keys().map (k) -> "#{k} = #{target.scope.get(k).toRepr()}"
@@ -16,7 +31,7 @@ class TStruct extends r_type.Type
 
   ":equals": (target, other) ->
     return false unless (other.type.equals(target.type))
-    for k in target.scope.keys
+    for k in target.scope.keys()
       if not other.scope.get(k).equals(target.scope.get(k)) then return false
     true
 

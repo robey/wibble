@@ -1,5 +1,5 @@
 util = require 'util'
-builtins = require './builtins'
+descriptors = require './descriptors'
 d_expr = require '../dump/d_expr'
 d_type = require '../dump/d_type'
 t_common = require './t_common'
@@ -11,7 +11,7 @@ error = t_common.error
 
 # state passed through type-checker
 class TransformState
-  constructor: (@scope, @handlers = [], @typemap = builtins.typemap, @options = {}) ->
+  constructor: (@scope, @handlers = [], @typemap = descriptors.typemap, @options = {}) ->
 
   newScope: ->
     new TransformState(new t_scope.Scope(@scope), @handlers, @typemap, @options)
@@ -37,14 +37,14 @@ typecheckExpr = (tstate, expr) ->
   if tstate.options.logger? then tstate.options.logger "typecheck: #{d_expr.dumpExpr(expr)} -- #{tstate.toDebug()}"
 
   # constants
-  if expr.nothing? then return [ builtins.DNothing, expr ]
-  if expr.boolean? then return [ builtins.DBoolean, expr ]
+  if expr.nothing? then return [ descriptors.DNothing, expr ]
+  if expr.boolean? then return [ descriptors.DBoolean, expr ]
   if expr.number?
     # { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
-    if expr.number in [ "base2", "base10", "base16" ] then return [ builtins.DInt, expr ]
+    if expr.number in [ "base2", "base10", "base16" ] then return [ descriptors.DInt, expr ]
     error("Not implemented yet", expr.state)
-  if expr.symbol? then return [ builtins.DSymbol, expr ]
-  if expr.string? then return [ builtins.DString, expr ]
+  if expr.symbol? then return [ descriptors.DSymbol, expr ]
+  if expr.string? then return [ descriptors.DString, expr ]
 
   if expr.reference?
     type = tstate.scope.get(expr.reference)
@@ -90,11 +90,11 @@ typecheckExpr = (tstate, expr) ->
       guard = expr.on.symbol
     [ htype, hexpr ] = typecheckExpr(tstate, expr.handler)
     tstate.handlers.push [ guard, htype ]
-    return [ builtins.DNothing, copy(expr, handler: hexpr, scope: newScope) ]
+    return [ descriptors.DNothing, copy(expr, handler: hexpr, scope: newScope) ]
 
   if expr.code?
     tstate = tstate.newScope()
-    type = builtins.DNothing
+    type = descriptors.DNothing
     code = expr.code.map (x) ->
       [ type, x ] = typecheckExpr(tstate, x)
       x

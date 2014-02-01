@@ -1,5 +1,5 @@
 util = require 'util'
-builtins = require '../transform/builtins'
+descriptors = require '../transform/descriptors'
 t_type = require '../transform/t_type'
 object = require './object'
 
@@ -28,8 +28,8 @@ class Type
     # shortcut for internal use:
     if typeof guard == "string"
       # avoid dependency loops:
-      symbol = require './symbol'
-      guard = symbol.TSymbol.create(guard)
+      types = require './types'
+      guard = types.TSymbol.create(guard)
     if guard instanceof t_type.TypeDescriptor
       @typeHandlers.push { guard, expr }
     else
@@ -44,7 +44,7 @@ class Type
 
   # helper for native implementations
   nativeMethod: (name, nativeFunction) ->
-    methodType = @descriptor.handlerTypeForMessage(builtins.DSymbol, name)
+    methodType = @descriptor.handlerTypeForMessage(descriptors.DSymbol, name)
     if not (methodType instanceof t_type.FunctionType) then throw new Error("Native method must be function")
     # create a native function (arg -> expr)
     type = new Type(methodType)

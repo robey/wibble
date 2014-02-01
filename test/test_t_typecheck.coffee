@@ -4,7 +4,6 @@ util = require 'util'
 wibble = "../lib/wibble"
 parser = require "#{wibble}/parser"
 d_expr = require "#{wibble}/dump/d_expr"
-t_locals = require "#{wibble}/transform/t_locals"
 t_scope = require "#{wibble}/transform/t_scope"
 t_type = require "#{wibble}/transform/t_type"
 t_typecheck = require "#{wibble}/transform/t_typecheck"
