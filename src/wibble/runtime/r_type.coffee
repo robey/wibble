@@ -35,6 +35,13 @@ class Type
     else
       @valueHandlers.push { guard, expr }
 
+  # convert an object into this type.
+  # this will only be called if @descriptor.canCoerceFrom() was true.
+  # default implementation passes the object through unchanged, since the
+  #   default #canCoerceFrom() will only be true for equal objects.
+  coerce: (obj) ->
+    obj
+
   # helper for native implementations
   nativeMethod: (name, nativeFunction) ->
     methodType = @descriptor.handlerTypeForMessage(builtins.DSymbol, name)

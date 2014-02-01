@@ -1,4 +1,5 @@
 util = require 'util'
+builtins = require '../transform/builtins'
 d_expr = require '../dump/d_expr'
 #func = require './func'
 int = require './int'
@@ -7,7 +8,7 @@ object = require './object'
 r_scope = require './r_scope'
 r_type = require './r_type'
 symbol = require './symbol'
-#types = require './types'
+t_type = require '../transform/t_type'
 
 error = (message, state) ->
   e = new Error(message)
@@ -66,38 +67,21 @@ evalCall = (target, message, state, logger) ->
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
-  m = if handler.guard instanceof symbol.TSymbol then message else handler.guard.coerce(message)
+  m = if handler.guard instanceof t_type.TypeDescriptor then handler.guard.coerce(message) else message
   scope = new r_scope.Scope()
-  if m.type instanceof types.WStructType
+  if m.type.descriptor instanceof t_type.CompoundType
     for k, v of m.values then scope.setNew(k, v)
   return evalExpr(handler.expr, scope, logger)
 
 evalNew = (expr, locals, logger) ->
   type = new r_type.Type(expr.type)
   state = new r_scope.Scope(locals)
-  obj = new object.WObject(expr.type, state)
+  obj = new object.WObject(type, state)
 
   for x in expr.newObject.code
     if x.on?
-      guard = if x.on.symbol? then new symbol.WSymbol(x.on.symbol) else r_type.evalType(x.on)
-      obj.on guard, types.WAnyType, x.handler
-    else
-      evalExpr(x, state, logger)
-  obj
-
-
-  # FIXME figure out types
-  type = if expr.type? then expr.type else types.WAnonymousType
-  state = new r_scope.Scope(locals)
-  obj = if type instanceof types.WFunctionType
-    # this is really just a cute hack to make the stringified version look nice
-    new func.WFunction(type, state, d_expr.dumpExpr(expr.newObject))
-  else
-    new object.WObject(type, state)
-  for x in expr.newObject.code
-    if x.on?
-      guard = if x.on.symbol? then new symbol.WSymbol(x.on.symbol) else r_type.evalType(x.on)
-      obj.on guard, types.WAnyType, x.handler
+      guard = if x.on.symbol? then symbol.TSymbol.create(x.on.symbol) else t_type.findType(x.on, builtins.typemap)
+      type.on guard, x.handler
     else
       evalExpr(x, state, logger)
   obj
