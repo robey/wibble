@@ -67,7 +67,7 @@ class Repl
 
       if env.debugCompile
         @terminal.printColor("f80", "  ; ")
-        @terminal.printColor("66f", "#{wibble.dumpType(type)}: ")
+        @terminal.printColor("66f", "#{type.toRepr()}: ")
         @terminal.println(wibble.dumpExpr(expr))
 
       try
