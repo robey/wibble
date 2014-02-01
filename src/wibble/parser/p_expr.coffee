@@ -30,13 +30,13 @@ arrayExpr = commaSeparatedSurroundedCommit("[", (-> expression), "]", "Expected 
 
 structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m, state) ->
   if m[0].length > 0
-    { name: m[0][0][0], expression: m[1], state }
+    { name: m[0][0][0], value: m[1], state }
   else
-    { expression: m[1], state }
+    { value: m[1], state }
 
 struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item").onMatch (m, state) ->
   # AST optimization: "(expr)" is just a precedence-bumped expression.
-  if m.length == 1 and (not m[0].name?) then return m[0].expression
+  if m.length == 1 and (not m[0].name?) then return m[0].value
   { struct: m, state }
 
 newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->

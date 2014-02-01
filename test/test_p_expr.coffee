@@ -50,8 +50,8 @@ describe "Parse expressions", ->
     it "without names", ->
       parse("(x, y)").should.eql(
         struct: [
-          { expression: { reference: "x", pos: [ 1, 2 ] }, pos: [ 1, 2 ] }
-          { expression: { reference: "y", pos: [ 4, 5 ] }, pos: [ 4, 5 ] }
+          { value: { reference: "x", pos: [ 1, 2 ] }, pos: [ 1, 2 ] }
+          { value: { reference: "y", pos: [ 4, 5 ] }, pos: [ 4, 5 ] }
         ]
         pos: [ 0, 6 ]
       )
@@ -59,8 +59,8 @@ describe "Parse expressions", ->
     it "with names", ->
       parse("(  x=3,y = 4)").should.eql(
         struct: [
-          { name: "x", expression: { number: "base10", value: "3", pos: [ 5, 6 ] }, pos: [ 3, 6 ] }
-          { name: "y", expression: { number: "base10", value: "4", pos: [ 11, 12 ] }, pos: [ 7, 12 ] }
+          { name: "x", value: { number: "base10", value: "3", pos: [ 5, 6 ] }, pos: [ 3, 6 ] }
+          { name: "y", value: { number: "base10", value: "4", pos: [ 11, 12 ] }, pos: [ 7, 12 ] }
         ]
         pos: [ 0, 13 ]
       )
@@ -119,8 +119,8 @@ describe "Parse expressions", ->
           pos: [ 0, 5 ]
         arg:
           struct: [
-            { expression: { number: "base10", value: "4", pos: [ 6, 7 ] }, pos: [ 6, 7 ] }
-            { expression: { number: "base10", value: "5", pos: [ 9, 10 ] }, pos: [ 9, 10 ] }
+            { value: { number: "base10", value: "4", pos: [ 6, 7 ] }, pos: [ 6, 7 ] }
+            { value: { number: "base10", value: "5", pos: [ 9, 10 ] }, pos: [ 9, 10 ] }
           ]
           pos: [ 5, 11 ]
         pos: [ 0, 11 ]

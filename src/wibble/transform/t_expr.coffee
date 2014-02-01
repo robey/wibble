@@ -19,7 +19,7 @@ digExpr = (expr, state, transform) ->
   [ expr, state ] = if Array.isArray(rv) then rv else [ rv, state ]
 
   if expr.array? then return copy(array: expr.array.map(dig))
-  if expr.struct? then return copy(struct: expr.struct.map (s) -> { name: s.name, expression: dig(s.expression) })
+  if expr.struct? then return copy(struct: expr.struct.map (s) -> { name: s.name, value: dig(s.value) })
   if expr.unary? then return copy(unary: expr.unary, right: dig(expr.right))
   if expr.call? then return copy(call: dig(expr.call), arg: dig(expr.arg))
   if expr.binary? then return copy(binary: expr.binary, left: dig(expr.left), right: dig(expr.right))

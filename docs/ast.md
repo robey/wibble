@@ -6,7 +6,7 @@ X = eliminated by transformations
 - everything has a "state" field.
 - a few nodes have a "scope" field, meaning they open a new lexical scope.
   scope is (name -> type).
-- 'newObject' will grow a "type" field to hold the descriptor of the object
+- a few nodes will grow a "type" field to hold the descriptor of the object
   being created.
 
 ## constants
@@ -21,7 +21,7 @@ X = eliminated by transformations
 
     { reference: "" }
     { array: [ expr* ] }
-    { struct: [ { name?, expression: expr }* ] }
+    { struct: [ { name: string, [type], value: expr }* ], [type] }
     X: { unary: "+"/"-"/"not", right: expr }
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
@@ -31,7 +31,7 @@ X = eliminated by transformations
 
 ## code
 
-    { local: { name }, value: expr }
+    { local: { name: string }, value: expr }
     { on: { symbol | compoundType }, handler: expr, [scope] }
     { code: [ expr* ], [scope] }
 

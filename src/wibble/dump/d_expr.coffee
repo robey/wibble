@@ -16,6 +16,7 @@ dumpExpr = (expr) ->
   rv
 
 dump = (expr) ->
+  if not expr? then return [ "<NULL>", PRECEDENCE.constant ]
   # constants
   if expr.nothing? then return [ "()", PRECEDENCE.constant ]
   if expr.boolean? then return [ expr.boolean.toString(), PRECEDENCE.constant ]
@@ -41,7 +42,7 @@ dump = (expr) ->
     return [ "[ " + expr.array.map(dumpExpr).join(", ") + " ]", PRECEDENCE.atom ]
   if expr.struct?
     items = expr.struct.map (item) ->
-      (if item.name? then "#{item.name} = " else "") + dumpExpr(item.expression)
+      (if item.name? then "#{item.name} = " else "") + dumpExpr(item.value)
     return [ "(" + items.join(", ") + ")", PRECEDENCE.atom ]
   if expr.unary?
     return [ expr.unary + parenthesize(expr.right, PRECEDENCE.unary), PRECEDENCE.unary ]
