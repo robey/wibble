@@ -1,10 +1,9 @@
 util = require 'util'
 object = require '../object'
 r_type = require '../r_type'
-descriptors = require '../../transform/descriptors'
+transform = require '../../transform'
 
-
-TNothing = r_type.nativeType descriptors.DNothing,
+TNothing = r_type.nativeType transform.DNothing,
   create: ->
     if @singleton? then return @singleton
     @singleton = new object.WObject(TNothing)

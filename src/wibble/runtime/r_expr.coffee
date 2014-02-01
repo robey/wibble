@@ -1,10 +1,9 @@
 util = require 'util'
-descriptors = require '../transform/descriptors'
-d_expr = require '../dump/d_expr'
+dump = require '../dump'
+transform = require '../transform'
 object = require './object'
 r_scope = require './r_scope'
 r_type = require './r_type'
-t_type = require '../transform/t_type'
 types = require './types'
 
 error = (message, state) ->
@@ -13,7 +12,7 @@ error = (message, state) ->
   throw e
 
 evalExpr = (expr, locals, logger) ->
-  logger?("#{d_expr.dumpExpr(expr)}")
+  logger?("#{dump.dumpExpr(expr)}")
   if expr.nothing? then return types.TNothing.create()
   if expr.boolean? then
 #    { boolean: true/false }
@@ -67,7 +66,7 @@ evalCall = (target, message, state, logger) ->
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
-  m = if handler.guard instanceof t_type.TypeDescriptor
+  m = if handler.guard instanceof transform.TypeDescriptor
     new types.TStruct(handler.guard).coerce(message)
   else
     message
@@ -86,7 +85,7 @@ evalNew = (expr, locals, logger) ->
       guard = if x.on.symbol?
         types.TSymbol.create(x.on.symbol)
       else
-        descriptor = t_type.findType(x.on, descriptors.typemap)
+        descriptor = transform.findType(x.on, descriptors.typemap)
         # this is a little sus.
         for f in descriptor.fields when f.value?
           f.value = evalExpr(f.value, state, logger)

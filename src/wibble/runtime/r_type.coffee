@@ -1,9 +1,8 @@
 util = require 'util'
-descriptors = require '../transform/descriptors'
-t_type = require '../transform/t_type'
+transform = require '../transform'
 object = require './object'
 
-# a runtime type, which points to a compile-time (t_type) descriptor, but
+# a runtime type, which points to a transform-time TypeDescriptor, but
 # also contains actual handlers.
 class Type
   constructor: (@descriptor) ->
@@ -30,7 +29,7 @@ class Type
       # avoid dependency loops:
       types = require './types'
       guard = types.TSymbol.create(guard)
-    if guard instanceof t_type.TypeDescriptor
+    if guard instanceof transform.TypeDescriptor
       @typeHandlers.push { guard, expr }
     else
       @valueHandlers.push { guard, expr }
@@ -44,8 +43,8 @@ class Type
 
   # helper for native implementations
   nativeMethod: (name, nativeFunction) ->
-    methodType = @descriptor.handlerTypeForMessage(descriptors.DSymbol, name)
-    if not (methodType instanceof t_type.FunctionType) then throw new Error("Native method must be function")
+    methodType = @descriptor.handlerTypeForMessage(transform.DSymbol, name)
+    if not (methodType instanceof transform.FunctionType) then throw new Error("Native method must be function")
     # create a native function (arg -> expr)
     type = new Type(methodType)
     type.on methodType.argType, (target, message) -> nativeFunction(target.native.self, message)

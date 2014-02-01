@@ -1,5 +1,5 @@
 util = require 'util'
-d_expr = require '../dump/d_expr'
+dump = require '../dump'
 parser = require '../parser'
 t_common = require './t_common'
 
@@ -7,6 +7,7 @@ error = t_common.error
 
 #
 # type descriptors used during the transform/compile phase, for type checking.
+# the runtime also uses these as the primary reference for a runtime type.
 #
 
 # valueHandlers: { guard: string, type: TypeDescriptor }
@@ -97,7 +98,7 @@ class CompoundType extends TypeDescriptor
     true
 
   toRepr: (precedence = true) ->
-    fields = @fields.map (f) -> f.name + ": " + f.type.toRepr(true) + (if f.value? then " = " + d_expr.dumpExpr(f.value) else "")
+    fields = @fields.map (f) -> f.name + ": " + f.type.toRepr(true) + (if f.value? then " = " + dump.dumpExpr(f.value) else "")
     "(" + fields.join(", ") + ")"
 
 

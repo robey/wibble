@@ -2,10 +2,9 @@ util = require 'util'
 bigint = require 'big-integer'
 object = require '../object'
 r_type = require '../r_type'
-descriptors = require '../../transform/descriptors'
+transform = require '../../transform'
 
-
-TInt = r_type.nativeType descriptors.DInt,
+TInt = r_type.nativeType transform.DInt,
   create: (value, base = 10) ->
     obj = new object.WObject(TInt)
     # FIXME i don't think big-integer supports bases.

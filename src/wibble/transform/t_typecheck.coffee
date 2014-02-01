@@ -1,7 +1,6 @@
 util = require 'util'
+dump = require '../dump'
 descriptors = require './descriptors'
-d_expr = require '../dump/d_expr'
-d_type = require '../dump/d_type'
 t_common = require './t_common'
 t_scope = require './t_scope'
 t_type = require './t_type'
@@ -34,7 +33,7 @@ class TransformState
 #
 # returns [ type, expr ]
 typecheckExpr = (tstate, expr) ->
-  if tstate.options.logger? then tstate.options.logger "typecheck: #{d_expr.dumpExpr(expr)} -- #{tstate.toDebug()}"
+  if tstate.options.logger? then tstate.options.logger "typecheck: #{dump.dumpExpr(expr)} -- #{tstate.toDebug()}"
 
   # constants
   if expr.nothing? then return [ descriptors.DNothing, expr ]
@@ -116,7 +115,7 @@ typecheckExpr = (tstate, expr) ->
       x
     return [ type, copy(expr, code: code, scope: tstate.scope) ]
 
-  error("Not implemented yet: #{d_expr.dumpExpr(expr)}", expr.state)
+  error("Not implemented yet: #{dump.dumpExpr(expr)}", expr.state)
 
 
 exports.TransformState = TransformState
