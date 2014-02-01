@@ -80,7 +80,14 @@ evalNew = (expr, locals, logger) ->
 
   for x in expr.newObject.code
     if x.on?
-      guard = if x.on.symbol? then types.TSymbol.create(x.on.symbol) else t_type.findType(x.on, descriptors.typemap)
+      guard = if x.on.symbol?
+        types.TSymbol.create(x.on.symbol)
+      else
+        descriptor = t_type.findType(x.on, descriptors.typemap)
+        # this is a little sus.
+        for f in descriptor.fields when f.value?
+          f.value = evalExpr(f.value, state, logger)
+        descriptor
       type.on guard, x.handler
     else
       evalExpr(x, state, logger)
