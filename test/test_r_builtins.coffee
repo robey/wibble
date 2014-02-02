@@ -15,6 +15,17 @@ describe "Runtime builtin types", ->
     if message.length == 0 then return rv
     callNative rv, message...
 
+  describe "Boolean", ->
+    it "repr", ->
+      types.TBoolean.create(true).toRepr().should.eql "true"
+      types.TBoolean.create(false).toRepr().should.eql "false"
+
+    it "equals", ->
+      t = types.TBoolean.create(true)
+      f = types.TBoolean.create(false)
+      types.TBoolean[":equals"](t, t).should.equal true
+      types.TBoolean[":equals"](t, f).should.equal false
+
   describe "Int", ->
     i5 = types.TInt.create("5")
     i23 = types.TInt.create("23")

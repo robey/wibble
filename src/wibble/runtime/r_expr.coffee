@@ -14,8 +14,7 @@ error = (message, state) ->
 evalExpr = (expr, locals, logger) ->
   logger?("#{dump.dumpExpr(expr)}")
   if expr.nothing? then return types.TNothing.create()
-  if expr.boolean? then
-#    { boolean: true/false }
+  if expr.boolean? then return types.TBoolean.create(expr.boolean)
   if expr.number?
     switch expr.number
       when "base2" then return types.TInt.create(expr.value, 2)
