@@ -41,3 +41,4 @@ X = eliminated by transformations
     { compoundType: { name: string, type: type, value: expr }* }
     { functionType: type, argType: type }
     { templateType: string, parameters: type* }
+    { divergenType: type* }

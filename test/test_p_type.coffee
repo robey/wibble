@@ -91,3 +91,27 @@ describe "Parse types", ->
       ]
       pos: [ 0, 57 ]
     )
+
+  it "divergent", ->
+    parse("Int | Symbol").should.eql(
+      divergentType: [
+        { typename: "Int", pos: [ 0, 3 ] }
+        { typename: "Symbol", pos: [ 6, 12 ] }
+      ]
+      pos: [ 0, 12 ]
+    )
+    parse("(Int -> Int) | (Symbol -> Int)").should.eql(
+      divergentType: [
+        {
+          functionType: { typename: "Int", pos: [ 8, 11 ] }
+          argType: { typename: "Int", pos: [ 1, 4 ] }
+          pos: [ 1, 11 ]
+        },
+        {
+          functionType: { typename: "Int", pos: [ 26, 29 ] }
+          argType: { typename: "Symbol", pos: [ 16, 22 ] }
+          pos: [ 16, 29 ]
+        }
+      ]
+      pos: [ 0, 30 ]
+    )

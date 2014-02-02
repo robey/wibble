@@ -65,17 +65,19 @@
 
 ## typedecl
 
-    typedecl := templateType | simpleType | compoundType | functionType
+    typedecl := componentType ("|" componentType)*
 
-    templateType := TYPE_NAME "(" (ws* typedecl ws* ","?)* ")"
+    componentType := templateType | simpleType | compoundType | functionType
+
+    templateType := TYPE_NAME "(" (typedecl ","?)* ")"
 
     simpleType := "@" | TYPE_NAME
 
-    compoundType := "(" (ws* namedType ws* ","?)* ")"
+    compoundType := "(" (namedType ","?)* ")"
 
-    namedType := (SYMBOL_NAME ws* ":" ws*)? typedecl
+    namedType := (SYMBOL_NAME ":")? typedecl
 
-    functionType := typedecl ws* "->" ws* typedecl
+    functionType := typedecl "->" typedecl
 
 ## code
 
