@@ -90,6 +90,21 @@ describe "TypeDescriptor", ->
       s1.canCoerceFrom(s3).should.eql false
       s3.canCoerceFrom(s2).should.eql false
 
+    it "structs with nothing", ->
+      s1 = new t_type.CompoundType([
+        { name: "height", type: descriptors.DInt, value: { number: "base10", value: "0" } }
+        { name: "width", type: descriptors.DInt, value: { number: "base10", value: "0" } }
+      ])
+      s1.canCoerceFrom(descriptors.DNothing).should.eql true
+
+    it "structs with single values", ->
+      s1 = new t_type.CompoundType([
+        { name: "height", type: descriptors.DInt, value: { number: "base10", value: "0" } }
+        { name: "width", type: descriptors.DInt, value: { number: "base10", value: "0" } }
+      ])
+      s1.canCoerceFrom(descriptors.DInt).should.eql true
+      s1.canCoerceFrom(descriptors.DString).should.eql false
+
   describe "buildType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)
     build = (line, options) -> t_type.buildType(parse(line, options))

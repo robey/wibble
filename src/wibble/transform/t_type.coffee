@@ -72,10 +72,12 @@ class CompoundType extends TypeDescriptor
     true
 
   canCoerceFrom: (other) ->
-    # a zero-element struct is the same as Nothing
-    if @fields.length == 0 and other.equals(new NamedType("Nothing")) then return true
-    # a one-element struct is the same as the type of that element (but do not recurse)
-    if @fields.length == 1 and @fields[0].type.equals(other) then return true
+    # allow zero-arg to be equivalent to an empty struct, and one-arg to be a single-element struct
+    if not (other instanceof CompoundType)
+      if other.equals(new NamedType("Nothing"))
+        other = { fields: [] }
+      else
+        other = { fields: [ name: "?0", type: other ] }
     # check loose equality of compound types
     if @equals(other) then return true
     # check for loose matching:
