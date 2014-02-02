@@ -20,6 +20,10 @@ class UnixTerminal
     @printColor(color, text)
     process.stdout.write("\n")
 
+  printUrl: (url) ->
+    # no special support
+    @print(url)
+
   readline: (color, prompt, contPrompt, handler) ->
     process.stdin.setEncoding('utf8')
     process.stdin.resume()
