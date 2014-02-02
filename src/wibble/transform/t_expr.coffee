@@ -25,7 +25,7 @@ digExpr = (expr, state, transform) ->
   if expr.local? then return copy(expr, value: dig(expr.value))
   if expr.code? then return copy(expr, code: expr.code.map(dig))
   if expr.on?
-    newOn = if expr.on.compoundType? then digType(expr.on) else expr.on
+    newOn = if expr.on.compoundType? then digType(expr.on, state, transform) else expr.on
     return copy(expr, on: newOn, handler: dig(expr.handler))
   expr
 
