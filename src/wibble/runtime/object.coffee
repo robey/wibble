@@ -1,4 +1,5 @@
 util = require 'util'
+dump = require '../dump'
 r_scope = require './r_scope'
 
 # an Object has a type, and state.
@@ -11,13 +12,9 @@ class WObject
 
   toRepr: (locals, logger) ->
     if @type[":repr"]? then return @type[":repr"](@)
-    # symbol = require './symbol'
-    # handler = @type.handlerForMessage(symbol.TSymbol.create(":repr"))
-    # if handler?
-    #   r_expr = require './r_expr'
-    #   rv = r_expr.evalCall(@, ":repr", locals, logger)
-    #   if not (typeof rv == "string") then rv = rv.toRepr()
-    #   rv
+    # hack to make a pretty display for simple functions
+    if @type.originalAst? then return dump.dumpExpr(@type.originalAst)
+    # FIXME let objects override ":repr" or something
     fields = @scope.keys().map (k) -> "#{k} = #{@scope.get(k).toRepr()}"
     "#{@type.toRepr()}(#{fields.join ', '})"
 

@@ -5,7 +5,7 @@ object = require './object'
 # a runtime type, which points to a transform-time TypeDescriptor, but
 # also contains actual handlers.
 class Type
-  constructor: (@descriptor) ->
+  constructor: (@descriptor, @originalAst = null) ->
     @valueHandlers = []
     @typeHandlers = []
 

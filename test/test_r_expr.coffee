@@ -35,5 +35,21 @@ describe "Runtime evalExpr", ->
     stringify(evalExpr("4 + 2 * 10")).should.eql "[Int] 24"
     stringify(evalExpr("101 % 5")).should.eql "[Int] 1"
 
-  it "scope creep", ->
-    stringify(evalExpr("{ val x = 10; { val x = 3; x * 2 } + x }")).should.eql "[Int] 16"
+  describe "scopes", ->
+    it "resolve references", ->
+      stringify(evalExpr("{ val a = 900; a }")).should.eql "[Int] 900"
+
+    it "don't creep into each other", ->
+      stringify(evalExpr("{ val x = 10; { val x = 3; x * 2 } + x }")).should.eql "[Int] 16"
+
+  it "builds a function", ->
+    stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
+
+  it "manages state per function call", ->
+    scope = new transform.Scope()
+    globals = new r_scope.Scope()
+    stringify(evalExpr("val square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
+    stringify(evalExpr("val x = 100", scope: scope, globals: globals)).should.eql "[Int] 100"
+    stringify(evalExpr("square 4", scope: scope, globals: globals)).should.eql "[Int] 16"
+    stringify(evalExpr("square 20", scope: scope, globals: globals)).should.eql "[Int] 400"
+    stringify(evalExpr("x", scope: scope, globals: globals)).should.eql "[Int] 100"

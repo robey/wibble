@@ -76,7 +76,7 @@ evalCall = (target, message, state, logger) ->
   return evalExpr(handler.expr, scope, logger)
 
 evalNew = (expr, locals, logger) ->
-  type = new r_type.Type(expr.type)
+  type = new r_type.Type(expr.type, expr.newObject)
   state = new r_scope.Scope(locals)
   obj = new object.WObject(type, state)
 
@@ -85,7 +85,7 @@ evalNew = (expr, locals, logger) ->
       guard = if x.on.symbol?
         types.TSymbol.create(x.on.symbol)
       else
-        descriptor = transform.findType(x.on, descriptors.typemap)
+        descriptor = transform.findType(x.on, transform.typemap)
         # this is a little sus.
         for f in descriptor.fields when f.value?
           f.value = evalExpr(f.value, state, logger)
