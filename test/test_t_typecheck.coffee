@@ -41,6 +41,12 @@ describe "Typecheck", ->
     typecheck("3 .+").type.toRepr().should.eql "Int -> Int"
     typecheck("(3 .+) 3").type.toRepr().should.eql "Int"
 
+  it "condition", ->
+    typecheck("if true then 3 else 4").type.toRepr().should.eql "Int"
+    typecheck("if true then 3 else true").type.toRepr().should.eql "Int | Boolean"
+    typecheck("if true then 3").type.toRepr().should.eql "Int | Nothing"
+    (-> typecheck("if 3 then 3 else 4")).should.throw /true or false/
+
   describe "new", ->
     it "symbol", ->
       x = typecheck("new { on .foo -> 3 }")

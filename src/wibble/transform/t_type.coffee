@@ -121,6 +121,21 @@ class FunctionType extends TypeDescriptor
 # FIXME template type
 
 
+class DivergentType extends TypeDescriptor
+  constructor: (@options) ->
+    super()
+
+  equals: (other) ->
+    if not (other instanceof DivergentType) then return false
+    if @options.length != other.options.length then return false
+    for i in [0 ... @options.length] then if not (@options[i].equals(other.options[i])) then return false
+    true
+
+  toRepr: (precedence = true) ->
+    rv = @options.map((t) -> t.toRepr(true)).join(" | ")
+    if precedence then rv else "(#{rv})"
+
+
 # convert an AST type into a type descriptor
 buildType = (type) ->
   if type.typename? then return new NamedType(type.typename)
@@ -129,6 +144,9 @@ buildType = (type) ->
     fields = type.compoundType.map (f) -> { name: f.name, type: buildType(f.type), value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(buildType(type.argType), buildType(type.functionType))
+  if type.divergentType?
+    options = type.divergentType.map (t) -> buildType(t)
+    return new DivergentType(options)
   error "Not implemented yet: template type"
 
 findType = (type, typemap) ->
@@ -140,6 +158,9 @@ findType = (type, typemap) ->
     fields = type.compoundType.map (f) -> { name: f.name, type: findType(f.type, typemap), value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(findType(type.argType, typemap), findType(type.functionType, typemap))
+  if type.divergentType?
+    options = type.divergentType.map (t) -> findType(t, typemap)
+    return new DivergentType(options)
   error "Not implemented yet: template type"
 
 # check for repeated fields before it's too late
@@ -173,6 +194,7 @@ addHandlers = (type, typemap, table) ->
 exports.addHandlers = addHandlers
 exports.buildType = buildType
 exports.CompoundType = CompoundType
+exports.DivergentType = DivergentType
 exports.findType = findType
 exports.FunctionType = FunctionType
 exports.NamedType = NamedType

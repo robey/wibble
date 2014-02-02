@@ -77,7 +77,13 @@ typecheckExpr = (tstate, expr) ->
     if tstate.options.logger? then tstate.options.logger "typecheck call:   -> #{type.toRepr()}"
     return [ type, copy(expr, call: call, arg: arg) ]
 
-  # { condition: expr, ifThen: expr, ifElse: expr }
+  if expr.condition?
+    [ ctype, condition ] = typecheckExpr(tstate, expr.condition)
+    if not ctype.equals(descriptors.DBoolean) then error("Conditional expression must be true or false", condition.state)
+    [ ttype, ifThen ] = typecheckExpr(tstate, expr.ifThen)
+    [ etype, ifElse ] = if expr.ifElse? then typecheckExpr(tstate, expr.ifElse) else [ descriptors.DNothing, { nothing: true } ]
+    type = simplify(new t_type.DivergentType([ ttype, etype ]))
+    return [ type, copy(expr, condition: condition, ifThen: ifThen, ifElse: ifElse) ]
 
   if expr.newObject?
     # sniff out the handler list, build a type descriptor for it, and attach it.
@@ -116,6 +122,21 @@ typecheckExpr = (tstate, expr) ->
     return [ type, copy(expr, code: code, scope: tstate.scope) ]
 
   error("Not implemented yet: #{dump.dumpExpr(expr)}", expr.state)
+
+
+simplify = (type) ->
+  if not (type instanceof t_type.DivergentType) then return type
+  new t_type.DivergentType(mergeTypes(type.options))
+
+# for a divergent type, try to merge compatible types together
+mergeTypes = (types) ->
+  return types if types.length == 1
+  for i in [0 ... types.length]
+    for j in [i ... types.length]
+      continue if i == j
+      if types[i].canCoerceFrom(types[j])
+        return mergeTypes [types[i]].concat(for n in [0 ... types.length] when n != i and n != j then types[n])
+  types
 
 
 exports.TransformState = TransformState
