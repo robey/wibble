@@ -53,3 +53,15 @@ describe "Runtime evalExpr", ->
     stringify(evalExpr("square 4", scope: scope, globals: globals)).should.eql "[Int] 16"
     stringify(evalExpr("square 20", scope: scope, globals: globals)).should.eql "[Int] 400"
     stringify(evalExpr("x", scope: scope, globals: globals)).should.eql "[Int] 100"
+
+  it "handles record parameters", ->
+    scope = new transform.Scope()
+    globals = new r_scope.Scope()
+    stringify(evalExpr("val sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
+      "[(total: Int, without: Int = 1) -> Int] { on (total: Int, without: Int = 1) -> total.- without }"
+    stringify(evalExpr("sub(100, 5)", scope: scope, globals: globals)).should.eql "[Int] 95"
+    stringify(evalExpr("sub(100)", scope: scope, globals: globals)).should.eql "[Int] 99"
+    stringify(evalExpr("sub(without=9, total=20)", scope: scope, globals: globals)).should.eql "[Int] 11"
+
+
+

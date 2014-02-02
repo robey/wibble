@@ -75,8 +75,17 @@ describe "Runtime builtin types", ->
       tEmpty.coerce(types.TNothing.create()).toRepr().should.eql("()")
       tSingleInt.coerce(types.TInt.create("99")).toRepr().should.eql("(n = 99)")
       tPoint.coerce(p1020).toRepr().should.eql("(x = 10, y = 20)")
-      # tPoint.coerce(rp1030).toRepr().should.eql("(x = 10, y = 30)")
-      # tPoint.coerce(rp1030).type.toRepr().should.eql tPoint.toRepr()
+      tPoint.coerce(rp1030).toRepr().should.eql("(x = 10, y = 30)")
+      tPoint.coerce(rp1030).type.toRepr().should.eql tPoint.toRepr()
+
+    it "coerce with defaults", ->
+      dPoint = new t_type.CompoundType([
+        { name: "x", type: descriptors.DInt, value: types.TInt.create("1") }
+        { name: "y", type: descriptors.DInt, value: types.TInt.create("2") }
+      ])
+      tPoint = new types.TStruct(dPoint)
+      tPoint.coerce(types.TNothing.create()).toRepr().should.eql("(x = 1, y = 2)")
+      tPoint.coerce(types.TInt.create(5)).toRepr().should.eql("(x = 5, y = 2)")
 
     it "accessors", ->
       callNative(p1020, "x").toRepr().should.eql "10"
