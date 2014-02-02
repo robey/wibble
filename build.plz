@@ -1,0 +1,14 @@
+fs = require 'fs'
+
+load "coffee"
+load "mocha"
+
+settings.clean = [ "lib" ]
+settings.distclean = [ "node_modules" ]
+
+task "build_date", after: "build", run: ->
+  dateString = new Date().toISOString()
+  dateString = dateString[0...4] + dateString[5...7] + dateString[8...10]
+  fs.writeFileSync("lib/build_date.js", "exports.build_date = \"#{dateString}\";\n")
+
+task "run", run: ->

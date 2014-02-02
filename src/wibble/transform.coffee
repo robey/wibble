@@ -1,125 +1,30 @@
-# basic transformations on the AST
+descriptors = require './transform/descriptors'
+t_expr = require './transform/t_expr'
+t_object = require './transform/t_object'
+t_scope = require './transform/t_scope'
+t_type = require './transform/t_type'
+t_typecheck = require './transform/t_typecheck'
 
-inspect = require("util").inspect
+exports.DAny = descriptors.DAny
+exports.DBoolean = descriptors.DBoolean
+exports.DInt = descriptors.DInt
+exports.DNothing = descriptors.DNothing
+exports.DString = descriptors.DString
+exports.DSymbol = descriptors.DSymbol
+exports.findType = t_type.findType
+exports.FunctionType = t_type.FunctionType
+exports.Scope = t_scope.Scope
+exports.TypeDescriptor = t_type.TypeDescriptor
+exports.typemap = descriptors.typemap
 
-# build a simple string representation of a parsed expression
-dumpExpr = (expr) ->
-  if expr.symbol? then return ":" + expr.symbol
-  if expr.number? then return expr.value
-  if expr.boolean? then return expr.boolean.toString()
-  if expr.unit? then return "()"
-  if expr.struct?
-    fields = for field in expr.struct
-      if field.name?
-        field.name + " = " + dumpExpr(field.expression)
-      else
-        dumpExpr(field.expression)
-    return "(" + fields.join(", ") + ")"
-  if expr.call?
-    return "(" + dumpExpr(expr.call) + " " + dumpExpr(expr.arg) + ")"
-  if expr.unary?
-    return expr.unary + "(" + dumpExpr(expr.right) + ")"
-  if expr.binary?
-    return "(" + dumpExpr(expr.left) + " " + expr.binary + " " + dumpExpr(expr.right) + ")"
-  if expr.condition?
-    return "(if " + dumpExpr(expr.condition) + " then " + dumpExpr(expr.ifThen) +
-      (if (expr.ifElse) then (" else " + dumpExpr(expr.ifElse)) else "")
-  if expr.code?
-    return "{ " + (dumpExpr(e) for e in expr.code).join("; ") + " }"
-  if expr.local?
-    return "val :" + expr.local + " = " + dumpExpr(expr.value)
-  if expr.func?
-    params = for p in expr.params
-      p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-    return "((" + params.join(", ") + ") -> " + dumpExpr(expr.func) + ")"
-  if expr.on?
-    return "on " + dumpExpr(expr.on) + " -> " + dumpExpr(expr.handler)
-  if expr.method?
-    params = for p in expr.params
-      p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-    return "def :" + expr.method + "(" + params.join(", ") + ") -> " + dumpExpr(expr.body) + ")"
-  if expr.proto?
-    params = for p in expr.params
-      p.name + ": " + p.type + (if p.value? then (" = " + dumpExpr(p.value)) else "")
-    codes = for x in expr.body then dumpExpr(x)
-    return "prototype " + expr.proto + "(" + params.join(", ") + ") { " + codes.join("; ") + " }"
-  "???" + inspect(expr)
 
-# traverse an expression, looking for objects where 'match(obj)' returns
-# true. for those, replace the object with whatever is returned by
-# 'transform(obj)'. for the rest, leave them alone. for all objects, nested
-# expressions are recursively dug.
-dig = (expr, match, transform) ->
-  if match(expr) then expr = transform(expr)
-  # annoying special-case recursions
-  if expr.struct?
-    fields = for field in expr.struct
-      { name: field.name, expression: dig(field.expression, match, transform) }
-    { struct: fields }
-  else if expr.call?
-    { call: dig(expr.call, match, transform), arg: dig(expr.arg, match, transform) }
-  else if expr.unary?
-    right = dig(expr.right, match, transform)
-    { unary: expr.unary, right: right }
-  else if expr.binary?
-    left = dig(expr.left, match, transform)
-    right = dig(expr.right, match, transform)
-    { binary: expr.binary, left: left, right: right }
-  else if expr.condition?
-    cond = dig(expr.condition, match, transform)
-    ifThen = dig(expr.ifThen, match, transform)
-    ifElse = if expr.ifElse? then dig(expr.ifElse, match, transform) else undefined
-    { condition: cond, ifThen: ifThen, ifElse: ifElse }
-  else if expr.code?
-    { code: expr.code.map((x) -> dig(x, match, transform)) }
-  else if expr.local?
-    { local: expr.local, value: dig(expr.value, match, transform) }
-  else if expr.func?
-    params = for p in expr.params
-      v = if p.value? then dig(p.value, match, transform) else undefined
-      { name: p.name, type: p.type, value: v }
-    { params: params, func: dig(expr.func, match, transform) }
-  else if expr.on?
-    { on: dig(expr.on, match, transform), handler: dig(expr.handler, match, transform) }
-  else if expr.method?
-    params = for p in expr.params
-      v = if p.value? then dig(p.value, match, transform) else undefined
-      { name: p.name, type: p.type, value: v }
-    { method: expr.method, params: params, body: dig(expr.body, match, transform) }
-  else if expr.proto?
-    params = for p in expr.params
-      v = if p.value? then dig(p.value, match, transform) else undefined
-      { name: p.name, type: p.type, value: v }
-    { proto: expr.proto, params: params, body: dig(expr.body, match, transform) }
-  else
-    expr
-
-# turn all binary/unary expressions into calls.
-flattenBinary = (expr) ->
-  dig expr, ((x) -> x.binary? or x.unary?), (x) ->
-    if x.binary?
-      { call: { call: x.left, arg: { symbol: x.binary } }, arg: x.right }
-    else if x.unary?
-      { call: { call: x.right, arg: { symbol: x.unary } }, arg: { unit: true } }
-
-# turn all method definitions into locals.
-desugarMethods = (expr) ->
-  dig expr, ((x) -> x.method?), (x) ->
-    { local: x.method, value: { params: x.params, func: x.body } }
-
-# turn "code" arrays into contexts if they have an "on" handler.
-findContexts = (expr) ->
-  dig expr, ((x) -> x.proto?), (x) ->
-    handlers = (item for item in x.body when item.on?)
-    code = (item for item in x.body when not item.on?)
-    { proto: x.proto, params: x.params, code: code, handlers: handlers }
-
-transform = (expr) ->
-  expr = flattenBinary(expr)
-  expr = desugarMethods(expr)
+exports.transformExpr = (expr) ->
+  expr = t_expr.flattenInfix(expr)
+  expr = t_object.checkHandlers(expr)
+  expr = t_object.crushFunctions(expr)
   expr
 
-exports.flattenBinary = flattenBinary
-exports.transform = transform
-exports.dumpExpr = dumpExpr
-
+exports.typecheck = (scope, expr, options = {}) ->
+  tstate = new t_typecheck.TransformState(scope, null, null, options)
+  [ type, expr ] = t_typecheck.typecheckExpr(tstate, expr)
+  [ expr, type ]

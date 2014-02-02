@@ -1,15 +1,16 @@
 
-parser = require("./wibble/parser.coffee")
+parser = require './wibble/parser'
 exports.parser = parser
 
-runtime_base = require("./wibble/runtime_base.coffee")
-exports.Scope = runtime_base.Scope
+dump = require './wibble/dump'
+exports.dumpExpr = dump.dumpExpr
+exports.dumpType = dump.dumpType
 
-runtime = require("./wibble/runtime.coffee")
-exports.Context = runtime.Context
-exports.Runtime = runtime.Runtime
-exports.WInt = runtime.WInt
+transform = require './wibble/transform'
+exports.transform = transform
 
-transform = require("./wibble/transform.coffee")
-exports.transform = transform.transform
-exports.dumpExpr = transform.dumpExpr
+runtime = require './wibble/runtime'
+exports.runtime = runtime
+
+repl = require './repl'
+exports.repl = repl

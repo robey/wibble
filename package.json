@@ -1,26 +1,26 @@
 {
   "name": "wibble",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "description": "wibble",
   "keywords": [ ],
   "author": "Robey Pointer <robeypointer@gmail.com>",
   "scripts": {
-    "test": "cake test"
+    "test": "./node_modules/.bin/plz -v test"
   },
   "dependencies": {
+    "antsy": "*",
+    "big-integer": "*",
     "coffee-script": "*",
     "packrattle": "*"
   },
   "devDependencies": {
-    "fibers": "*",
-    "glob": "*",
     "mocha": "*",
-    "should": "*",
-    "sync": "*"
+    "plz": "*",
+    "should": "*"
   },
   "main": "./lib/wibble",
   "files": [
-    "Cakefile",
+    "build.plz",
     "lib",
     "test"
   ]
