@@ -13,6 +13,7 @@ exports.DString = descriptors.DString
 exports.DSymbol = descriptors.DSymbol
 exports.findType = t_type.findType
 exports.FunctionType = t_type.FunctionType
+exports.NamedType = t_type.NamedType
 exports.Scope = t_scope.Scope
 exports.TypeDescriptor = t_type.TypeDescriptor
 exports.typemap = descriptors.typemap

@@ -4,18 +4,17 @@ util = require 'util'
 wibble = "../lib/wibble"
 parser = require "#{wibble}/parser"
 d_expr = require "#{wibble}/dump/d_expr"
-t_scope = require "#{wibble}/transform/t_scope"
-t_type = require "#{wibble}/transform/t_type"
-t_typecheck = require "#{wibble}/transform/t_typecheck"
+transform = require "#{wibble}/transform"
 test_util = require './test_util'
 
 describe "Typecheck", ->
   parse = (line, options) -> parser.code.run(line, options)
 
   typecheck = (line, options = {}) ->
-    scope = options.scope or new t_scope.Scope()
-    tstate = new t_typecheck.TransformState(scope, null, null, options)
-    [ type, expr ] = t_typecheck.typecheckExpr(tstate, parse(line, options))
+    scope = options.scope or new transform.Scope()
+    expr = parse(line, options)
+    expr = transform.transformExpr(expr)
+    [ expr, type ] = transform.typecheck(scope, expr, options)
     { type, expr, scope }
 
   it "constants", ->
@@ -33,8 +32,8 @@ describe "Typecheck", ->
     (-> typecheck("(a = 1, b = 2, a = 1)")).should.throw /repeated/
 
   it "references", ->
-    scope = new t_scope.Scope()
-    scope.add("point", new t_type.NamedType("Point"), null)
+    scope = new transform.Scope()
+    scope.add("point", new transform.NamedType("Point"), null)
     typecheck("point", scope: scope).type.toRepr().should.eql "Point"
 
   it "calls", ->
