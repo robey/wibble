@@ -40,11 +40,11 @@ componentType = pr.alt(nestedType, templateType, simpleType, compoundType, funct
 divergentTypes = pr.repeat([ linespace, pr("|").commit().drop(), linespace, componentType ]).onMatch (m) ->
   m.map (item) -> item[0]
 
-divergentType = pr([ componentType, divergentTypes ]).onMatch (m, state) ->
+disjointType = pr([ componentType, divergentTypes ]).onMatch (m, state) ->
   if m[1].length == 0 then return m[0]
-  { divergentType: [ m[0] ].concat(m[1]), state }
+  { disjointType: [ m[0] ].concat(m[1]), state }
 
-typedecl = divergentType.onFail("Expected type")
+typedecl = disjointType.onFail("Expected type")
 
 
 exports.compoundType = compoundType

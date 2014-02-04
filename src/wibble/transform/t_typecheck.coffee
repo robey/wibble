@@ -127,17 +127,17 @@ typecheckExpr = (tstate, expr) ->
 branch = (types) ->
   options = []
   for t in types
-    if t instanceof t_type.DivergentType
+    if t instanceof t_type.DisjointType
       options = options.concat(t.options)
     else
       options.push t
-  new t_type.DivergentType(mergeTypes(options))
+  new t_type.DisjointType(mergeTypes(options))
 
 simplify = (type) ->
-  if not (type instanceof t_type.DivergentType) then return type
-  new t_type.DivergentType(mergeTypes(type.options))
+  if not (type instanceof t_type.DisjointType) then return type
+  new t_type.DisjointType(mergeTypes(type.options))
 
-# for a divergent type, try to merge compatible types together
+# for a disjoint type, try to merge compatible types together
 mergeTypes = (types) ->
   return types if types.length == 1
   for i in [0 ... types.length]

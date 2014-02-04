@@ -20,8 +20,8 @@ dumpType = (t) ->
     return dumpType(t.argType) + " -> " + dumpType(t.functionType)
   if t.templateType?
     return t.templateType + "(" + t.parameters.map(dumpType).join(", ") + ")"
-  if t.divergentType?
-    types = t.divergentType.map (x) -> if x.functionType? then "(" + dumpType(x) + ")" else dumpType(x)
+  if t.disjointType?
+    types = t.disjointType.map (x) -> if x.functionType? then "(" + dumpType(x) + ")" else dumpType(x)
     return types.join(" | ")
   return "???(#{util.inspect(t)})"
 

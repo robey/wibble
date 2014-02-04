@@ -121,7 +121,7 @@ describe "TypeDescriptor", ->
     it "function", ->
       build("Int -> String").toRepr().should.eql "Int -> String"
 
-    it "divergent", ->
+    it "disjoint", ->
       build("String | Symbol").toRepr().should.eql "String | Symbol"
 
   it "findType", ->
@@ -133,4 +133,4 @@ describe "TypeDescriptor", ->
       { name: "x", type: descriptors.DInt, value: undefined }
       { name: "y", type: descriptors.DInt, value: undefined }
     ])
-    find("String | Symbol").should.eql new t_type.DivergentType([ descriptors.DString, descriptors.DSymbol ])
+    find("String | Symbol").should.eql new t_type.DisjointType([ descriptors.DString, descriptors.DSymbol ])
