@@ -82,7 +82,7 @@ typecheckExpr = (tstate, expr) ->
     if not ctype.equals(descriptors.DBoolean) then error("Conditional expression must be true or false", condition.state)
     [ ttype, ifThen ] = typecheckExpr(tstate, expr.ifThen)
     [ etype, ifElse ] = if expr.ifElse? then typecheckExpr(tstate, expr.ifElse) else [ descriptors.DNothing, { nothing: true } ]
-    type = simplify(new t_type.DivergentType([ ttype, etype ]))
+    type = branch([ ttype, etype ])
     return [ type, copy(expr, condition: condition, ifThen: ifThen, ifElse: ifElse) ]
 
   if expr.newObject?
@@ -123,6 +123,15 @@ typecheckExpr = (tstate, expr) ->
 
   error("Not implemented yet: #{dump.dumpExpr(expr)}", expr.state)
 
+
+branch = (types) ->
+  options = []
+  for t in types
+    if t instanceof t_type.DivergentType
+      options = options.concat(t.options)
+    else
+      options.push t
+  new t_type.DivergentType(mergeTypes(options))
 
 simplify = (type) ->
   if not (type instanceof t_type.DivergentType) then return type

@@ -95,4 +95,7 @@ describe "Typecheck", ->
       x.expr.scope.exists("x").should.eql true
       x.expr.code[1].scope.exists("x").should.eql true
 
+  it "merges sub-branches", ->
+    x = typecheck("if true then 0 else if false then 1 else 2")
+    x.type.toRepr().should.eql "Int"
     
