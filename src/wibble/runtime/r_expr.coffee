@@ -39,7 +39,12 @@ evalExpr = (expr, locals, logger) ->
     rv = evalCall(left, right, expr.state, logger)
     logger?("  \u21b3 [#{rv.type.toRepr()}] #{rv.toRepr()}")
     return rv
-  # { condition: expr, ifThen: expr, ifElse: expr }
+  if expr.condition?
+    cond = evalExpr(expr.condition, locals, logger)
+    if cond.equals(types.TBoolean.create(true))
+      return evalExpr(expr.ifThen, locals, logger)
+    else
+      return evalExpr(expr.ifElse, locals, logger)
   if expr.newObject?
     return evalNew(expr, locals, logger)
   if expr.local?

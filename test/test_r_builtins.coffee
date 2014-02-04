@@ -45,6 +45,12 @@ describe "Runtime builtin types", ->
       callNative(i9k, "positive", types.TNothing.create()).toRepr().should.eql "9000"
       callNative(i9k, "negative", types.TNothing.create()).toRepr().should.eql "-9000"
 
+    it "comparisons", ->
+      callNative(i23, "==", i5).toRepr().should.eql "false"
+      callNative(i23, "==", i23).toRepr().should.eql "true"
+      callNative(i23, "!=", i5).toRepr().should.eql "true"
+      callNative(i23, "!=", i23).toRepr().should.eql "false"
+
     it "equals", ->
       i17 = callNative(i23, "-", i5)
       x = callNative(i17, "+", i5)

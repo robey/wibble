@@ -28,6 +28,8 @@ t_type.addHandlers DInt, typemap,
   ".%": "Int -> Int"
   ".positive": "() -> Int"
   ".negative": "() -> Int"
+  ".==": "Int -> Boolean"
+  ".!=": "Int -> Boolean"
   ".:repr": "String"
 
 exports.DAny = DAny

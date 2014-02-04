@@ -1,5 +1,6 @@
 util = require 'util'
 bigint = require 'big-integer'
+boolean = require './boolean'
 object = require '../object'
 r_type = require '../r_type'
 transform = require '../../transform'
@@ -19,6 +20,8 @@ TInt = r_type.nativeType transform.DInt,
     @nativeMethod "%", (target, message) => @create(target.native.value.mod(message.native.value))
     @nativeMethod "positive", (target, message) => target
     @nativeMethod "negative", (target, message) => @create(target.native.value.negate())
+    @nativeMethod "==", (target, message) => boolean.TBoolean.create(target.native.value.equals(message.native.value))
+    @nativeMethod "!=", (target, message) => boolean.TBoolean.create(not target.native.value.equals(message.native.value))
 
   ":repr": (target) -> target.native.value.toString()
 
