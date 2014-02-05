@@ -26,6 +26,7 @@ exports.transformExpr = (expr) ->
   expr
 
 exports.typecheck = (scope, expr, options = {}) ->
-  tstate = new t_typecheck.TransformState(scope, null, null, options)
+  tstate = new t_typecheck.TransformState(scope, null, null, null, options)
+  [ expr, tstate ] = t_typecheck.buildScopes(expr, tstate)
   [ type, expr ] = t_typecheck.typecheckExpr(tstate, expr)
   [ expr, type ]

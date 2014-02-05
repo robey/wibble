@@ -2,6 +2,7 @@ util = require 'util'
 dump = require '../dump'
 descriptors = require './descriptors'
 t_common = require './t_common'
+t_expr = require './t_expr'
 t_scope = require './t_scope'
 t_type = require './t_type'
 
@@ -10,19 +11,60 @@ error = t_common.error
 
 # state passed through type-checker
 class TransformState
-  constructor: (@scope, @handlers = [], @typemap = descriptors.typemap, @options = {}) ->
+  constructor: (@scope, @handlers = [], @typemap = descriptors.typemap, @unresolved = {}, @options = {}) ->
 
   newScope: ->
-    new TransformState(new t_scope.Scope(@scope), @handlers, @typemap, @options)
+    new TransformState(new t_scope.Scope(@scope), @handlers, @typemap, @unresolved, @options)
+
+  enterScope: (scope) ->
+    new TransformState(scope, @handlers, @typemap, @unresolved, @options)
 
   newHandlers: ->
-    new TransformState(@scope, [], @typemap, @options)
+    new TransformState(@scope, [], @typemap, @unresolved, @options)
 
   toDebug: ->
     handlers = @handlers.map (h) ->
       key = if typeof h[0] == "string" then ".#{h[0]}" else h[0].toRepr()
       "#{key} -> #{h[1].toRepr()}"
     "{TransformState: scope=#{@scope.toDebug()}, @handlers=#{handlers}}"
+
+
+_id = 0
+class UnknownType
+  constructor: (@name) ->
+    _id += 1
+    @id = _id
+
+
+# first, walk the entire expression tree. set the type of each new variable
+# to a new "unknown type", and add this type to a set of unknowns.
+buildScopes = (expr, tstate) ->
+  expr = t_expr.digExpr expr, tstate, (expr, tstate) ->
+    if expr.reference?
+      type = tstate.scope.get(expr.reference)
+      if not type? then error("Unknown reference #{tstate.scope.toDebug()} '#{expr.reference}'", expr.state)
+    if expr.local?
+      if tstate.scope.exists(expr.local.name) and not tstate.options.allowOverride
+        error("Redefined local '#{expr.local.name}'", expr.local.state)
+      type = new UnknownType(expr.local.name)
+      tstate.scope.add(expr.local.name, type)
+      tstate.unresolved[type.id] = type
+    if expr.on? and expr.on.compoundType?
+      # open up a new (chained) scope, with references for the parameters
+      tstate = tstate.newScope()
+      for p in expr.on.compoundType
+        tstate.scope.add(p.name, t_type.findType(p.type, tstate.typemap))
+      return [ copy(expr, scope: tstate.scope), tstate ]
+    if expr.code?
+      tstate = tstate.newScope()
+      return [ copy(expr, scope: tstate.scope), tstate ]
+    [ expr, tstate ]
+  [ expr, tstate ]
+
+unresolved = (type) ->
+  e = new Error("Unresolved types inside: #{type.toRepr()}")
+  e.type = type
+  throw e
 
 
 # walk an expression tree, filling in type information.
@@ -34,7 +76,12 @@ class TransformState
 # returns [ type, expr ]
 typecheckExpr = (tstate, expr) ->
   if tstate.options.logger? then tstate.options.logger "typecheck: #{dump.dumpExpr(expr)} -- #{tstate.toDebug()}"
+  [ type, expr ] = typecheckNode(tstate, expr)
+  if type instanceof UnknownType then unresolved(type)
+  [ type, expr ]
 
+
+typecheckNode = (tstate, expr) ->
   # constants
   if expr.nothing? then return [ descriptors.DNothing, expr ]
   if expr.boolean? then return [ descriptors.DBoolean, expr ]
@@ -46,9 +93,8 @@ typecheckExpr = (tstate, expr) ->
   if expr.string? then return [ descriptors.DString, expr ]
 
   if expr.reference?
-    type = tstate.scope.get(expr.reference)
-    if not type? then error("Unknown reference '#{expr.reference}'", expr.state)
-    return [ type, expr ]
+    # already checked that the reference exists.
+    return [ tstate.scope.get(expr.reference), expr ]
 
   # { array: [ expr* ] }
 
@@ -93,33 +139,27 @@ typecheckExpr = (tstate, expr) ->
     return [ type, copy(expr, newObject: newObject, type: type) ]
 
   if expr.local?
-    if tstate.scope.exists(expr.local.name) and not tstate.options.allowOverride
-      error("Redefined local '#{expr.local.name}'", expr.local.state)
     [ type, vexpr ] = typecheckExpr(tstate, expr.value)
     tstate.scope.add(expr.local.name, type)
     return [ type, copy(expr, value: vexpr) ]
 
   if expr.on?
     if expr.on.compoundType?
-      # open up a new (chained) scope, with references for the parameters
-      tstate = tstate.newScope()
-      for p in expr.on.compoundType
-        tstate.scope.add(p.name, t_type.findType(p.type, tstate.typemap))
+      tstate = tstate.enterScope(expr.scope)
       guard = t_type.findType(expr.on, tstate.typemap)
-      newScope = tstate.scope
     else
       guard = expr.on.symbol
     [ htype, hexpr ] = typecheckExpr(tstate, expr.handler)
     tstate.handlers.push [ guard, htype ]
-    return [ descriptors.DNothing, copy(expr, handler: hexpr, scope: newScope) ]
+    return [ descriptors.DNothing, copy(expr, handler: hexpr) ]
 
   if expr.code?
-    tstate = tstate.newScope()
+    tstate = tstate.enterScope(expr.scope)
     type = descriptors.DNothing
     code = expr.code.map (x) ->
       [ type, x ] = typecheckExpr(tstate, x)
       x
-    return [ type, copy(expr, code: code, scope: tstate.scope) ]
+    return [ type, copy(expr, code: code) ]
 
   error("Not implemented yet: #{dump.dumpExpr(expr)}", expr.state)
 
@@ -148,5 +188,6 @@ mergeTypes = (types) ->
   types
 
 
+exports.buildScopes = buildScopes
 exports.TransformState = TransformState
 exports.typecheckExpr = typecheckExpr
