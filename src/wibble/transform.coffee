@@ -21,12 +21,14 @@ exports.typemap = descriptors.typemap
 
 exports.transformExpr = (expr) ->
   expr = t_expr.flattenInfix(expr)
+  expr = t_expr.normalizeIf(expr)
   expr = t_object.checkHandlers(expr)
   expr = t_object.crushFunctions(expr)
   expr
 
 exports.typecheck = (scope, expr, options = {}) ->
-  tstate = new t_typecheck.TransformState(scope, null, null, null, options)
-  [ expr, tstate ] = t_typecheck.buildScopes(expr, tstate)
+  tstate = new t_typecheck.TransformState(scope, options)
+  expr = t_typecheck.buildScopes(expr, tstate)
+  expr = t_typecheck.checkForwardReferences(expr, tstate)
   [ type, expr ] = t_typecheck.typecheckExpr(tstate, expr)
   [ expr, type ]

@@ -68,6 +68,13 @@ describe "Typecheck", ->
       x = typecheck("new { on (x: Int) -> x .+ 2 }")
       x.expr.newObject.code[0].scope.get("x").toRepr().should.eql "Int"
 
+    it "can do forward references from inside the closure", ->
+      x = typecheck("new { on (x: Int) -> { y + 3 }; val y = 10 }")
+      x.type.toRepr().should.eql "(x: Int) -> Int"
+
+    it "can still trap unknown references inside the closure", ->
+      (-> typecheck("new { on (x: Int) -> { y + 3 } }")).should.throw /reference/
+
   it "locals", ->
     x = typecheck("val x = 3")
     x.type.toRepr().should.eql "Int"
@@ -89,6 +96,9 @@ describe "Typecheck", ->
     it "gets unhappy about duped vars", ->
       (-> typecheck("{ val x = 9; val x = 3 }")).should.throw /Redefined/
 
+    it "gets unhappy about forward references", ->
+      (-> typecheck("{ val y = 3 + x; val x = 9 }")).should.throw /reference/
+
     it "allows nested duped vars", ->
       x = typecheck("{ val x = 9; { val x = 3 } }")
       x.expr.scope.exists("x").should.eql true
@@ -97,4 +107,11 @@ describe "Typecheck", ->
   it "merges sub-branches", ->
     x = typecheck("if true then 0 else if false then 1 else 2")
     x.type.toRepr().should.eql "Int"
-    
+
+  it "handles single recursion", ->
+    x = typecheck("{ val sum = (n: Int) -> if n == 0 then 0 else n + sum(n - 1) }", logger: console.log)
+    x.type.toRepr().should.eql "(n: Int) -> Int"
+
+  it "handles double recursion", ->
+    x = typecheck("{ val even = (n: Int) -> if n == 0 then 0 else odd(n - 1); val odd = (n: Int) -> if n == 0 then 0 else even(n - 1) }")
+    x.type.toRepr().should.eql "(n: Int) -> Int"

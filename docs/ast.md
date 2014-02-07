@@ -21,7 +21,7 @@ X = eliminated by transformations
 
     { reference: "" }
     { array: [ expr* ] }
-    { struct: [ { name: string, [type], value: expr }* ], [type] }
+    { struct: [ { name: string?, [type], value: expr }* ], [type] }
     X: { unary: "+"/"-"/"not", right: expr }
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }

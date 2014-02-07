@@ -49,6 +49,14 @@ flattenInfix = (expr) ->
         else expr.unary
       copy(expr, unary: null, call: { call: expr.right, arg: { symbol: op } }, arg: { nothing: true })
 
+normalizeIf = (expr) ->
+  digExpr expr, {}, (expr, state) ->
+    if expr.condition? and not expr.ifElse?
+      return copy(expr, ifElse: { nothing: true })
+    return expr
+
 
 exports.digExpr = digExpr
 exports.flattenInfix = flattenInfix
+exports.normalizeIf = normalizeIf
+
