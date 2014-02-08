@@ -18,7 +18,7 @@ class Scope
 
   toDebug: ->
     keys = Object.keys(@symtab).sort()
-    "{scope: #{keys.join(", ")}}"
+    "{scope: #{keys.join(", ")}" + (if @parent? then " -> #{@parent.toDebug()}" else "") + "}"
 
 
 exports.Scope = Scope
