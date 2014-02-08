@@ -2,6 +2,7 @@ util = require 'util'
 t_common = require './t_common'
 
 copy = t_common.copy
+error = t_common.error
 
 # traverse an expression tree, sending each expression object through the
 # 'transform' function before diving deeper.
@@ -55,8 +56,26 @@ normalizeIf = (expr) ->
       return copy(expr, ifElse: { nothing: true })
     return expr
 
+# turn all positional fields into named fields
+normalizeStruct = (expr) ->
+  digExpr expr, {}, (expr, state) ->
+    if not expr.struct? then return expr
+    fields = []
+    positional = true
+    seen = {}
+    for arg, i in expr.struct
+      if not arg.name
+        if not positional then error("Positional fields can't come after named fields", arg.state)
+        fields.push { name: "?#{i}", value: arg.value }
+      else
+        positional = false
+        if seen[arg.name] then error("Field name #{arg.name} is repeated", arg.state)
+        seen[arg.name] = true
+        fields.push { name: arg.name, value: arg.value }
+    return copy(expr, struct: fields)
+
 
 exports.digExpr = digExpr
 exports.flattenInfix = flattenInfix
 exports.normalizeIf = normalizeIf
-
+exports.normalizeStruct = normalizeStruct
