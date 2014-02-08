@@ -5,49 +5,10 @@ t_common = require './t_common'
 t_expr = require './t_expr'
 t_scope = require './t_scope'
 t_type = require './t_type'
+t_typestate = require './t_typestate'
 
 copy = t_common.copy
 error = t_common.error
-
-# state passed through type-checker
-class TransformState
-  constructor: (@scope, @options = {}) ->
-    @handlers = []
-    @typemap = descriptors.typemap
-    @checkReferences = true
-    @currentLocal = null
-
-  copy: ->
-    rv = new TransformState(@scope, @options)
-    rv.handlers = @handlers
-    rv.typemap = @typemap
-    rv.checkReferences = @checkReferences
-    rv.currentLocal = @currentLocal
-    rv
-
-  newScope: ->
-    @enterScope new t_scope.Scope(@scope)
-
-  enterScope: (scope) ->
-    rv = @copy()
-    rv.scope = scope
-    rv
-
-  newHandlers: ->
-    rv = @copy()
-    rv.handlers = []
-    rv
-
-  stopCheckingReferences: ->
-    rv = @copy()
-    rv.checkReferences = false
-    rv
-
-  toDebug: ->
-    handlers = @handlers.map (h) ->
-      key = if typeof h[0] == "string" then ".#{h[0]}" else h[0].toRepr()
-      "#{key} -> #{h[1].toRepr()}"
-    "{TransformState: scope=#{@scope.toDebug()}, @handlers=#{handlers}}"
 
 
 _id = 0
