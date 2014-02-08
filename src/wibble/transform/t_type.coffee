@@ -15,6 +15,8 @@ error = t_common.error
 class TypeDescriptor
   constructor: (@valueHandlers = [], @typeHandlers = []) ->
 
+  isDefined: -> true
+
   equals: (other) -> false
 
   canCoerceFrom: (other) -> @equals(other)
@@ -44,6 +46,10 @@ class TypeDescriptor
   addValueHandler: (value, htype) -> @valueHandlers.push { guard: value, type: htype }
 
   addTypeHandler: (type, htype) -> @typeHandlers.push { guard: type, type: htype }
+
+  fillInType: (id, type) ->
+    for h in @valueHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
+    for h in @typeHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
 
 
 class NamedType extends TypeDescriptor
