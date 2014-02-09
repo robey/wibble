@@ -150,7 +150,7 @@ sniffType = (expr, tstate) ->
   # { array: [ expr* ] }
 
   if expr.struct?
-    fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value), value: f.value }
+    fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value, tstate), value: f.value }
     return new t_type.CompoundType(fields)
 
   if expr.call?
