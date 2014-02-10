@@ -178,3 +178,11 @@ describe "Parse code", ->
         ]
         pos: [ 0, 18 ]
       )
+
+    it "comments", ->
+      parse("{  # code\n# 3\n  true\n}").should.eql(
+        code: [
+          { boolean: true, pos: [ 16, 20 ] }
+        ]
+        pos: [ 0, 22 ]
+      )
