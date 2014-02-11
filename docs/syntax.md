@@ -25,7 +25,7 @@
 
     expression := condition | logical
 
-    condition := "if" ws* expression ws* "then" ws* expression (ws* "else" ws* expression)?
+    condition := "if" expression "then" expression ("else" expression)?
 
     logical := comparison (("and" | "or") comparison)*
 
@@ -47,21 +47,17 @@
 
     reference := SYMBOL_NAME
     
-    array := "[" (ws* expression ws* ","?)* ws* "]"
+    array := "[" (expression ","?)* "]"
 
-    struct := "(" (ws* structMember ws* ","?)* ws* ")"
+    struct := "(" (structMember ","?)* ")"
 
-    structMember := (SYMBOL_NAME ws* "=" ws*)? expression
+    structMember := (SYMBOL_NAME "=")? expression
 
-    function := parameterList? ws* "->" ws* expression
+    function := compoundType? "->" expression
 
-    parameterList := "(" (ws* parameter ws* ","?)* ")"
+    codeBlock := "{" (code ";"?)* "}"
 
-    parameter := SYMBOL_NAME (ws? ":" ws* typedecl)? (ws* "=" ws* expression)?
-
-    codeBlock := "{" (ws* code ws* ";"?)* "}"
-
-    new := "new" ws* codeBlock
+    new := "new" codeBlock
 
 ## typedecl
 
@@ -75,7 +71,7 @@
 
     compoundType := "(" (namedType ","?)* ")"
 
-    namedType := (SYMBOL_NAME ":")? typedecl
+    namedType := SYMBOL_NAME (":" typedecl)? ("=" expression)?
 
     functionType := typedecl "->" typedecl
 
@@ -83,9 +79,9 @@
 
     code := localVal | handler | expression
 
-    localVal := "val" ws* SYMBOL_NAME ws* "=" ws* expression
+    localVal := "val" SYMBOL_NAME "=" expression
 
-    handler := "on" ws* (symbol | parameterList) ws* "->" ws* expression
+    handler := "on" (symbol | parameterList) "->" expression
 
 
 
