@@ -15,7 +15,10 @@ error = t_common.error
 class TypeDescriptor
   constructor: (@valueHandlers = [], @typeHandlers = []) ->
 
-  isDefined: -> true
+  isDefined: ->
+    for v in @valueHandlers then if not v.type.isDefined() then return false
+    for v in @typeHandlers then if not v.type.isDefined() then return false
+    true
 
   equals: (other) -> false
 
@@ -56,6 +59,8 @@ class NamedType extends TypeDescriptor
   constructor: (@name) ->
     super()
 
+  isDefined: -> true
+
   equals: (other) ->
     (other instanceof NamedType) and @name == other.name
 
@@ -68,6 +73,10 @@ class CompoundType extends TypeDescriptor
     super()
     # field accessors
     for f in @fields then @addValueHandler f.name, f.type
+
+  isDefined: ->
+    for f in @fields then if not f.type.isDefined() then return false
+    true
 
   equals: (other) ->
     if not (other instanceof CompoundType) then return false
@@ -115,6 +124,9 @@ class FunctionType extends TypeDescriptor
     super()
     @addTypeHandler @argType, @functionType
 
+  isDefined: ->
+    @argType.isDefined() and @functionType.isDefined()
+
   equals: (other) ->
     if not (other instanceof FunctionType) then return false
     other.argType.equals(@argType) and other.functionType.equals(@functionType)
@@ -130,6 +142,10 @@ class FunctionType extends TypeDescriptor
 class DisjointType extends TypeDescriptor
   constructor: (@options) ->
     super()
+
+  isDefined: ->
+    for t in @options then if not t.isDefined() then return false
+    true
 
   equals: (other) ->
     if not (other instanceof DisjointType) then return false
