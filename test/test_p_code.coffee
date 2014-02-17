@@ -17,6 +17,7 @@ describe "Parse code", ->
     it "empty", ->
       parse("-> ()").should.eql(
         parameters: { compoundType: [] },
+        type: undefined
         functionx: { nothing: true, pos: [ 3, 5 ] }
         pos: [ 0, 2 ]
       )
@@ -28,12 +29,29 @@ describe "Parse code", ->
             { name: "x", type: { typename: "Int", pos: [ 4, 7 ] }, value: undefined, pos: [ 1, 2 ] }
           ]
           pos: [ 0, 8 ]
+        type: undefined
         functionx:
           binary: "*"
           left: { reference: "x", pos: [ 12, 13 ] }
           right: { number: "base10", value: "2", pos: [ 16, 17 ] }
           pos: [ 12, 17 ]
         pos: [ 9, 11 ]
+      )
+
+    it "with type", ->
+      parse("(x: Int): Int -> x").should.eql(
+        parameters:
+          compoundType: [
+            { name: "x", type: { typename: "Int", pos: [ 4, 7 ] }, value: undefined, pos: [ 1, 2 ] }
+          ]
+          pos: [ 0, 8 ]
+        type:
+          typename: "Int"
+          pos: [ 10, 13 ]
+        functionx:
+          reference: "x"
+          pos: [ 17, 18 ]
+        pos: [ 14, 16 ]
       )
 
     it "complex parameters", ->
@@ -63,6 +81,7 @@ describe "Parse code", ->
             }
           ]
           pos: [ 0, 39 ]
+        type: undefined
         functionx: { boolean: false, pos: [ 43, 48 ] }
         pos: [ 40, 42 ]
       )
@@ -75,6 +94,7 @@ describe "Parse code", ->
             { name: "y", type: { typename: "Int", pos: [ 16, 19 ] }, value: { number: "base10", value: "5", pos: [ 22, 23 ] }, pos: [ 13, 14 ] }
           ]
           pos: [ 0, 24 ]
+        type: undefined
         functionx:
           binary: "+"
           left: { reference: "x", pos: [ 28, 29 ] }
@@ -86,8 +106,10 @@ describe "Parse code", ->
     it "nested", ->
       parse("-> -> 69").should.eql(
         parameters: { compoundType: [] }
+        type: undefined
         functionx:
           parameters: compoundType: []
+          type: undefined
           functionx: { number: "base10", value: "69", pos: [ 6, 8 ] }
           pos: [ 3, 5 ]
         pos: [ 0, 2 ]
@@ -95,13 +117,19 @@ describe "Parse code", ->
 
     it "via expression", ->
       parse = (line, options) -> parseWith(p_expr.expression, line, options)
-      parse("-> 3").should.eql(parameters: { compoundType: [] }, functionx: { number: "base10", value: "3", pos: [ 3, 4 ] }, pos: [ 0, 2 ])
+      parse("-> 3").should.eql(
+        parameters: { compoundType: [] }
+        type: undefined
+        functionx: { number: "base10", value: "3", pos: [ 3, 4 ] }
+        pos: [ 0, 2 ]
+      )
       parse("(x: Int) -> 3").should.eql(
         parameters:
           compoundType: [
             { name: "x", type: { typename: "Int", pos: [ 4, 7 ] }, value: undefined, pos: [ 1, 2 ] }
           ]
           pos: [ 0, 8 ]
+        type: undefined
         functionx: { number: "base10", value: "3", pos: [ 12, 13 ] }
         pos: [ 9, 11 ]
       )

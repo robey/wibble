@@ -109,9 +109,17 @@ describe "Typecheck", ->
     x.type.toRepr().should.eql "Int"
 
   it "handles single recursion", ->
-    x = typecheck("{ val sum = (n: Int) -> if n == 0 then 0 else n + sum(n - 1) }", logger: console.log)
+    (-> typecheck("{ val sum = (n: Int) -> sum(n - 1) }")).should.throw /Recursive/
+    x = typecheck("{ val sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1) }")
     x.type.toRepr().should.eql "(n: Int) -> Int"
 
+  it "checks single recursion", ->
+    typecheck("{ val sum = (n: Int) -> n * 2 }").type.toRepr().should.eql "(n: Int) -> Int"
+    (-> typecheck("{ val sum = (n: Int): Int -> .wut }")).should.throw "Expected type Int; inferred type Symbol"
+
   it "handles double recursion", ->
-    x = typecheck("{ val even = (n: Int) -> if n == 0 then 0 else odd(n - 1); val odd = (n: Int) -> if n == 0 then 0 else even(n - 1) }")
+    even = "if n == 0 then 0 else odd(n - 1)"
+    odd = "if n == 1 then 1 else even(n - 1)"
+    (-> typecheck("{ val even = (n: Int) -> #{even}; val odd = (n: Int) -> #{odd} }")).should.throw /Recursive/
+    x = typecheck("{ val even = (n: Int): Int -> #{even}; val odd = (n: Int): Int -> #{odd} }")
     x.type.toRepr().should.eql "(n: Int) -> Int"

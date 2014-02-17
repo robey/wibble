@@ -48,24 +48,23 @@ buildScopes = (expr, tstate) ->
       # code inside a handler is allowed to make forward references, so stop
       # checking for now. (we'll do another pass for these later.)
       tstate = tstate.stopCheckingReferences()
-      type = new UnknownType("handler")
+      type = if expr.type? then t_type.findType(expr.type, tstate.typemap) else new UnknownType("handler")
       if expr.on.compoundType?
         # open up a new (chained) scope, with references for the parameters
         tstate = tstate.newScope()
         for p in expr.on.compoundType
           tstate.scope.add(p.name, t_type.findType(p.type, tstate.typemap))
         tstate.type.addTypeHandler t_type.findType(expr.on, tstate.typemap), type
-        return [ copy(expr, scope: tstate.scope, unresolved: type), tstate ]
+        return [ copy(expr, scope: tstate.scope, unresolved: type, type: null), tstate ]
       else
         tstate.type.addValueHandler expr.on.symbol, type
-        return [ copy(expr, unresolved: type), tstate ]
+        return [ copy(expr, unresolved: type, type: null), tstate ]
 
     if expr.code?
       tstate = tstate.newScope()
       return [ copy(expr, scope: tstate.scope), tstate ]
 
     [ expr, tstate ]
-
 
 # pass 2:
 # - check forward references for code inside handlers
@@ -81,7 +80,7 @@ checkForwardReferences = (expr, tstate) ->
       type = tstate.scope.get(expr.local.name)
       if not type.isDefined()
         variables[type.id] = { local: expr.local.name, expr: expr.value, type: type, tstate: tstate }
-    if expr.on? and expr.unresolved?
+    if expr.on? and not expr.unresolved?.isDefined()
       type = expr.unresolved
       variables[type.id] = { expr: expr.handler, type: type, tstate: tstate }
 
@@ -99,9 +98,12 @@ checkForwardReferences = (expr, tstate) ->
     unresolved = remainingVariables
     remainingVariables = tryProgress(unresolved, tstate)
   if Object.keys(remainingVariables).length > 0
-#    if w.tstate.options.logger? then w.tstate.options.logger "typecheck: resolve variable #{w.local} (#{w.type.toRepr()})"
     for id, v of remainingVariables
-      error("FIXME: complex types", v.expr.state)
+      # can we fill them in with explicit type markers?
+      t = sniffType(v.expr, v.tstate)
+      if not t.isDefined()
+        error("Recursive definition needs explicit type declaration", v.expr.state)
+      fixType(id, v, t)
 
   # fill in types correctly now
   fillInTypes(expr, tstate, variables)
@@ -111,17 +113,14 @@ checkForwardReferences = (expr, tstate) ->
 tryProgress = (variables, tstate) ->
   if tstate.options.logger?
     tstate.options.logger "Unresolved type variables: (#{Object.keys(variables).length})"
-    for id, v of variables then tstate.options.logger "#{id}: #{util.inspect(Object.keys(v.radicals))} [#{v.type.toRepr()}] #{dump.dumpExpr(v.expr)} -- #{v.tstate.toDebug()}"
+    for id, v of variables
+      tstate.options.logger "#{id}: #{util.inspect(Object.keys(v.radicals))} [#{v.type.toRepr()}] #{dump.dumpExpr(v.expr)} -- #{v.tstate.toDebug()}"
   remainingVariables = {}
   progress = []
   for id, v of variables
     if Object.keys(v.radicals).length == 0
       progress.push id
-      v.type = sniffType(v.expr, v.tstate)
-      if v.local
-        v.tstate.scope.add(v.local, v.type)
-      else
-        v.tstate.type.fillInType(parseInt(id), v.type)
+      fixType(id, v, sniffType(v.expr, v.tstate))
     else
       remainingVariables[id] = v
   if progress.length > 0
@@ -129,6 +128,13 @@ tryProgress = (variables, tstate) ->
     for id, v of remainingVariables
       for p in progress then delete v.radicals[p]
   remainingVariables
+
+fixType = (id, v, type) ->
+  v.type = type
+  if v.local
+    v.tstate.scope.add(v.local, v.type)
+  else
+    v.tstate.type.fillInType(parseInt(id), v.type)
 
 # walk an expression tree, sniffing out the type, depth-first.
 sniffType = (expr, tstate) ->
@@ -156,7 +162,7 @@ sniffType = (expr, tstate) ->
   if expr.call?
     ltype = sniffType(expr.call, tstate)
     rtype = sniffType(expr.arg, tstate)
-    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.toRepr()} << #{rtype.toRepr()}"
+    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.toRepr()} << #{dump.dumpExpr(expr.arg)}: #{rtype.toRepr()}"
     type = ltype.handlerTypeForMessage(rtype, expr.arg)
     if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.toRepr()}"
     return type
@@ -210,6 +216,10 @@ fillInTypes = (expr, tstate, variables) ->
     return copy(expr, value: value)
   if expr.on? and expr.unresolved?
     handler = fillInTypes(expr.handler, tstate, variables)
+    # if the "unresolved" type is defined, it was an explicit type annotation: verify it.
+    if expr.unresolved.isDefined()
+      if not expr.unresolved.canCoerceFrom(handler.type)
+        error("Expected type #{expr.unresolved.toRepr()}; inferred type #{handler.type.toRepr()}")
     return copy(expr, unresolved: null, handler: handler, type: tstate.type)
   if expr.code?
     code = expr.code.map (x) -> fillInTypes(x, tstate, variables)
@@ -226,18 +236,16 @@ walk = (expr, tstate, f) ->
     f(expr, tstate)
     [ expr, tstate ]
 
-branch = (types, selftype) ->
+branch = (types) ->
   options = []
   for t in types
     if t instanceof t_type.DisjointType
       options = options.concat(t.options)
-    else if t != selftype  # x | self = x
+    else
       options.push t
-  new t_type.DisjointType(mergeTypes(options))
-
-simplify = (type) ->
-  if not (type instanceof t_type.DisjointType) then return type
-  new t_type.DisjointType(mergeTypes(type.options))
+  options = mergeTypes(options)
+  if options.length == 1 then return options[0]
+  new t_type.DisjointType(options)
 
 # for a disjoint type, try to merge compatible types together
 mergeTypes = (types) ->
