@@ -20,8 +20,15 @@ whitespace = p_common.whitespace
 # parse code
 #
 
-functionx = pr([ compoundType.optional(compoundType: []), linespace, toState("->"), whitespace, (-> expression) ]).onMatch (m, state) ->
-  { parameters: m[0], functionx: m[2], state: m[1] }
+functionx = pr([
+  compoundType.optional(compoundType: [])
+  linespace
+  pr([ pr(":").drop(), linespace, typedecl, linespace ]).optional([])
+  toState("->")
+  whitespace
+  (-> expression)
+]).onMatch (m, state) ->
+  { parameters: m[0], functionx: m[3], type: m[1][0], state: m[2] }
 
 # preserve location of name
 localName = pr(SYMBOL_NAME).onMatch (m, state) -> { name: m[0], state }

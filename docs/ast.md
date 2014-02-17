@@ -26,7 +26,7 @@ X = eliminated by transformations
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
-    X: { functionx: expr, parameters: compoundType }
+    X: { functionx: expr, parameters: compoundType, type? }
     { newObject: code, [type] }
 
 ## code
