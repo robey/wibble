@@ -19,7 +19,7 @@ class Repl
       unix_terminal = require './unix_terminal'
       @terminal = new unix_terminal.UnixTerminal(env.historyFilename, env.maxHistory)
     @globalScope = new wibble.transform.Scope()
-    @globals = new wibble.runtime.Scope() # FIXME
+    @globals = new wibble.runtime.Namespace()
 
   run: ->
     @terminal.printColor("0c0", "wibble")
@@ -76,8 +76,8 @@ class Repl
             @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
         rv = wibble.runtime.evalExpr(expr, @globals, logger)
-        @terminal.printColor("66f", "#{rv.type.toRepr()}: ")
         @terminal.printColor("99f", rv.toRepr())
+        @terminal.printColor("66f", ": #{rv.type.toRepr()}")
         @terminal.println()
       catch e
         if e.state?
@@ -86,6 +86,7 @@ class Repl
           # internal compiler error
           @terminal.printColor("f00", e.toString() + "\n")
           @terminal.println e.stack
+
       true
 
   parseWibble: (line) ->

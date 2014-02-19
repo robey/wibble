@@ -23,16 +23,16 @@ class Type
       if handler.guard.canCoerceFrom(message.type.descriptor) then return handler
     null
 
-  on: (guard, expr) ->
+  on: (locals, guard, expr) ->
     # shortcut for internal use:
     if typeof guard == "string"
       # avoid dependency loops:
       types = require './types'
       guard = types.TSymbol.create(guard)
     if guard instanceof transform.TypeDescriptor
-      @typeHandlers.push { guard, expr }
+      @typeHandlers.push { locals, guard, expr }
     else
-      @valueHandlers.push { guard, expr }
+      @valueHandlers.push { locals, guard, expr }
 
   # convert an object into this type.
   # this will only be called if @descriptor.canCoerceFrom() was true.
@@ -47,9 +47,9 @@ class Type
     if not (methodType instanceof transform.FunctionType) then throw new Error("Native method must be function")
     # create a native function (arg -> expr)
     type = new Type(methodType)
-    type.on methodType.argType, (target, message) -> nativeFunction(target.native.self, message)
+    type.on null, methodType.argType, (target, message) -> nativeFunction(target.native.self, message)
     # on <symbol> -> <method>
-    @on name, (target, message) ->
+    @on null, name, (target, message) ->
       f = new object.WObject(type)
       f.toRepr = -> "<native>"
       f.equals = (other) -> f is other

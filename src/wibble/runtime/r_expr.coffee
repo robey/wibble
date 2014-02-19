@@ -2,7 +2,7 @@ util = require 'util'
 dump = require '../dump'
 transform = require '../transform'
 object = require './object'
-r_scope = require './r_scope'
+r_namespace = require './r_namespace'
 r_type = require './r_type'
 types = require './types'
 
@@ -12,7 +12,7 @@ error = (message, state) ->
   throw e
 
 evalExpr = (expr, locals, logger) ->
-  logger?("#{dump.dumpExpr(expr)}")
+  logger?("#{dump.dumpExpr(expr)} -in- #{locals.toDebug()}")
   if expr.nothing? then return types.TNothing.create()
   if expr.boolean? then return types.TBoolean.create(expr.boolean)
   if expr.number?
@@ -54,7 +54,7 @@ evalExpr = (expr, locals, logger) ->
   if expr.on?
     error("Orphan 'on' (shouldn't happen)", expr.state)
   if expr.code?
-    newLocals = new r_scope.Scope(locals)
+    newLocals = new r_namespace.Namespace(locals)
     rv = types.TNothing.create()
     for x in expr.code
       rv = evalExpr(x, newLocals, logger)
@@ -74,14 +74,14 @@ evalCall = (target, message, state, logger) ->
     new types.TStruct(handler.guard).coerce(message)
   else
     message
-  scope = new r_scope.Scope()
+  locals = new r_namespace.Namespace(handler.locals)
   if m.type instanceof types.TStruct
-    for k in m.scope.keys() then scope.set(k, m.scope.get(k))
-  return evalExpr(handler.expr, scope, logger)
+    for k in m.state.keys() then locals.set(k, m.state.get(k))
+  return evalExpr(handler.expr, locals, logger)
 
 evalNew = (expr, locals, logger) ->
   type = new r_type.Type(expr.type, expr.newObject)
-  state = new r_scope.Scope(locals)
+  state = new r_namespace.Namespace(locals)
   obj = new object.WObject(type, state)
 
   for x in expr.newObject.code

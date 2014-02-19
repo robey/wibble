@@ -4,13 +4,13 @@ util = require 'util'
 wibble = "../lib/wibble"
 parser = require "#{wibble}/parser"
 r_expr = require "#{wibble}/runtime/r_expr"
-r_scope = require "#{wibble}/runtime/r_scope"
+r_namespace = require "#{wibble}/runtime/r_namespace"
 transform = require "#{wibble}/transform"
 test_util = require './test_util'
 
 evalExpr = (line, options = {}) ->
   scope = options.scope or new transform.Scope()
-  globals = options.globals or new r_scope.Scope()
+  globals = options.globals or new r_namespace.Namespace()
   expr = parser.code.run(line, options)
   expr = transform.transformExpr(expr)
   [ expr, type ] = transform.typecheck(scope, expr, options)
@@ -35,7 +35,7 @@ describe "Runtime evalExpr", ->
     stringify(evalExpr("4 + 2 * 10")).should.eql "[Int] 24"
     stringify(evalExpr("101 % 5")).should.eql "[Int] 1"
 
-  describe "scopes", ->
+  describe "namespaces", ->
     it "resolve references", ->
       stringify(evalExpr("{ val a = 900; a }")).should.eql "[Int] 900"
 
@@ -47,7 +47,7 @@ describe "Runtime evalExpr", ->
 
   it "manages state per function call", ->
     scope = new transform.Scope()
-    globals = new r_scope.Scope()
+    globals = new r_namespace.Namespace()
     stringify(evalExpr("val square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
     stringify(evalExpr("val x = 100", scope: scope, globals: globals)).should.eql "[Int] 100"
     stringify(evalExpr("square 4", scope: scope, globals: globals)).should.eql "[Int] 16"
@@ -56,7 +56,7 @@ describe "Runtime evalExpr", ->
 
   it "handles record parameters", ->
     scope = new transform.Scope()
-    globals = new r_scope.Scope()
+    globals = new r_namespace.Namespace()
     stringify(evalExpr("val sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
       "[(total: Int, without: Int = 1) -> Int] { on (total: Int, without: Int = 1) -> total.- without }"
     stringify(evalExpr("sub(100, 5)", scope: scope, globals: globals)).should.eql "[Int] 95"
