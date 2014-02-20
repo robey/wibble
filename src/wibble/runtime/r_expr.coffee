@@ -94,7 +94,7 @@ evalNew = (expr, locals, logger) ->
         for f in descriptor.fields when f.value?
           f.value = evalExpr(f.value, state, logger)
         descriptor
-      type.on guard, x.handler
+      type.on guard, locals, x.handler
     else
       evalExpr(x, state, logger)
   obj

@@ -8,13 +8,13 @@ class TStruct extends r_type.Type
 
   create: (values) ->
     obj = new object.WObject(@)
-    for k, v of values then obj.scope.set(k, v)
+    for k, v of values then obj.state.set(k, v)
     obj
 
   init: ->
     # accessors
     for field in @descriptor.fields then do (field) =>
-      @on field.name, (target, message) -> target.scope.get(field.name)
+      @on field.name, null, (target, message) -> target.state.get(field.name)
 
   coerce: (other) ->
     nothing = require './nothing'

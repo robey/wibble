@@ -10,7 +10,7 @@ TBoolean = r_type.nativeType transform.DBoolean,
     obj
 
   init: ->
-    @on "not", (target, message) => @create(not target.native.value)
+    @on "not", null, (target, message) => @create(not target.native.value)
 
   ":repr": (target) -> if target.native.value then "true" else "false"
 

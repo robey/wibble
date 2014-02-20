@@ -23,7 +23,7 @@ class Type
       if handler.guard.canCoerceFrom(message.type.descriptor) then return handler
     null
 
-  on: (locals, guard, expr) ->
+  on: (guard, locals, expr) ->
     # shortcut for internal use:
     if typeof guard == "string"
       # avoid dependency loops:
@@ -47,9 +47,9 @@ class Type
     if not (methodType instanceof transform.FunctionType) then throw new Error("Native method must be function")
     # create a native function (arg -> expr)
     type = new Type(methodType)
-    type.on null, methodType.argType, (target, message) -> nativeFunction(target.native.self, message)
+    type.on methodType.argType, null, (target, message) -> nativeFunction(target.native.self, message)
     # on <symbol> -> <method>
-    @on null, name, (target, message) ->
+    @on name, null, (target, message) ->
       f = new object.WObject(type)
       f.toRepr = -> "<native>"
       f.equals = (other) -> f is other
