@@ -22,6 +22,10 @@ TInt = r_type.nativeType transform.DInt,
     @nativeMethod "negative", (target, message) => @create(target.native.value.negate())
     @nativeMethod "==", (target, message) => boolean.TBoolean.create(target.native.value.equals(message.native.value))
     @nativeMethod "!=", (target, message) => boolean.TBoolean.create(not target.native.value.equals(message.native.value))
+    @nativeMethod "<", (target, message) => boolean.TBoolean.create(target.native.value.lesser(message.native.value))
+    @nativeMethod ">", (target, message) => boolean.TBoolean.create(target.native.value.greater(message.native.value))
+    @nativeMethod "<=", (target, message) => boolean.TBoolean.create(target.native.value.lesserOrEquals(message.native.value))
+    @nativeMethod ">=", (target, message) => boolean.TBoolean.create(target.native.value.greaterOrEquals(message.native.value))
 
   ":repr": (target) -> target.native.value.toString()
 
