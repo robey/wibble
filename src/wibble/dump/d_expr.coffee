@@ -53,6 +53,8 @@ dump = (expr) ->
     return [ parenthesize(expr.call, PRECEDENCE.call + 1) + space + arg, PRECEDENCE.call ]
   if expr.binary?
     return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE[expr.binary] ]
+  if expr.logic?
+    return [ parenthesize(expr.left, PRECEDENCE[expr.logic] + 1) + " #{expr.logic} " + parenthesize(expr.right, PRECEDENCE[expr.logic]), PRECEDENCE[expr.logic] ]
   if expr.condition?
     condition = parenthesize(expr.condition, PRECEDENCE.ifThen)
     ifThen = parenthesize(expr.ifThen, PRECEDENCE.ifThen)

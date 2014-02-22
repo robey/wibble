@@ -19,6 +19,7 @@ digExpr = (expr, state, transform) ->
   if expr.unary? then return copy(expr, unary: expr.unary, right: dig(expr.right))
   if expr.call? then return copy(expr, call: dig(expr.call), arg: dig(expr.arg))
   if expr.binary? then return copy(expr, binary: expr.binary, left: dig(expr.left), right: dig(expr.right))
+  if expr.logic? then return copy(expr, logic: expr.logic, left: dig(expr.left), right: dig(expr.right))
   if expr.condition? then return copy(expr, condition: dig(expr.condition), ifThen: dig(expr.ifThen), ifElse: dig(expr.ifElse))
   if expr.functionx? then return copy(expr, functionx: dig(expr.functionx), parameters: digType(expr.parameters, state, transform))
   if expr.newObject? then return copy(expr, newObject: dig(expr.newObject))

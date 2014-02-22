@@ -35,6 +35,12 @@ describe "Runtime evalExpr", ->
     stringify(evalExpr("4 + 2 * 10")).should.eql "[Int] 24"
     stringify(evalExpr("101 % 5")).should.eql "[Int] 1"
 
+  it "logic", ->
+    stringify(evalExpr("true or false")).should.eql "[Boolean] true"
+    stringify(evalExpr("false or true")).should.eql "[Boolean] true"
+    stringify(evalExpr("true and false")).should.eql "[Boolean] false"
+    stringify(evalExpr("true and not false")).should.eql "[Boolean] true"
+
   describe "namespaces", ->
     it "resolve references", ->
       stringify(evalExpr("{ a = 900; a }")).should.eql "[Int] 900"

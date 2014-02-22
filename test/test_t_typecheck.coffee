@@ -40,6 +40,11 @@ describe "Typecheck", ->
     typecheck("3 .+").type.toRepr().should.eql "Int -> Int"
     typecheck("(3 .+) 3").type.toRepr().should.eql "Int"
 
+  it "logic", ->
+    (-> typecheck("3 and true")).should.throw /boolean/
+    (-> typecheck("false or 9")).should.throw /boolean/
+    typecheck("true and true").type.toRepr().should.eql "Boolean"
+
   it "condition", ->
     typecheck("if true then 3 else 4").type.toRepr().should.eql "Int"
     typecheck("if true then 3 else true").type.toRepr().should.eql "Int | Boolean"

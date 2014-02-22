@@ -32,6 +32,12 @@ evalExpr = (expr, locals, logger) ->
     values = {}
     for f in expr.struct then values[f.name] = evalExpr(f.value, locals, logger)
     return new types.TStruct(expr.type).create(values)
+  if expr.logic?
+    left = evalExpr(expr.left, locals, logger)
+    if not (left.type == types.TBoolean) then error("Boolean required", expr.left.state)
+    if expr.logic == "and" and not left.native.value then return left
+    if expr.logic == "or" and left.native.value then return left
+    return evalExpr(expr.right, locals, logger)
   if expr.call?
     left = evalExpr(expr.call, locals, logger)
     right = evalExpr(expr.arg, locals, logger)

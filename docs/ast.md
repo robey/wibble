@@ -25,6 +25,7 @@ X = eliminated by transformations
     X: { unary: "+"/"-"/"not", right: expr }
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
+    { logic: "and"/"or", left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
     X: { functionx: expr, parameters: compoundType, type? }
     { newObject: code, [type] }
@@ -32,7 +33,7 @@ X = eliminated by transformations
 ## code
 
     { local: { name: string }, value: expr }
-    { on: { symbol | compoundType }, handler: expr, [scope] }
+    { on: { symbol | compoundType }, handler: expr, type?, [scope] }
     { code: [ expr* ], [scope] }
 
 ## types

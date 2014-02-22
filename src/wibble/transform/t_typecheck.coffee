@@ -167,6 +167,13 @@ sniffType = (expr, tstate) ->
     if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.toRepr()}"
     return type
 
+  if expr.logic?
+    ltype = sniffType(expr.left, tstate)
+    rtype = sniffType(expr.right, tstate)
+    if not ltype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.left.state)
+    if not rtype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.right.state)
+    return descriptors.DBoolean
+
   if expr.condition?
     ctype = sniffType(expr.condition, tstate)
     if not ctype.equals(descriptors.DBoolean) then error("Conditional expression must be true or false", expr.condition.state)
