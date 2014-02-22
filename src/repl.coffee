@@ -118,7 +118,7 @@ class Repl
     @terminal.println ""
     @terminal.println "Meta-commands:"
     @terminal.println "  /debug [options...]"
-    @terminal.println "      turn on/off various debug logging (parse, compile, eval)"
+    @terminal.println "      turn on/off various debug logging (parse, compile, eval) (or all)"
     @terminal.println "      example: /debug +eval -parse"
     @terminal.println "  /globals"
     @terminal.println "      list names and types of globals"
@@ -131,6 +131,10 @@ class Repl
       when "-compile" then env.debugCompile = false
       when "+eval" then env.debugEval = true
       when "-eval" then env.debugEval = false
+      when "+all"
+        env.debugParse = env.debugCompile = env.debugEval = true
+      when "-all"
+        env.debugParse = env.debugCompile = env.debugEval = false
       else @terminal.println "(Don't understand '#{x}'; ignoring.)"
     @terminal.println [
       if env.debugParse then "+parse" else "-parse"
