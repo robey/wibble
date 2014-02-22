@@ -219,7 +219,7 @@ fillInTypes = (expr, tstate, variables) ->
     # if the "unresolved" type is defined, it was an explicit type annotation: verify it.
     if expr.unresolved.isDefined()
       if not expr.unresolved.canCoerceFrom(handler.type)
-        error("Expected type #{expr.unresolved.toRepr()}; inferred type #{handler.type.toRepr()}")
+        error("Expected type #{expr.unresolved.toRepr()}; inferred type #{handler.type.toRepr()}", expr.state)
     return copy(expr, unresolved: null, handler: handler, type: tstate.type)
   if expr.code?
     code = expr.code.map (x) -> fillInTypes(x, tstate, variables)
