@@ -79,7 +79,7 @@
 
     code := localVal | handler | expression
 
-    localVal := "val" SYMBOL_NAME "=" expression
+    localVal := SYMBOL_NAME "=" expression
 
     handler := "on" (symbol | parameterList) "->" expression
 
