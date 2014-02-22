@@ -20,7 +20,7 @@ describe "Dump expressions", ->
     dump.dumpExpr(parse("(x: (names: List(String), title: String)) -> true")).should.eql("(x: (names: List(String), title: String)) -> true")
 
   it "dump locals", ->
-    dump.dumpExpr(parse("{ val x = 9 + a }")).should.eql("{ val x = 9 + a }")
+    dump.dumpExpr(parse("{ x = 9 + a }")).should.eql("{ x = 9 + a }")
 
   it "dump handlers", ->
     dump.dumpExpr(parse("{ on .start -> true }")).should.eql("{ on .start -> true }")

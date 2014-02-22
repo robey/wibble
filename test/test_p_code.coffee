@@ -147,10 +147,10 @@ describe "Parse code", ->
       )
 
     it "local val", ->
-      parse("val x = 100").should.eql(
-        local: { name: "x", pos: [ 4, 5 ] }
-        value: { number: "base10", value: "100", pos: [ 8, 11 ] }
-        pos: [ 0, 3 ]
+      parse("x = 100").should.eql(
+        local: { name: "x", pos: [ 0, 1 ] }
+        value: { number: "base10", value: "100", pos: [ 4, 7 ] }
+        pos: [ 0, 1 ]
       )
 
     it "handler", ->

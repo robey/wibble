@@ -37,10 +37,10 @@ describe "Runtime evalExpr", ->
 
   describe "namespaces", ->
     it "resolve references", ->
-      stringify(evalExpr("{ val a = 900; a }")).should.eql "[Int] 900"
+      stringify(evalExpr("{ a = 900; a }")).should.eql "[Int] 900"
 
     it "don't creep into each other", ->
-      stringify(evalExpr("{ val x = 10; { val x = 3; x * 2 } + x }")).should.eql "[Int] 16"
+      stringify(evalExpr("{ x = 10; { x = 3; x * 2 } + x }")).should.eql "[Int] 16"
 
   it "builds a function", ->
     stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
@@ -48,8 +48,8 @@ describe "Runtime evalExpr", ->
   it "manages state per function call", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
-    stringify(evalExpr("val square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
-    stringify(evalExpr("val x = 100", scope: scope, globals: globals)).should.eql "[Int] 100"
+    stringify(evalExpr("square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
+    stringify(evalExpr("x = 100", scope: scope, globals: globals)).should.eql "[Int] 100"
     stringify(evalExpr("square 4", scope: scope, globals: globals)).should.eql "[Int] 16"
     stringify(evalExpr("square 20", scope: scope, globals: globals)).should.eql "[Int] 400"
     stringify(evalExpr("x", scope: scope, globals: globals)).should.eql "[Int] 100"
@@ -57,7 +57,7 @@ describe "Runtime evalExpr", ->
   it "handles record parameters", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
-    stringify(evalExpr("val sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
+    stringify(evalExpr("sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
       "[(total: Int, without: Int = 1) -> Int] { on (total: Int, without: Int = 1) -> total.- without }"
     stringify(evalExpr("sub(100, 5)", scope: scope, globals: globals)).should.eql "[Int] 95"
     stringify(evalExpr("sub(100)", scope: scope, globals: globals)).should.eql "[Int] 99"

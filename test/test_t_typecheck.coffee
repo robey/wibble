@@ -53,9 +53,9 @@ describe "Typecheck", ->
       d_expr.dumpExpr(x.expr).should.eql "new [.foo -> Int] { on .foo -> 3 }"
   
     it "nothing", ->
-      x = typecheck("new { val hidden = .ok; on () -> true }")
+      x = typecheck("new { hidden = .ok; on () -> true }")
       x.type.toRepr().should.eql "() -> Boolean"
-      d_expr.dumpExpr(x.expr).should.eql "new () -> Boolean { val hidden = .ok; on () -> true }"
+      d_expr.dumpExpr(x.expr).should.eql "new () -> Boolean { hidden = .ok; on () -> true }"
       # verify that inner locals were type-checked
       x.expr.newObject.scope.get("hidden").toRepr().should.eql "Symbol"
 
@@ -69,14 +69,14 @@ describe "Typecheck", ->
       x.expr.newObject.code[0].scope.get("x").toRepr().should.eql "Int"
 
     it "can do forward references from inside the closure", ->
-      x = typecheck("new { on (x: Int) -> { y + 3 }; val y = 10 }")
+      x = typecheck("new { on (x: Int) -> { y + 3 }; y = 10 }")
       x.type.toRepr().should.eql "(x: Int) -> Int"
 
     it "can still trap unknown references inside the closure", ->
       (-> typecheck("new { on (x: Int) -> { y + 3 } }")).should.throw /reference/
 
   it "locals", ->
-    x = typecheck("val x = 3")
+    x = typecheck("x = 3")
     x.type.toRepr().should.eql "Int"
 
   describe "code", ->
@@ -85,22 +85,22 @@ describe "Typecheck", ->
       x.type.toRepr().should.eql "Nothing"
 
     it "finds a local", ->
-      x = typecheck("{ val x = 9 }")
+      x = typecheck("{ x = 9 }")
       x.expr.scope.get("x").toRepr().should.eql "Int"
 
     it "resolves inner references", ->
-      x = typecheck("{ val x = true; x }")
+      x = typecheck("{ x = true; x }")
       x.type.toRepr().should.eql "Boolean"
       x.expr.scope.get("x").toRepr().should.eql "Boolean"
 
     it "gets unhappy about duped vars", ->
-      (-> typecheck("{ val x = 9; val x = 3 }")).should.throw /Redefined/
+      (-> typecheck("{ x = 9; x = 3 }")).should.throw /Redefined/
 
     it "gets unhappy about forward references", ->
-      (-> typecheck("{ val y = 3 + x; val x = 9 }")).should.throw /reference/
+      (-> typecheck("{ y = 3 + x; x = 9 }")).should.throw /reference/
 
     it "allows nested duped vars", ->
-      x = typecheck("{ val x = 9; { val x = 3 } }")
+      x = typecheck("{ x = 9; { x = 3 } }")
       x.expr.scope.exists("x").should.eql true
       x.expr.code[1].scope.exists("x").should.eql true
 
@@ -109,17 +109,17 @@ describe "Typecheck", ->
     x.type.toRepr().should.eql "Int"
 
   it "handles single recursion", ->
-    (-> typecheck("{ val sum = (n: Int) -> sum(n - 1) }")).should.throw /Recursive/
-    x = typecheck("{ val sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1) }")
+    (-> typecheck("{ sum = (n: Int) -> sum(n - 1) }")).should.throw /Recursive/
+    x = typecheck("{ sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1) }")
     x.type.toRepr().should.eql "(n: Int) -> Int"
 
   it "checks single recursion", ->
-    typecheck("{ val sum = (n: Int) -> n * 2 }").type.toRepr().should.eql "(n: Int) -> Int"
-    (-> typecheck("{ val sum = (n: Int): Int -> .wut }")).should.throw "Expected type Int; inferred type Symbol"
+    typecheck("{ sum = (n: Int) -> n * 2 }").type.toRepr().should.eql "(n: Int) -> Int"
+    (-> typecheck("{ sum = (n: Int): Int -> .wut }")).should.throw "Expected type Int; inferred type Symbol"
 
   it "handles double recursion", ->
     even = "if n == 0 then 0 else odd(n - 1)"
     odd = "if n == 1 then 1 else even(n - 1)"
-    (-> typecheck("{ val even = (n: Int) -> #{even}; val odd = (n: Int) -> #{odd} }")).should.throw /Recursive/
-    x = typecheck("{ val even = (n: Int): Int -> #{even}; val odd = (n: Int): Int -> #{odd} }")
+    (-> typecheck("{ even = (n: Int) -> #{even}; odd = (n: Int) -> #{odd} }")).should.throw /Recursive/
+    x = typecheck("{ even = (n: Int): Int -> #{even}; odd = (n: Int): Int -> #{odd} }")
     x.type.toRepr().should.eql "(n: Int) -> Int"

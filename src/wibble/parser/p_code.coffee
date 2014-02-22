@@ -33,8 +33,8 @@ functionx = pr([
 # preserve location of name
 localName = pr(SYMBOL_NAME).onMatch (m, state) -> { name: m[0], state }
 
-localVal = pr([ toState("val"), linespace, localName, linespace, pr("=").drop(), linespace, (-> expression) ]).onMatch (m, state) ->
-  { local: m[1], value: m[2], state: m[0] }
+localVal = pr([ localName, linespace, pr("=").commit().drop(), linespace, (-> expression) ]).onMatch (m, state) ->
+  { local: m[0], value: m[1], state: m[0].state }
 
 handlerReceiver = pr.alt(symbolRef, compoundType).describe("symbol or parameters")
 

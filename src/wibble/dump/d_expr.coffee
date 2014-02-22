@@ -63,7 +63,7 @@ dump = (expr) ->
   if expr.newObject?
     return [ "new " + (if expr.type? then expr.type.toRepr() + " " else "") + dumpExpr(expr.newObject), PRECEDENCE.code ]
   if expr.local?
-    return [ "val " + expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
+    return [ expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?
     parameters = if expr.on.compoundType? then d_type.dumpType(expr.on) else ".#{expr.on.symbol}"
     return [ "on #{parameters} -> " + dumpExpr(expr.handler), PRECEDENCE.code ]
