@@ -18,14 +18,18 @@ TInt = r_type.nativeType transform.DInt,
     @nativeMethod "*", (target, message) => @create(target.native.value.multiply(message.native.value))
     @nativeMethod "/", (target, message) => @create(target.native.value.divide(message.native.value))
     @nativeMethod "%", (target, message) => @create(target.native.value.mod(message.native.value))
-    @nativeMethod "positive", (target, message) => target
-    @nativeMethod "negative", (target, message) => @create(target.native.value.negate())
+    # these two are sad.
+    @nativeMethod "<<", (target, message) => @create(target.native.value.multiply(bigint("2").pow(message.native.value)))
+    @nativeMethod ">>", (target, message) => @create(target.native.value.divide(bigint("2").pow(message.native.value)))
+    @on "positive", null, (target, message) => target
+    @on "negative", null, (target, message) => @create(target.native.value.negate())
     @nativeMethod "==", (target, message) => boolean.TBoolean.create(target.native.value.equals(message.native.value))
     @nativeMethod "!=", (target, message) => boolean.TBoolean.create(not target.native.value.equals(message.native.value))
     @nativeMethod "<", (target, message) => boolean.TBoolean.create(target.native.value.lesser(message.native.value))
     @nativeMethod ">", (target, message) => boolean.TBoolean.create(target.native.value.greater(message.native.value))
     @nativeMethod "<=", (target, message) => boolean.TBoolean.create(target.native.value.lesserOrEquals(message.native.value))
     @nativeMethod ">=", (target, message) => boolean.TBoolean.create(target.native.value.greaterOrEquals(message.native.value))
+    @nativeMethod "**", (target, message) => @create(target.native.value.pow(message.native.value))
 
   ":repr": (target) -> target.native.value.toString()
 

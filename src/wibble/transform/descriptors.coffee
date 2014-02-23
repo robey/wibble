@@ -20,12 +20,18 @@ typemap[DString.name] = DString
 typemap[DSymbol.name] = DSymbol
 
 # types are often self-referential, so do them after all the names are set.
+
+t_type.addHandlers DBoolean, typemap,
+  ".not": "Boolean"
+
 t_type.addHandlers DInt, typemap,
   ".+": "Int -> Int"
   ".-": "Int -> Int"
   ".*": "Int -> Int"
   "./": "Int -> Int"
   ".%": "Int -> Int"
+  ".<<": "Int -> Int"
+  ".>>": "Int -> Int"
   ".positive": "() -> Int"
   ".negative": "() -> Int"
   ".==": "Int -> Boolean"
@@ -34,6 +40,7 @@ t_type.addHandlers DInt, typemap,
   ".>": "Int -> Boolean"
   ".<=": "Int -> Boolean"
   ".>=": "Int -> Boolean"
+  ".**": "Int -> Int"
   ".:repr": "String"
 
 exports.DAny = DAny

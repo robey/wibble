@@ -43,13 +43,14 @@ flattenInfix = (expr) ->
   digExpr expr, {}, (expr, state) ->
     if not (expr.binary? or expr.unary?) then return expr
     if expr.binary?
+      if expr.binary in [ "and", "or" ] then return copy(expr, binary: null, logic: expr.binary)
       copy(expr, binary: null, call: { call: expr.left, arg: { symbol: expr.binary } }, arg: expr.right)
     else if expr.unary?
       op = switch expr.unary
         when "+" then "positive"
         when "-" then "negative"
         else expr.unary
-      copy(expr, unary: null, call: { call: expr.right, arg: { symbol: op } }, arg: { nothing: true })
+      copy(expr, unary: null, call: expr.right, arg: { symbol: op })
 
 normalizeIf = (expr) ->
   digExpr expr, {}, (expr, state) ->

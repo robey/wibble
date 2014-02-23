@@ -42,8 +42,8 @@ describe "Runtime builtin types", ->
       callNative(i5, "*", i23).toRepr().should.eql "115"
       callNative(i23, "/", i5).toRepr().should.eql "4"
       callNative(i23, "%", i5).toRepr().should.eql "3"
-      callNative(i9k, "positive", types.TNothing.create()).toRepr().should.eql "9000"
-      callNative(i9k, "negative", types.TNothing.create()).toRepr().should.eql "-9000"
+      callNative(i9k, "positive").toRepr().should.eql "9000"
+      callNative(i9k, "negative").toRepr().should.eql "-9000"
 
     it "comparisons", ->
       callNative(i23, "==", i5).toRepr().should.eql "false"
@@ -60,6 +60,15 @@ describe "Runtime builtin types", ->
       callNative(i23, ">=", i5).toRepr().should.eql "true"
       callNative(i23, ">=", i23).toRepr().should.eql "true"
       callNative(i5, ">=", i23).toRepr().should.eql "false"
+
+    it "power", ->
+      i2 = types.TInt.create("2")
+      i3 = types.TInt.create("3")
+      callNative(i2, "**", i3).toRepr().should.eql "8"
+      callNative(i3, "**", i2).toRepr().should.eql "9"
+      callNative(i23, ">>", i3).toRepr().should.eql "2"
+      callNative(i9k, ">>", i5).toRepr().should.eql "281"
+      callNative(i9k, "<<", i5).toRepr().should.eql "288000"
 
     it "equals", ->
       i17 = callNative(i23, "-", i5)
