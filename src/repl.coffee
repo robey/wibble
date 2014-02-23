@@ -46,15 +46,7 @@ class Repl
       try
         expr = @parseWibble(line)
       catch e
-        # if the parse error is at the end, let the human continue typing.
-        if e.state.pos() == line.length then return false
-        # also discount any trailing whitespace
-        try
-          wibble.parser.whitespace.run(line[e.state.pos()...] + "\n")
-          return false
-        catch e2
-          # ignore
-          console.log e2
+        if wibble.parser.couldContinue(line, e.state) then return false
         @displayError(e)
         return true
 
