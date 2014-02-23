@@ -38,6 +38,22 @@ describe "Parse code", ->
         pos: [ 9, 11 ]
       )
 
+    it "with no arg type", ->
+      parse("(x) -> x * 2").should.eql(
+        parameters:
+          compoundType: [
+            { name: "x", type: undefined, value: undefined, pos: [ 1, 2 ] }
+          ]
+          pos: [ 0, 3 ]
+        type: undefined
+        functionx:
+          binary: "*"
+          left: { reference: "x", pos: [ 7, 8 ] }
+          right: { number: "base10", value: "2", pos: [ 11, 12 ] }
+          pos: [ 7, 12 ]
+        pos: [ 4, 6 ]
+      )
+
     it "with type", ->
       parse("(x: Int): Int -> x").should.eql(
         parameters:

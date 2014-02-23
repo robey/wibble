@@ -42,7 +42,7 @@ struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item"
 newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->
   { newObject: m[1], state: m[0] }
 
-atom = pr.alt(constant, reference, arrayExpr, struct, functionx, codeBlock, newObject).describe("atom")
+atom = pr.alt(constant, reference, arrayExpr, functionx, struct, codeBlock, newObject).describe("atom")
 
 unary = pr.alt([ pr(/(\+|-(?!>)|not)/).commit(), whitespace, (-> unary) ], [ atom ]).describe("unary").onMatch (m, state) ->
   if m.length > 1

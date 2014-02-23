@@ -176,8 +176,12 @@ findType = (type, typemap) ->
     if not typemap[type.typename]? then error("Unknown type '#{type.typename}'", type.state)
     return typemap[type.typename]
   if type.compoundType?
+    descriptors = require './descriptors'
     checkCompoundType(type)
-    fields = type.compoundType.map (f) -> { name: f.name, type: findType(f.type, typemap), value: f.value }
+    fields = type.compoundType.map (f) ->
+      # FIXME warning: not type checked
+      type = if f.type? then findType(f.type, typemap) else descriptors.DAny
+      { name: f.name, type, value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(findType(type.argType, typemap), findType(type.functionType, typemap))
   if type.disjointType?

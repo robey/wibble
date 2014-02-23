@@ -124,13 +124,25 @@ describe "TypeDescriptor", ->
     it "disjoint", ->
       build("String | Symbol").toRepr().should.eql "String | Symbol"
 
-  it "findType", ->
+  describe "findType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)
     find = (line, options) -> t_type.findType(parse(line, options), descriptors.typemap)
-    find("Int").should.eql descriptors.DInt
-    find("String -> Int").should.eql new t_type.FunctionType(descriptors.DString, descriptors.DInt)
-    find("(x: Int, y: Int)").should.eql new t_type.CompoundType([
-      { name: "x", type: descriptors.DInt, value: undefined }
-      { name: "y", type: descriptors.DInt, value: undefined }
-    ])
-    find("String | Symbol").should.eql new t_type.DisjointType([ descriptors.DString, descriptors.DSymbol ])
+
+    it "simple", ->
+      find("Int").should.eql descriptors.DInt
+
+    it "compound", ->
+      find("(x: Int, y: Int)").should.eql new t_type.CompoundType([
+        { name: "x", type: descriptors.DInt, value: undefined }
+        { name: "y", type: descriptors.DInt, value: undefined }
+      ])
+
+    it "functions", ->
+      find("String -> Int").should.eql new t_type.FunctionType(descriptors.DString, descriptors.DInt)
+      arg = new t_type.CompoundType([ { name: "s", type: descriptors.DString, value: undefined } ])
+      find("(s: String) -> Int").should.eql new t_type.FunctionType(arg, descriptors.DInt)
+      arg = new t_type.CompoundType([ { name: "s", type: descriptors.DAny, value: undefined } ])
+      find("(s) -> Int").should.eql new t_type.FunctionType(arg, descriptors.DInt)
+
+    it "disjoint", ->
+      find("String | Symbol").should.eql new t_type.DisjointType([ descriptors.DString, descriptors.DSymbol ])

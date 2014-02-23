@@ -53,7 +53,7 @@ buildScopes = (expr, tstate) ->
         # open up a new (chained) scope, with references for the parameters
         tstate = tstate.newScope()
         for p in expr.on.compoundType
-          tstate.scope.add(p.name, t_type.findType(p.type, tstate.typemap))
+          tstate.scope.add(p.name, if p.type? then t_type.findType(p.type, tstate.typemap) else descriptors.DAny)
         tstate.type.addTypeHandler t_type.findType(expr.on, tstate.typemap), type
         return [ copy(expr, scope: tstate.scope, unresolved: type, type: null), tstate ]
       else
@@ -162,7 +162,7 @@ sniffType = (expr, tstate) ->
   if expr.call?
     ltype = sniffType(expr.call, tstate)
     rtype = sniffType(expr.arg, tstate)
-    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.toRepr()} << #{dump.dumpExpr(expr.arg)}: #{rtype.toRepr()}"
+    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.toRepr()} \u2661 #{dump.dumpExpr(expr.arg)}: #{rtype.toRepr()}"
     type = ltype.handlerTypeForMessage(rtype, expr.arg)
     if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.toRepr()}"
     return type

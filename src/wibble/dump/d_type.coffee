@@ -26,7 +26,9 @@ dumpType = (t) ->
   return "???(#{util.inspect(t)})"
 
 dumpNamedType = (t) ->
-  "#{t.name}: #{dumpType(t.type)}" + (if t.value? then " = " + d_expr.dumpExpr(t.value) else "")
+  type = if t.type? then ": " + dumpType(t.type) else ""
+  value = if t.value? then " = " + d_expr.dumpExpr(t.value) else ""
+  t.name + type + value
 
 
 exports.dumpType = dumpType
