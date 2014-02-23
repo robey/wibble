@@ -5,10 +5,21 @@ object = require '../object'
 r_type = require '../r_type'
 transform = require '../../transform'
 
+fromHex = (s) ->
+  rv = bigint("0")
+  for ch in s then rv = rv.multiply(16).add(parseInt(ch, 16))
+  rv
+
+fromBin = (s) ->
+  rv = bigint("0")
+  for ch in s then rv = rv.multiply(2).add(if ch == "1" then 1 else 0)
+  rv
+
 TInt = r_type.nativeType transform.DInt,
   create: (value, base = 10) ->
     obj = new object.WObject(TInt)
-    # FIXME i don't think big-integer supports bases.
+    if base == 16 then value = fromHex(value)
+    if base == 2 then value = fromBin(value)
     obj.native.value = if value instanceof bigint then value else bigint(value, base)
     obj
 
