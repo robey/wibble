@@ -42,11 +42,19 @@ class Repl
       if line[0] == "/" then return @command(line[1...])
       if line == "" then return true
 
+      # parse
       try
         expr = @parseWibble(line)
       catch e
         # if the parse error is at the end, let the human continue typing.
         if e.state.pos() == line.length then return false
+        # also discount any trailing whitespace
+        try
+          wibble.parser.whitespace.run(line[e.state.pos()...] + "\n")
+          return false
+        catch e2
+          # ignore
+          console.log e2
         @displayError(e)
         return true
 
@@ -54,9 +62,14 @@ class Repl
       if env.debugParse
         @terminal.printColor("ff0", "  ; ")
         @terminal.println(wibble.dumpExpr(expr))
+
+      # transform (compile) / typecheck
+      t_logger = (s) =>
+        @terminal.printColor("f80", "  ; ")
+        @terminal.println(s)
       try
         expr = wibble.transform.transformExpr(expr)
-        [ expr, type ] = wibble.transform.typecheck(@globalScope, expr, allowOverride: true)
+        [ expr, type ] = wibble.transform.typecheck(@globalScope, expr, allowOverride: true, logger: t_logger)
       catch e
         if e.state?
           @displayError(e)
@@ -71,6 +84,7 @@ class Repl
         @terminal.printColor("66f", "#{type.toRepr()}: ")
         @terminal.println(wibble.dumpExpr(expr))
 
+      # eval
       try
         logger = (line) =>
           if env.debugEval

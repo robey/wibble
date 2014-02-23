@@ -196,7 +196,6 @@ sniffType = (expr, tstate) ->
   error("Not implemented yet: #{dump.dumpExpr(expr)}", expr.state)
 
 fillInTypes = (expr, tstate, variables) ->
-  if tstate.options.logger? then tstate.options.logger "fillInTypes: #{dump.dumpExpr(expr)}"
   if expr.type? and expr.type.isDefined() then return expr
   if expr.scope? then tstate = tstate.enterScope(expr.scope)
   if expr.newType? then tstate = tstate.enterType(expr.newType)
