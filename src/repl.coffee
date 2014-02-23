@@ -65,8 +65,9 @@ class Repl
 
       # transform (compile) / typecheck
       t_logger = (s) =>
-        @terminal.printColor("f80", "  ; ")
-        @terminal.println(s)
+        if env.debugCompile
+          @terminal.printColor("f80", "  ; ")
+          @terminal.println(s)
       try
         expr = wibble.transform.transformExpr(expr)
         [ expr, type ] = wibble.transform.typecheck(@globalScope, expr, allowOverride: true, logger: t_logger)
