@@ -15,6 +15,11 @@ error = t_common.error
 class TypeDescriptor
   constructor: (@valueHandlers = [], @typeHandlers = []) ->
 
+  isDefined: ->
+    for v in @valueHandlers then if not v.type.isDefined() then return false
+    for v in @typeHandlers then if not v.type.isDefined() then return false
+    true
+
   equals: (other) -> false
 
   canCoerceFrom: (other) -> @equals(other)
@@ -45,10 +50,16 @@ class TypeDescriptor
 
   addTypeHandler: (type, htype) -> @typeHandlers.push { guard: type, type: htype }
 
+  fillInType: (id, type) ->
+    for h in @valueHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
+    for h in @typeHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
+
 
 class NamedType extends TypeDescriptor
   constructor: (@name) ->
     super()
+
+  isDefined: -> true
 
   equals: (other) ->
     (other instanceof NamedType) and @name == other.name
@@ -62,6 +73,10 @@ class CompoundType extends TypeDescriptor
     super()
     # field accessors
     for f in @fields then @addValueHandler f.name, f.type
+
+  isDefined: ->
+    for f in @fields then if not f.type.isDefined() then return false
+    true
 
   equals: (other) ->
     if not (other instanceof CompoundType) then return false
@@ -109,6 +124,9 @@ class FunctionType extends TypeDescriptor
     super()
     @addTypeHandler @argType, @functionType
 
+  isDefined: ->
+    @argType.isDefined() and @functionType.isDefined()
+
   equals: (other) ->
     if not (other instanceof FunctionType) then return false
     other.argType.equals(@argType) and other.functionType.equals(@functionType)
@@ -121,6 +139,25 @@ class FunctionType extends TypeDescriptor
 # FIXME template type
 
 
+class DisjointType extends TypeDescriptor
+  constructor: (@options) ->
+    super()
+
+  isDefined: ->
+    for t in @options then if not t.isDefined() then return false
+    true
+
+  equals: (other) ->
+    if not (other instanceof DisjointType) then return false
+    if @options.length != other.options.length then return false
+    for i in [0 ... @options.length] then if not (@options[i].equals(other.options[i])) then return false
+    true
+
+  toRepr: (precedence = true) ->
+    rv = @options.map((t) -> t.toRepr(true)).join(" | ")
+    if precedence then rv else "(#{rv})"
+
+
 # convert an AST type into a type descriptor
 buildType = (type) ->
   if type.typename? then return new NamedType(type.typename)
@@ -129,6 +166,9 @@ buildType = (type) ->
     fields = type.compoundType.map (f) -> { name: f.name, type: buildType(f.type), value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(buildType(type.argType), buildType(type.functionType))
+  if type.disjointType?
+    options = type.disjointType.map (t) -> buildType(t)
+    return new DisjointType(options)
   error "Not implemented yet: template type"
 
 findType = (type, typemap) ->
@@ -140,6 +180,9 @@ findType = (type, typemap) ->
     fields = type.compoundType.map (f) -> { name: f.name, type: findType(f.type, typemap), value: f.value }
     return new CompoundType(fields)
   if type.functionType? then return new FunctionType(findType(type.argType, typemap), findType(type.functionType, typemap))
+  if type.disjointType?
+    options = type.disjointType.map (t) -> findType(t, typemap)
+    return new DisjointType(options)
   error "Not implemented yet: template type"
 
 # check for repeated fields before it's too late
@@ -173,6 +216,7 @@ addHandlers = (type, typemap, table) ->
 exports.addHandlers = addHandlers
 exports.buildType = buildType
 exports.CompoundType = CompoundType
+exports.DisjointType = DisjointType
 exports.findType = findType
 exports.FunctionType = FunctionType
 exports.NamedType = NamedType

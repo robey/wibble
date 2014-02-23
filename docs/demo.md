@@ -24,16 +24,16 @@ Records are name/value sets (immutable). The order doesn't matter.
 
 ## Assignment
 
-The `val` keyword assigns variables. In the jsrepl, they usually enter the global namespace, which you can view with `/globals`.
+The `=` symbol assigns values to names. In the jsrepl, they usually enter the global namespace, which you can view with `/globals`.
 
-    val x = 1
-    val point = (x=1, y=2)
+    x = 1
+    point = (x=1, y=2)
 
 ## Code blocks
 
 Code blocks are in curly braces. They open a new lexical scope of local variables, but are otherwise treated as a compound expression. The return value of a code block is the return value of the last expression to run. The different expressions inside can be separated by semicolons or linefeeds.
 
-    { val a = 3; a + 4 }
+    { a = 3; a + 4 }
 
 ## Messages
 
@@ -63,22 +63,26 @@ Functions take one object and return another, but either the argument or the ret
 
 Functions are defined by an optional argument description followed by an arrow (`->`) followed by an expression.
 
-    val add = (a: Int, b: Int) -> a + b
+    add = (a: Int, b: Int) -> a + b
     add (3, 4)  # -> 7
 
 When a function argument is a record, the fields may be explicitly named and reordered, or given default values.
 
-    val sub = (total: Int, without: Int = 1) -> total - without
+    sub = (total: Int, without: Int = 1) -> total - without
     sub(100, 5)  # -> 95
     sub(100)  # -> 99
     sub 100   # -> 99
     sub(without=9, total=20)  # -> 11
 
+A recursive function will need to explicitly annotate its return type.
+
+    sum = (n: Int): Int -> if n < 1 then 0 else n + sum(n - 1)
+
 ## Objects
 
 An object is created by `new`. It must have at least one message handler, so it can respond to messages.
 
-    val obj = new { on .get -> 8 }
+    obj = new { on .get -> 8 }
     obj .get  # -> 8
 
 A message handler:
@@ -87,7 +91,7 @@ A message handler:
 
 can respond to a symbol constant, or a declaration that will match a type.
 
-    val addTen = new { on (n: Int) -> n + 10 }
+    addTen = new { on (n: Int) -> n + 10 }
     addTen 3  # -> 13
 
 A function is just syntactic sugar for an object that can only receive one message type.

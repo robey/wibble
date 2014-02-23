@@ -53,6 +53,8 @@ dump = (expr) ->
     return [ parenthesize(expr.call, PRECEDENCE.call + 1) + space + arg, PRECEDENCE.call ]
   if expr.binary?
     return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE[expr.binary] ]
+  if expr.logic?
+    return [ parenthesize(expr.left, PRECEDENCE[expr.logic] + 1) + " #{expr.logic} " + parenthesize(expr.right, PRECEDENCE[expr.logic]), PRECEDENCE[expr.logic] ]
   if expr.condition?
     condition = parenthesize(expr.condition, PRECEDENCE.ifThen)
     ifThen = parenthesize(expr.ifThen, PRECEDENCE.ifThen)
@@ -63,7 +65,7 @@ dump = (expr) ->
   if expr.newObject?
     return [ "new " + (if expr.type? then expr.type.toRepr() + " " else "") + dumpExpr(expr.newObject), PRECEDENCE.code ]
   if expr.local?
-    return [ "val " + expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
+    return [ expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?
     parameters = if expr.on.compoundType? then d_type.dumpType(expr.on) else ".#{expr.on.symbol}"
     return [ "on #{parameters} -> " + dumpExpr(expr.handler), PRECEDENCE.code ]

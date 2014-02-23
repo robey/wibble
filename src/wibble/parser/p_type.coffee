@@ -26,13 +26,25 @@ namedType = pr([
 compoundType = commaSeparatedSurrounded("(", namedType, ")", "Expected named type").onMatch (m, state) ->
   { compoundType: m, state }
 
-functionType = pr([ (-> typedecl), linespace, pr("->").drop(), linespace, (-> typedecl) ]).onMatch (m, state) ->
+functionType = pr([ (-> typedecl), linespace, pr("->").commit().drop(), linespace, (-> typedecl) ]).onMatch (m, state) ->
   { functionType: m[1], argType: m[0], state }
 
 templateType = pr([ TYPE_NAME, pr("(").drop(), commaSeparated(-> typedecl), pr(")").drop() ]).onMatch (m, state) ->
   { templateType: m[0][0], parameters: m[1], state }
 
-typedecl = pr.alt(templateType, simpleType, compoundType, functionType).onFail("Expected type")
+nestedType = pr([ pr("(").drop(), (-> typedecl), pr(")").drop() ]).onMatch (m, state) ->
+  m[0]
+
+componentType = pr.alt(nestedType, templateType, simpleType, compoundType, functionType)
+
+divergentTypes = pr.repeat([ linespace, pr("|").commit().drop(), linespace, componentType ]).onMatch (m) ->
+  m.map (item) -> item[0]
+
+disjointType = pr([ componentType, divergentTypes ]).onMatch (m, state) ->
+  if m[1].length == 0 then return m[0]
+  { disjointType: [ m[0] ].concat(m[1]), state }
+
+typedecl = disjointType.onFail("Expected type")
 
 
 exports.compoundType = compoundType

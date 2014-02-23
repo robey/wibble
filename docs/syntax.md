@@ -25,7 +25,7 @@
 
     expression := condition | logical
 
-    condition := "if" ws* expression ws* "then" ws* expression (ws* "else" ws* expression)?
+    condition := "if" expression "then" expression ("else" expression)?
 
     logical := comparison (("and" | "or") comparison)*
 
@@ -41,49 +41,47 @@
 
     call := unary (ws* atom)*
 
-    unary := ("-" | "not") atom
+    unary := ("+" | "-" | "not") atom
 
     atom := constant | reference | array | struct | function | codeBlock | new
 
     reference := SYMBOL_NAME
     
-    array := "[" (ws* expression ws* ","?)* ws* "]"
+    array := "[" (expression ","?)* "]"
 
-    struct := "(" (ws* structMember ws* ","?)* ws* ")"
+    struct := "(" (structMember ","?)* ")"
 
-    structMember := (SYMBOL_NAME ws* "=" ws*)? expression
+    structMember := (SYMBOL_NAME "=")? expression
 
-    function := parameterList? ws* "->" ws* expression
+    function := compoundType? (":" typedecl)? "->" expression
 
-    parameterList := "(" (ws* parameter ws* ","?)* ")"
+    codeBlock := "{" (code ";"?)* "}"
 
-    parameter := SYMBOL_NAME (ws? ":" ws* typedecl)? (ws* "=" ws* expression)?
-
-    codeBlock := "{" (ws* code ws* ";"?)* "}"
-
-    new := "new" ws* codeBlock
+    new := "new" codeBlock
 
 ## typedecl
 
-    typedecl := templateType | simpleType | compoundType | functionType
+    typedecl := componentType ("|" componentType)*
 
-    templateType := TYPE_NAME "(" (ws* typedecl ws* ","?)* ")"
+    componentType := templateType | simpleType | compoundType | functionType
+
+    templateType := TYPE_NAME "(" (typedecl ","?)* ")"
 
     simpleType := "@" | TYPE_NAME
 
-    compoundType := "(" (ws* namedType ws* ","?)* ")"
+    compoundType := "(" (namedType ","?)* ")"
 
-    namedType := (SYMBOL_NAME ws* ":" ws*)? typedecl
+    namedType := SYMBOL_NAME (":" typedecl)? ("=" expression)?
 
-    functionType := typedecl ws* "->" ws* typedecl
+    functionType := typedecl "->" typedecl
 
 ## code
 
     code := localVal | handler | expression
 
-    localVal := "val" ws* SYMBOL_NAME ws* "=" ws* expression
+    localVal := SYMBOL_NAME "=" expression
 
-    handler := "on" ws* (symbol | parameterList) ws* "->" ws* expression
+    handler := "on" (symbol | parameterList) "->" expression
 
 
 

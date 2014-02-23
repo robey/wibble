@@ -21,18 +21,19 @@ X = eliminated by transformations
 
     { reference: "" }
     { array: [ expr* ] }
-    { struct: [ { name: string, [type], value: expr }* ], [type] }
+    { struct: [ { name: string?, [type], value: expr }* ], [type] }
     X: { unary: "+"/"-"/"not", right: expr }
     { call: expr, arg: expr }
     X: { binary: (op), left: expr, right: expr }
+    { logic: "and"/"or", left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
-    X: { functionx: expr, parameters: compoundType }
+    X: { functionx: expr, parameters: compoundType, type? }
     { newObject: code, [type] }
 
 ## code
 
     { local: { name: string }, value: expr }
-    { on: { symbol | compoundType }, handler: expr, [scope] }
+    { on: { symbol | compoundType }, handler: expr, type?, [scope] }
     { code: [ expr* ], [scope] }
 
 ## types
@@ -41,3 +42,4 @@ X = eliminated by transformations
     { compoundType: { name: string, type: type, value: expr }* }
     { functionType: type, argType: type }
     { templateType: string, parameters: type* }
+    { disjointType: type* }

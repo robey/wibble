@@ -121,6 +121,9 @@ describe "TypeDescriptor", ->
     it "function", ->
       build("Int -> String").toRepr().should.eql "Int -> String"
 
+    it "disjoint", ->
+      build("String | Symbol").toRepr().should.eql "String | Symbol"
+
   it "findType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)
     find = (line, options) -> t_type.findType(parse(line, options), descriptors.typemap)
@@ -130,3 +133,4 @@ describe "TypeDescriptor", ->
       { name: "x", type: descriptors.DInt, value: undefined }
       { name: "y", type: descriptors.DInt, value: undefined }
     ])
+    find("String | Symbol").should.eql new t_type.DisjointType([ descriptors.DString, descriptors.DSymbol ])

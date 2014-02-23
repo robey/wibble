@@ -13,12 +13,12 @@ describe "Parse constants", ->
   it "int", ->
     parse("23").should.eql(number: "base10", value: "23", pos: [ 0, 2 ])
     parse("0").should.eql(number: "base10", value: "0", pos: [ 0, 1 ])
-    parse("-919").should.eql(number: "base10", value: "-919", pos: [ 0, 4 ])
+    parse("919").should.eql(number: "base10", value: "919", pos: [ 0, 3 ])
     parse("12345L").should.eql(number: "long-base10", value: "12345", pos: [ 0, 6 ])
 
   it "float", ->
     parse("1.2").should.eql(number: "float", value: "1.2", pos: [ 0, 3 ])
-    parse("-500.2L").should.eql(number: "long-float", value: "-500.2", pos: [ 0, 7 ])
+    parse("500.2L").should.eql(number: "long-float", value: "500.2", pos: [ 0, 6 ])
 
   it "hex", ->
     parse("0x9").should.eql(number: "base16", value: "9", pos: [ 0, 3 ])

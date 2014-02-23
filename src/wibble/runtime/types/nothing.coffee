@@ -10,7 +10,7 @@ TNothing = r_type.nativeType transform.DNothing,
     @singleton
 
   init: ->
-    @on "hit", (target, message) =>
+    @on "hit", null, (target, message) =>
       console.log "Nothing happens."
       target
 

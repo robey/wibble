@@ -18,7 +18,7 @@ describe "Runtime type", ->
   tToaster = r_type.nativeType dToaster,
     create: -> new object.WObject(tToaster)
     init: ->
-      @on "size", (target, message) => types.TInt.create(target.native.size.toString())
+      @on "size", null, (target, message) => types.TInt.create(target.native.size.toString())
 
 
   it "builds a native type", ->

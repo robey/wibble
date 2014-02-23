@@ -3,37 +3,24 @@
 
 roanoke, va -- 6 june 2012
 
-i had an upsight last night: i think it's a really cool property of languages
-like lisp that most of the language can be built on top of a few simple
-features. so i was thinking about the distinctions between a function and an
-object, and why i was having trouble figuring out which should be implemented
-in terms of the other.
+i had an upsight last night: i think it's a really cool property of languages like lisp that most of the language can be built on top of a few simple features. so i was thinking about the distinctions between a function and an object, and why i was having trouble figuring out which should be implemented in terms of the other.
 
-already i wanted to make the base type be a "thing that can receive messages",
-but that was just an implementation detail. last night i realized that the
-"thing that can receive messages" should be the *main* implementation, and
-function and object should be built on top of that.
+already i wanted to make the base type be a "thing that can receive messages", but that was just an implementation detail. last night i realized that the "thing that can receive messages" should be the *main* implementation, and function and object should be built on top of that.
 
-so: each code block of `{ ... }` should create a new context: a new set of
-local variables. it should also be able to receive messages, and there should
-be syntax for letting a context say that it can handle a certain type of
-message, and run some code in that case. something like:
+so: each code block of `{ ... }` should create a new context: a new set of local variables. it should also be able to receive messages, and there should be syntax for letting a context say that it can handle a certain type of message, and run some code in that case. something like:
 
     {
       x = 3
       on create { ... }
     }
 
-the code block is an "object" of sorts. it has a field "x", which is a local
-variable, and it can do something when it receives the "create" message. a
-function for computing the hypotenuse distance could then be:
+the code block is an "object" of sorts. it has a field "x", which is a local variable, and it can do something when it receives the "create" message. a function for computing the hypotenuse distance could then be:
 
     @distance = {
       on (x: Int, y: Int) { ((x * x) + (y * y)) ** 0.5 }
     }
 
-it's an object that can receive a single type of message: a struct with int
-"x" and int "y". the syntax of
+it's an object that can receive a single type of message: a struct with int "x" and int "y". the syntax of
 
     @distance = (x: Int, y: Int) => ((x * x) + (y * y)) ** 0.5
 
@@ -41,8 +28,7 @@ could just be sugar for the object creation. so could
 
     def distance(x: Int, y: Int) = ((x * x) + (y * y)) ** 0.5
 
-the python-style class, where the class is really a function that creates new
-objects, falls out too:
+the python-style class, where the class is really a function that creates new objects, falls out too:
 
     Point = {
       # this is the constructor:
@@ -71,13 +57,7 @@ a context matches an incoming message by:
 
 each handler points to code to execute.
 
-if it's not a value, the type must be a struct type so that the fields can be
-bound into the code body as locals. allowing a simple type like "Int" raises
-the question of: how do i access this int from inside the handler? it also
-creates an ambiguity between a struct that contains only one int versus a bare
-int type, because of the sugar that allows you to send a message of a single
-int to a function that requires only one int as a parameter (instead of making
-you build a single-element struct).
+if it's not a value, the type must be a struct type so that the fields can be bound into the code body as locals. allowing a simple type like "Int" raises the question of: how do i access this int from inside the handler? it also creates an ambiguity between a struct that contains only one int versus a bare int type, because of the sugar that allows you to send a message of a single int to a function that requires only one int as a parameter (instead of making you build a single-element struct).
 
 
 # traits and prototypes
@@ -372,33 +352,25 @@ more for operators, which i already have a solution for.
 
 flight to charlotte -- 18 dec 2013
 
-two random ideas: first, there should be syntactic sugar for marking a type
-as being optional. these two lines should be equivalent:
+two random ideas: first, there should be syntactic sugar for marking a type as being optional. these two lines should be equivalent:
 
     (name: String, nickname: Optional(String)) -> Cat
     (name: String, nickname: String?) -> Cat
 
-second, a global called "mutable" could be a factory for turning a type into
-a cell for that type.
+second, a global called "mutable" could be a factory for turning a type into a cell for that type.
 
     val count = mutable 0  # count: Mutable(Int)
 
-wrapping vals in Mutable could be an easy way to allow but discourage mutable
-variables. it also makes it nicely explicit what's going on: that a cell is
-being created to hold the value. (it should be fine to optimize away, though.)
+wrapping vals in Mutable could be an easy way to allow but discourage mutable variables. it also makes it nicely explicit what's going on: that a cell is being created to hold the value. (it should be fine to optimize away, though.)
 
 
 # new / on
 
 flight from charlotte -- 26 dec 2013
 
-i've decided that it's overly clever to have any block with an "on" statement
-turn into a new object with an event handler. it makes it hard to see new
-objects when they're created, because they look just like other code, with one
-tiny difference: the presence of a magic statement somewhere in the block.
+i've decided that it's overly clever to have any block with an "on" statement turn into a new object with an event handler. it makes it hard to see new objects when they're created, because they look just like other code, with one tiny difference: the presence of a magic statement somewhere in the block.
 
-instead, i think code blocks and new objects should be distinguished by a
-keyword. to create a new object that's actually a function:
+instead, i think code blocks and new objects should be distinguished by a keyword. to create a new object that's actually a function:
 
     new {
       on (x: Int) -> x * 2
@@ -424,7 +396,7 @@ this implies that the desugared way of defining a method would be:
 
 san francisco -- 20 jan 2014
 
-calling a method on an object is a two-stage process:
+Calling a method on an object is a two-stage process:
 
     hash.process(imageData)
 
@@ -433,14 +405,9 @@ calling a method on an object is a two-stage process:
 2. Send message `imageData` to the function. Probably returns a count or a
    final hash result. `@` isn't re-bound.
 
-So a key difference between objects and functions is that when objects receive
-a message, `@` is bound to the object that actually received the message. When
-a function receives a message, it leaves `@` alone.
+So a key difference between objects and functions is that when objects receive a message, `@` is bound to the object that actually received the message. When a function receives a message, it leaves `@` alone.
 
-As much as possible, I want to keep the property that most of the language's
-internals can be written in itself, out of primitives. So I think `@` should
-not be bound by default. Instead, some builtin function wraps a function by
-binding `@` to the recipient:
+As much as possible, I want to keep the property that most of the language's internals can be written in itself, out of primitives. So I think `@` should not be bound by default. Instead, some builtin function wraps a function by binding `@` to the recipient:
 
     val bind: ($A -> $B) -> ($A -> $B)
 
@@ -448,10 +415,7 @@ binding `@` to the recipient:
       on (imageData: Buffer) -> <...>
     })
 
-Additionally, I hate the parentheses around the function there, so I think
-wibble should borrow the `$` operator from Haskell, but maybe use something
-less weird-looking, like `:`. The precedence-dropping operator would treat
-everything after it as a single argument.
+Additionally, I hate the parentheses around the function there, so I think wibble should borrow the `$` operator from Haskell, but maybe use something less weird-looking, like `:`. The precedence-dropping operator would treat everything after it as a single argument.
 
     on .process -> bind: new {
       on (imageData: Buffer) -> <...>
@@ -462,6 +426,30 @@ everything after it as a single argument.
 Need to think about that a bit, though. `:` might be too ambiguous, for one.
 
 
+# pattern matching
 
+tahoe -- 2 feb 2014
 
+There's gonna need to be pattern matching, but I'm angsty about how that should work. At the very least, it should:
+
+- be able to replace a chain of if/else or a switch/case
+- decompose records and do partial matches
+- do trait/type matching
+
+Records are already bothering me a bit, because there are two different syntaxes for them:
+
+    (x = 23, y = 50)  # anonymous constructor
+    (x: Int = 23, y: Int) -> ...  # 'on' handler
+
+Pattern matching would create a third.
+
+    (x: Int, ...) -> ...
+
+Okay, actually, those might be the same syntax, now that I typed them out instead of imagining them. Maybe this will be okay. Here's a strawman syntax for pattern matching:
+
+    x match {
+      50 -> ... # if x == 50
+      (name: String, density: Int, ...) -> ... # pattern match a record
+      Symbol -> ... # x is a Symbol
+    }
 

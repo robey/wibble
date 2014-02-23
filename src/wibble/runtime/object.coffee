@@ -1,12 +1,12 @@
 util = require 'util'
 dump = require '../dump'
-r_scope = require './r_scope'
+r_namespace = require './r_namespace'
 
 # an Object has a type, and state.
 class WObject
   constructor: (@type, closure = null) ->
     # local state
-    @scope = new r_scope.Scope(closure)
+    @state = new r_namespace.Namespace(closure)
     # native state, if this is a native object
     @native = {}
 
@@ -15,12 +15,12 @@ class WObject
     # hack to make a pretty display for simple functions
     if @type.originalAst? then return dump.dumpExpr(@type.originalAst)
     # FIXME let objects override ":repr" or something
-    fields = @scope.keys().map (k) -> "#{k} = #{@scope.get(k).toRepr()}"
+    fields = @state.keys().map (k) -> "#{k} = #{@state.get(k).toRepr()}"
     "#{@type.toRepr()}(#{fields.join ', '})"
 
   equals: (other) ->
     if @type[":equals"]? then return @type[":equals"](@, other)
-    @type.equals(other.type) and @scope.equals(other.scope) and @native == other.native
+    @type.equals(other.type) and @state.equals(other.state) and @native == other.native
 
 
 exports.WObject = WObject

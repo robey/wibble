@@ -76,6 +76,14 @@ describe "Parse expressions", ->
     parse("not true").should.eql(unary: "not", right: { boolean: true, pos: [ 4, 8 ] }, pos: [ 0, 8 ])
     parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5", pos: [ 3, 4 ] }, pos: [ 0, 4 ])
     parse("+a").should.eql(unary: "+", right: { reference: "a", pos: [ 1, 2 ] }, pos: [ 0, 2 ])
+    parse("not not true").should.eql(
+      unary: "not"
+      right:
+        unary: "not"
+        right: { boolean: true, pos: [ 8, 12 ] }
+        pos: [ 4, 12 ]
+      pos: [ 0, 12 ]
+    )
 
   describe "call", ->
     it "simple", ->

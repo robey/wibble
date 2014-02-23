@@ -44,11 +44,11 @@ newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->
 
 atom = pr.alt(constant, reference, arrayExpr, struct, functionx, codeBlock, newObject).describe("atom")
 
-unary = pr([ pr([ pr.alt("+", "-", "not"), whitespace ]).optional([]), atom ]).describe("unary").onMatch (m, state) ->
-  if m[0].length > 0
+unary = pr.alt([ pr(/(\+|-(?!>)|not)/).commit(), whitespace, (-> unary) ], [ atom ]).describe("unary").onMatch (m, state) ->
+  if m.length > 1
     { unary: m[0][0], right: m[1], state }
   else
-    m[1]
+    m[0]
 
 call = pr([ unary, pr.repeatIgnore(linespace, atom.onMatch((m, state) -> { atom: m, state: state })) ]).onMatch (m, state) ->
   [ m[0] ].concat(m[1]).reduce (x, y) -> { call: x, arg: y.atom, state: y.state.backfill(x.state) }

@@ -8,13 +8,13 @@ class TStruct extends r_type.Type
 
   create: (values) ->
     obj = new object.WObject(@)
-    for k, v of values then obj.scope.set(k, v)
+    for k, v of values then obj.state.set(k, v)
     obj
 
   init: ->
     # accessors
     for field in @descriptor.fields then do (field) =>
-      @on field.name, (target, message) -> target.scope.get(field.name)
+      @on field.name, null, (target, message) -> target.state.get(field.name)
 
   coerce: (other) ->
     nothing = require './nothing'
@@ -22,7 +22,7 @@ class TStruct extends r_type.Type
       if other.type == nothing.TNothing
         []
       else if other.type instanceof TStruct
-        other.scope.keys().map (k) -> { name: k, value: other.scope.get(k) }
+        other.state.keys().map (k) -> { name: k, value: other.state.get(k) }
       else
         [ { name: "?0", value: other } ]
     values = {}
@@ -34,13 +34,13 @@ class TStruct extends r_type.Type
     @create(values)
 
   ":repr": (target) ->
-    fields = target.scope.keys().map (k) -> "#{k} = #{target.scope.get(k).toRepr()}"
+    fields = target.state.keys().map (k) -> "#{k} = #{target.state.get(k).toRepr()}"
     "(#{fields.join ', '})"
 
   ":equals": (target, other) ->
     return false unless (other.type.equals(target.type))
-    for k in target.scope.keys()
-      if not other.scope.get(k).equals(target.scope.get(k)) then return false
+    for k in target.state.keys()
+      if not other.state.get(k).equals(target.state.get(k)) then return false
     true
 
 

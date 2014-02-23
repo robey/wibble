@@ -32,7 +32,7 @@ checkBase = (content, state, regex, name, errorMessage) ->
   if not content.match(regex) then throw new Error(errorMessage)
   { number: (if isLong then "long-#{name}" else name), value: content, state }
 
-number = pr(/-?[0-9]+(\.[0-9]+)?(L?)/).onMatch (m, state) ->
+number = pr(/[0-9]+(\.[0-9]+)?(L?)/).onMatch (m, state) ->
   hasDot = m[0].indexOf(".") >= 0
   if m[2] == "L"
     { number: (if hasDot then "long-float" else "long-base10"), value: m[0].slice(0, m[0].length - 1), state }

@@ -2,7 +2,7 @@ util = require 'util'
 dump = require '../dump'
 transform = require '../transform'
 object = require './object'
-r_scope = require './r_scope'
+r_namespace = require './r_namespace'
 r_type = require './r_type'
 types = require './types'
 
@@ -11,8 +11,11 @@ error = (message, state) ->
   e.state = state
   throw e
 
-evalExpr = (expr, locals, logger) ->
-  logger?("#{dump.dumpExpr(expr)}")
+evalExpr = (expr, locals, logger, deadline = null) ->
+  if deadline? and Date.now() > deadline then error("Out of time", expr.state)
+  recurse = (e) -> evalExpr(e, locals, logger, deadline)
+
+  logger?("#{dump.dumpExpr(expr)} -in- #{locals.toDebug()}")
   if expr.nothing? then return types.TNothing.create()
   if expr.boolean? then return types.TBoolean.create(expr.boolean)
   if expr.number?
@@ -30,34 +33,45 @@ evalExpr = (expr, locals, logger) ->
   # array
   if expr.struct?
     values = {}
-    for f in expr.struct then values[f.name] = evalExpr(f.value, locals, logger)
+    for f in expr.struct then values[f.name] = recurse(f.value)
     return new types.TStruct(expr.type).create(values)
+  if expr.logic?
+    left = recurse(expr.left)
+    if not (left.type == types.TBoolean) then error("Boolean required", expr.left.state)
+    if expr.logic == "and" and not left.native.value then return left
+    if expr.logic == "or" and left.native.value then return left
+    return recurse(expr.right)
   if expr.call?
-    left = evalExpr(expr.call, locals, logger)
-    right = evalExpr(expr.arg, locals, logger)
+    left = recurse(expr.call)
+    right = recurse(expr.arg)
     logger?("call: ([#{left.type.toRepr()}] #{left.toRepr()}) #{right.toRepr()}")
-    rv = evalCall(left, right, expr.state, logger)
+    rv = evalCall(left, right, expr.state, logger, deadline)
     logger?("  \u21b3 [#{rv.type.toRepr()}] #{rv.toRepr()}")
     return rv
-  # { condition: expr, ifThen: expr, ifElse: expr }
+  if expr.condition?
+    cond = recurse(expr.condition)
+    if cond.equals(types.TBoolean.create(true))
+      return recurse(expr.ifThen)
+    else
+      return recurse(expr.ifElse)
   if expr.newObject?
-    return evalNew(expr, locals, logger)
+    return evalNew(expr, locals, logger, deadline)
   if expr.local?
-    rv = evalExpr(expr.value, locals, logger)
+    rv = recurse(expr.value)
     locals.set(expr.local.name, rv)
     return rv
   if expr.on?
     error("Orphan 'on' (shouldn't happen)", expr.state)
   if expr.code?
-    newLocals = new r_scope.Scope(locals)
+    newLocals = new r_namespace.Namespace(locals)
     rv = types.TNothing.create()
     for x in expr.code
-      rv = evalExpr(x, newLocals, logger)
+      rv = evalExpr(x, newLocals, logger, deadline)
     return rv
 
   error("Not yet implemented", expr.state)
 
-evalCall = (target, message, state, logger) ->
+evalCall = (target, message, state, logger, deadline) ->
   handler = target.type.handlerForMessage(message)
   if not handler?
     logger?("No handler for message <#{message.toRepr()}> in #{target.toRepr()}")
@@ -69,14 +83,14 @@ evalCall = (target, message, state, logger) ->
     new types.TStruct(handler.guard).coerce(message)
   else
     message
-  scope = new r_scope.Scope()
+  locals = new r_namespace.Namespace(handler.locals)
   if m.type instanceof types.TStruct
-    for k in m.scope.keys() then scope.set(k, m.scope.get(k))
-  return evalExpr(handler.expr, scope, logger)
+    for k in m.state.keys() then locals.set(k, m.state.get(k))
+  return evalExpr(handler.expr, locals, logger, deadline)
 
-evalNew = (expr, locals, logger) ->
+evalNew = (expr, locals, logger, deadline) ->
   type = new r_type.Type(expr.type, expr.newObject)
-  state = new r_scope.Scope(locals)
+  state = new r_namespace.Namespace(locals)
   obj = new object.WObject(type, state)
 
   for x in expr.newObject.code
@@ -87,11 +101,11 @@ evalNew = (expr, locals, logger) ->
         descriptor = transform.findType(x.on, transform.typemap)
         # this is a little sus.
         for f in descriptor.fields when f.value?
-          f.value = evalExpr(f.value, state, logger)
+          f.value = evalExpr(f.value, state, logger, deadline)
         descriptor
-      type.on guard, x.handler
+      type.on guard, locals, x.handler
     else
-      evalExpr(x, state, logger)
+      evalExpr(x, state, logger, deadline)
   obj
 
 

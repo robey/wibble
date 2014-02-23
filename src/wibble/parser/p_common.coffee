@@ -65,11 +65,13 @@ PRECEDENCE =
   code: 12
   none: 99
 
+comment = pr(/\#[^\n]*/).drop()
+
 # line may be continued with "\"
 linespace = pr(/([ ]+|\\\n)*/).drop()
 
 # linefeed is acceptable whitespace here
-whitespace = pr(/([ \n]+|\\\n)*/).drop()
+whitespace = pr(/([ \n]+|\\\n|\#[^\n]*\n)*/).drop()
 
 # match a keyword, commit on it, and turn it into its state (covering span)
 toState = (p) ->

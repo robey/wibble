@@ -11,6 +11,7 @@ env =
   debugCompile: false
   debugEval: false
   maxHistory: 100
+  timeLimit: 15
   historyFilename: path.join(process.env["HOME"] or process.env["USERPROFILE"] or ".", ".wibble_history")
 
 class Repl
@@ -19,7 +20,7 @@ class Repl
       unix_terminal = require './unix_terminal'
       @terminal = new unix_terminal.UnixTerminal(env.historyFilename, env.maxHistory)
     @globalScope = new wibble.transform.Scope()
-    @globals = new wibble.runtime.Scope() # FIXME
+    @globals = new wibble.runtime.Namespace()
 
   run: ->
     @terminal.printColor("0c0", "wibble")
@@ -41,11 +42,19 @@ class Repl
       if line[0] == "/" then return @command(line[1...])
       if line == "" then return true
 
+      # parse
       try
         expr = @parseWibble(line)
       catch e
         # if the parse error is at the end, let the human continue typing.
         if e.state.pos() == line.length then return false
+        # also discount any trailing whitespace
+        try
+          wibble.parser.whitespace.run(line[e.state.pos()...] + "\n")
+          return false
+        catch e2
+          # ignore
+          console.log e2
         @displayError(e)
         return true
 
@@ -53,9 +62,14 @@ class Repl
       if env.debugParse
         @terminal.printColor("ff0", "  ; ")
         @terminal.println(wibble.dumpExpr(expr))
+
+      # transform (compile) / typecheck
+      t_logger = (s) =>
+        @terminal.printColor("f80", "  ; ")
+        @terminal.println(s)
       try
         expr = wibble.transform.transformExpr(expr)
-        [ expr, type ] = wibble.transform.typecheck(@globalScope, expr, allowOverride: true)
+        [ expr, type ] = wibble.transform.typecheck(@globalScope, expr, allowOverride: true, logger: t_logger)
       catch e
         if e.state?
           @displayError(e)
@@ -70,14 +84,16 @@ class Repl
         @terminal.printColor("66f", "#{type.toRepr()}: ")
         @terminal.println(wibble.dumpExpr(expr))
 
+      # eval
       try
         logger = (line) =>
           if env.debugEval
             @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
-        rv = wibble.runtime.evalExpr(expr, @globals, logger)
-        @terminal.printColor("66f", "#{rv.type.toRepr()}: ")
+        deadline = Date.now() + env.timeLimit * 1000
+        rv = wibble.runtime.evalExpr(expr, @globals, logger, deadline)
         @terminal.printColor("99f", rv.toRepr())
+        @terminal.printColor("66f", ": #{rv.type.toRepr()}")
         @terminal.println()
       catch e
         if e.state?
@@ -86,6 +102,7 @@ class Repl
           # internal compiler error
           @terminal.printColor("f00", e.toString() + "\n")
           @terminal.println e.stack
+
       true
 
   parseWibble: (line) ->
@@ -104,6 +121,7 @@ class Repl
     switch args[0]
       when "debug" then @commandDebug(args[1...])
       when "globals" then @commandGlobals()
+      when "timeout" then @commandTimeout(args[1])
       else @commandHelp()
     true
 
@@ -117,7 +135,7 @@ class Repl
     @terminal.println ""
     @terminal.println "Meta-commands:"
     @terminal.println "  /debug [options...]"
-    @terminal.println "      turn on/off various debug logging (parse, compile, eval)"
+    @terminal.println "      turn on/off various debug logging (parse, compile, eval) (or all)"
     @terminal.println "      example: /debug +eval -parse"
     @terminal.println "  /globals"
     @terminal.println "      list names and types of globals"
@@ -130,6 +148,10 @@ class Repl
       when "-compile" then env.debugCompile = false
       when "+eval" then env.debugEval = true
       when "-eval" then env.debugEval = false
+      when "+all"
+        env.debugParse = env.debugCompile = env.debugEval = true
+      when "-all"
+        env.debugParse = env.debugCompile = env.debugEval = false
       else @terminal.println "(Don't understand '#{x}'; ignoring.)"
     @terminal.println [
       if env.debugParse then "+parse" else "-parse"
@@ -146,6 +168,11 @@ class Repl
       @terminal.printColor("99f", name)
       @terminal.printColor("66f", ": #{@globals.get(name).type.toRepr()}")
       @terminal.println()
+
+  commandTimeout: (timeout) ->
+    if timeout?
+      env.timeLimit = parseInt(timeout)
+    @terminal.println("Current timeout: #{env.timeLimit} (sec)")
 
 
 main = (terminal) -> new Repl(terminal).run()
