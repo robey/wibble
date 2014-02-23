@@ -41,7 +41,7 @@
 
     call := unary (ws* atom)*
 
-    unary := ("-" | "not") atom
+    unary := ("+" | "-" | "not") atom
 
     atom := constant | reference | array | struct | function | codeBlock | new
 

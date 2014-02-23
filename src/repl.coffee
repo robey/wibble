@@ -11,6 +11,7 @@ env =
   debugCompile: false
   debugEval: false
   maxHistory: 100
+  timeLimit: 15
   historyFilename: path.join(process.env["HOME"] or process.env["USERPROFILE"] or ".", ".wibble_history")
 
 class Repl
@@ -75,7 +76,8 @@ class Repl
           if env.debugEval
             @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
-        rv = wibble.runtime.evalExpr(expr, @globals, logger)
+        deadline = Date.now() + env.timeLimit * 1000
+        rv = wibble.runtime.evalExpr(expr, @globals, logger, deadline)
         @terminal.printColor("99f", rv.toRepr())
         @terminal.printColor("66f", ": #{rv.type.toRepr()}")
         @terminal.println()
@@ -105,6 +107,7 @@ class Repl
     switch args[0]
       when "debug" then @commandDebug(args[1...])
       when "globals" then @commandGlobals()
+      when "timeout" then @commandTimeout(args[1])
       else @commandHelp()
     true
 
@@ -151,6 +154,11 @@ class Repl
       @terminal.printColor("99f", name)
       @terminal.printColor("66f", ": #{@globals.get(name).type.toRepr()}")
       @terminal.println()
+
+  commandTimeout: (timeout) ->
+    if timeout?
+      env.timeLimit = parseInt(timeout)
+    @terminal.println("Current timeout: #{env.timeLimit} (sec)")
 
 
 main = (terminal) -> new Repl(terminal).run()
