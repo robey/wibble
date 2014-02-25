@@ -32,7 +32,7 @@ buildScopes = (expr, tstate) ->
   t_expr.digExpr expr, tstate, (expr, tstate) ->
     if expr.reference? and tstate.checkReferences
       type = tstate.scope.get(expr.reference)
-      if not type? then error("Unknown reference #{tstate.scope.toDebug()} '#{expr.reference}'", expr.state)
+      if not type? then error("Unknown reference '#{expr.reference}'", expr.state)
 
     if expr.newObject?
       # attach a new (blank) type that we'll fill in with handlers
