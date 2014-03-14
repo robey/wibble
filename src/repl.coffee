@@ -132,6 +132,8 @@ class Repl
     @terminal.println "      example: /debug +eval -parse"
     @terminal.println "  /globals"
     @terminal.println "      list names and types of globals"
+    @terminal.println "  /timeout <seconds>"
+    @terminal.println "      set timeout for long-running evals"
 
   commandDebug: (options) ->
     for x in options then switch x
