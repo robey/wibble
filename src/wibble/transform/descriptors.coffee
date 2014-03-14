@@ -1,5 +1,4 @@
 util = require 'util'
-parser = require '../parser'
 t_type = require './t_type'
 
 DAny = new t_type.NamedType("Any")

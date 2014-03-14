@@ -77,10 +77,14 @@ whitespace = pr(/([ \n]+|\\\n|\#[^\n]*\n)*/).drop()
 toState = (p) ->
   pr(p).commit().onMatch((m, state) -> state)
 
+repeatSeparated = (p, separator, ws = linespace) ->
+  middle = pr([ ws, pr(separator).drop(), ws, p ]).onMatch (m) -> m[0]
+  foo = pr([ p, middle.repeat(), ws, pr(separator).optional().drop() ]).onMatch (m) ->
+    [ m[0] ].concat(m[1])
+  foo.optional([])
+
 # repeat 'p' with optional whitespace around it, separated by commas, with a trailing comma OK
-commaSeparated = (p) ->
-  pr.repeat([ whitespace, p, whitespace, pr(/,\s*/).optional().drop() ]).onMatch (m) ->
-    m.map (x) -> x[0]
+commaSeparated = (p) -> repeatSeparated(p, /,\s*/)
 
 # same as commaSeparated, but with a surrounding group syntax like [ ], and committing after the open and close
 commaSeparatedSurrounded = (open, p, close, message) ->
@@ -89,9 +93,7 @@ commaSeparatedSurrounded = (open, p, close, message) ->
 commaSeparatedSurroundedCommit = (open, p, close, message) ->
   pr([ pr(open).commit().drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).commit().drop() ]).onMatch (m) -> m[0]
 
-lineSeparated = (p) ->
-  pr.repeat([ whitespace, p, whitespace, pr(/[\n;]/).optional().drop() ]).onMatch (m) ->
-    m.map (x) -> x[0]
+lineSeparated = (p) -> repeatSeparated(p, /[\n;]/)
 
 # repeat 'p' separated by linefeeds or ; inside { }
 blockOf = (p) ->

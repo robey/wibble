@@ -41,7 +41,7 @@ describe "Parse expressions", ->
       ], pos: [ 0, 19 ])
 
     it "multi-line", ->
-      parse("[\n  true\n  false\n]").should.eql(array: [ { boolean: true, pos: [ 4, 8 ] }, { boolean: false, pos: [ 11, 16 ] } ], pos: [ 0, 18 ])
+      parse("[\n  true,\n  false\n]").should.eql(array: [ { boolean: true, pos: [ 4, 8 ] }, { boolean: false, pos: [ 12, 17 ] } ], pos: [ 0, 19 ])
 
     it "failing", ->
       parseFailed("[ ??? ]").should.match(/Expected array/)
