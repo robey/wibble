@@ -1,4 +1,5 @@
 pr = require 'packrattle'
+util = require 'util'
 
 #
 # common regexs and definitions used by different parsers

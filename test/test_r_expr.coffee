@@ -48,6 +48,9 @@ describe "Runtime evalExpr", ->
     it "don't creep into each other", ->
       stringify(evalExpr("{ x = 10; { x = 3; x * 2 } + x }")).should.eql "[Int] 16"
 
+    it "nest inside 'new' correctly", ->
+      stringify(evalExpr("{ x = new { value = 3; on .value -> value }; x.value }")).should.eql "[Int] 3"
+
   it "builds a function", ->
     stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
 

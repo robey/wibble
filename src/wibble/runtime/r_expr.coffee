@@ -103,7 +103,8 @@ evalNew = (expr, locals, logger, deadline) ->
         for f in descriptor.fields when f.value?
           f.value = evalExpr(f.value, state, logger, deadline)
         descriptor
-      type.on guard, locals, x.handler
+      logger?("on #{guard} locals: #{state.toDebug()}")
+      type.on guard, state, x.handler
     else
       evalExpr(x, state, logger, deadline)
   obj
