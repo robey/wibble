@@ -53,12 +53,12 @@ describe "Runtime evalExpr", ->
       stringify(evalExpr("{ x = new { value = 3; on .value -> value }; x.value }")).should.eql "[Int] 3"
 
   it "builds a function", ->
-    stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] <function> { on (x: Int) -> x.* x }"
+    stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] (x: Int) -> x.* x"
 
   it "manages state per function call", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
-    stringify(evalExpr("square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] <function> { on (x: Int) -> x.* x }"
+    stringify(evalExpr("square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] (x: Int) -> x.* x"
     stringify(evalExpr("x = 100", scope: scope, globals: globals)).should.eql "[Int] 100"
     stringify(evalExpr("square 4", scope: scope, globals: globals)).should.eql "[Int] 16"
     stringify(evalExpr("square 20", scope: scope, globals: globals)).should.eql "[Int] 400"
@@ -68,7 +68,7 @@ describe "Runtime evalExpr", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
     stringify(evalExpr("sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
-      "[(total: Int, without: Int = 1) -> Int] <function> { on (total: Int, without: Int = 1) -> total.- without }"
+      "[(total: Int, without: Int = 1) -> Int] (total: Int, without: Int = 1) -> total.- without"
     stringify(evalExpr("sub(100, 5)", scope: scope, globals: globals)).should.eql "[Int] 95"
     stringify(evalExpr("sub(100)", scope: scope, globals: globals)).should.eql "[Int] 99"
     stringify(evalExpr("sub(without=9, total=20)", scope: scope, globals: globals)).should.eql "[Int] 11"
