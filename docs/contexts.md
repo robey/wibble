@@ -453,3 +453,38 @@ Okay, actually, those might be the same syntax, now that I typed them out instea
       Symbol -> ... # x is a Symbol
     }
 
+
+# just-whenever compiling
+
+san ignacio, belize -- 25 mar 2014
+
+There was a pretty hype-filled Wired article on Facebook's "Hack" language a few days ago, but it had one interesting idea worth keeping in mind -- something that isn't even in Hack, I think.
+
+The idea is "just-whenever" compiling: When you first start working on a project, iteration speed is important. It would be nice to avoid the compilation phase whenever possible, and just go into a tight edit/test cycle. This is a common complaint against the scala compiler, which is too slow to keep the feedback cycle tight.
+
+Once you have things working well, you want a separate compile phase to offload as much work as you can before running the code in production. It sorta "pre-optimizes" or "pre-JITs" the code. Combined with static type-checking, it would let you offload a lot of regression testing to the compile phase. Even without type-checking, the compile phase will find some errors that the parser won't.
+
+So this is more fuel for the argument that wibble's compiler should be a library just as much as its runtime. And the runtime must be able to take a raw text file, parse it, compile it, and then run it. I don't know if it makes sense to create an output format for parsed-but-uncompiled code, but it definitely makes sense to create a format for LLVM bitcode with the original source attached.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
