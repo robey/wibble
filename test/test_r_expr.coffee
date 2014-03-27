@@ -68,10 +68,13 @@ describe "Runtime evalExpr", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
     stringify(evalExpr("sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
-      "[(total: Int, without: Int = 1) -> Int] { on (total: Int, without: Int = 1) -> total.- without }"
+      "[(total: Int, without: Int = 1) -> Int] <function> { on (total: Int, without: Int = 1) -> total.- without }"
     stringify(evalExpr("sub(100, 5)", scope: scope, globals: globals)).should.eql "[Int] 95"
     stringify(evalExpr("sub(100)", scope: scope, globals: globals)).should.eql "[Int] 99"
     stringify(evalExpr("sub(without=9, total=20)", scope: scope, globals: globals)).should.eql "[Int] 11"
 
-
-
+  it "handles self-types", ->
+    scope = new transform.Scope()
+    rstate = new r_expr.RuntimeState()
+    stringify(evalExpr("wut = new { on (x: @) -> 3 }", scope: scope, rstate: rstate)).should.eql "[(x: @) -> Int] new (x: @) -> Int { on (x: @) -> 3 }"
+    stringify(evalExpr("wut wut", scope: scope, rstate: rstate)).should.eql "[Int] 3"

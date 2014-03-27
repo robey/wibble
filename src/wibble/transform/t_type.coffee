@@ -20,7 +20,10 @@ class TypeDescriptor
     for v in @typeHandlers then if not v.type.isDefined() then return false
     true
 
-  equals: (other) -> false
+  # SelfType wraps another type, so allow lookups to flatten these kind of annotated references
+  flatten: -> @
+
+  equals: (other) -> @ == other
 
   canCoerceFrom: (other) -> @equals(other)
 
@@ -41,7 +44,7 @@ class TypeDescriptor
     if typeof expr == "string"
       for h in @valueHandlers then if expr == h.guard then return h.type
     else
-      for h in @typeHandlers then if h.guard.canCoerceFrom(type) then return h.type
+      for h in @typeHandlers then if h.guard.canCoerceFrom(type.flatten()) then return h.type.flatten()
     # FIXME warning: not type checked
     descriptors = require './descriptors'
     descriptors.DAny
@@ -62,9 +65,27 @@ class NamedType extends TypeDescriptor
   isDefined: -> true
 
   equals: (other) ->
+    other = other.flatten()
     (other instanceof NamedType) and @name == other.name
 
   toRepr: (precedence = true) -> @name
+
+
+class SelfType extends TypeDescriptor
+  constructor: (@type) ->
+    super()
+
+  isDefined: -> @type.isDefined()
+
+  flatten: -> @type
+
+  equals: (other) -> @type.equals(other)
+
+  canCoerceFrom: (other) -> @type.canCoerceFrom(other)
+
+  toRepr: (precedence = true) -> "@"
+
+  handlerTypeForMessage: (type, expr) -> @type.handlerTypeForMessage(type, expr)
 
 
 # fields are { name, type, value: expr }
@@ -79,6 +100,7 @@ class CompoundType extends TypeDescriptor
     true
 
   equals: (other) ->
+    other = other.flatten()
     if not (other instanceof CompoundType) then return false
     if other.fields.length != @fields.length then return false
     otherFields = {}
@@ -87,12 +109,13 @@ class CompoundType extends TypeDescriptor
     true
 
   canCoerceFrom: (other) ->
+    other = other.flatten()
     # allow zero-arg to be equivalent to an empty struct, and one-arg to be a single-element struct
     if not (other instanceof CompoundType)
       if other.equals(new NamedType("Nothing"))
-        other = { fields: [] }
+        other = new CompoundType([])
       else
-        other = { fields: [ name: "?0", type: other ] }
+        other = new CompoundType([ name: "?0", type: other ])
     # check loose equality of compound types
     if @equals(other) then return true
     # check for loose matching:
@@ -109,7 +132,7 @@ class CompoundType extends TypeDescriptor
       else
         name = f.name
       if not remaining[name]? then return false
-      if not remaining[name].type.canCoerceFrom(f.type) then return false
+      if not remaining[name].type.flatten().canCoerceFrom(f.type.flatten()) then return false
       delete remaining[name]
     for k, v of remaining then if not v.hasDefault then return false
     true
@@ -128,6 +151,7 @@ class FunctionType extends TypeDescriptor
     @argType.isDefined() and @functionType.isDefined()
 
   equals: (other) ->
+    other = other.flatten()
     if not (other instanceof FunctionType) then return false
     other.argType.equals(@argType) and other.functionType.equals(@functionType)
 
@@ -148,6 +172,7 @@ class DisjointType extends TypeDescriptor
     true
 
   equals: (other) ->
+    other = other.flatten()
     if not (other instanceof DisjointType) then return false
     if @options.length != other.options.length then return false
     for i in [0 ... @options.length] then if not (@options[i].equals(other.options[i])) then return false
@@ -173,8 +198,8 @@ buildType = (type) ->
 
 findType = (type, typemap) ->
   if type.typename?
-    if not typemap[type.typename]? then error("Unknown type '#{type.typename}'", type.state)
-    return typemap[type.typename]
+    if not typemap.get(type.typename)? then error("Unknown type '#{type.typename}'", type.state)
+    return typemap.get(type.typename)
   if type.compoundType?
     descriptors = require './descriptors'
     checkCompoundType(type)
@@ -225,4 +250,5 @@ exports.findType = findType
 exports.FunctionType = FunctionType
 exports.NamedType = NamedType
 exports.newType = newType
+exports.SelfType = SelfType
 exports.TypeDescriptor = TypeDescriptor

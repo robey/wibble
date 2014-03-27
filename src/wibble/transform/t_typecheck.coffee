@@ -30,6 +30,8 @@ class UnknownType
 #   can't be forward references)
 buildScopes = (expr, tstate) ->
   t_expr.digExpr expr, tstate, (expr, tstate) ->
+    findType = (type) -> t_type.findType(type, tstate.typemap)
+
     if expr.reference? and tstate.checkReferences
       type = tstate.scope.get(expr.reference)
       if not type? then error("Unknown reference '#{expr.reference}'", expr.state)
@@ -37,6 +39,11 @@ buildScopes = (expr, tstate) ->
     if expr.newObject?
       # attach a new (blank) type that we'll fill in with handlers
       tstate = tstate.newType()
+      if not expr.stateless
+        # open a new scope too
+        tstate = tstate.newScope().newTypemap()
+        tstate.scope.add("@", tstate.type)
+        tstate.typemap.add("@", new t_type.SelfType(tstate.type))
       return [ copy(expr, newType: tstate.type), tstate ]
 
     if expr.local?
@@ -48,13 +55,13 @@ buildScopes = (expr, tstate) ->
       # code inside a handler is allowed to make forward references, so stop
       # checking for now. (we'll do another pass for these later.)
       tstate = tstate.stopCheckingReferences()
-      type = if expr.type? then t_type.findType(expr.type, tstate.typemap) else new UnknownType("handler")
+      type = if expr.type? then findType(expr.type) else new UnknownType("handler")
       if expr.on.compoundType?
         # open up a new (chained) scope, with references for the parameters
         tstate = tstate.newScope()
         for p in expr.on.compoundType
-          tstate.scope.add(p.name, if p.type? then t_type.findType(p.type, tstate.typemap) else descriptors.DAny)
-        tstate.type.addTypeHandler t_type.findType(expr.on, tstate.typemap), type
+          tstate.scope.add(p.name, if p.type? then findType(p.type) else descriptors.DAny)
+        tstate.type.addTypeHandler findType(expr.on), type
         return [ copy(expr, scope: tstate.scope, unresolved: type, type: null), tstate ]
       else
         tstate.type.addValueHandler expr.on.symbol, type
