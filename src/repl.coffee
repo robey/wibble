@@ -84,7 +84,7 @@ class Repl
             @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
         deadline = Date.now() + env.timeLimit * 1000
-        rv = wibble.runtime.evalExpr(expr, @globals, logger, deadline)
+        rv = wibble.runtime.evalExpr(expr, new wibble.runtime.RuntimeState(locals: @globals, logger: logger, deadline: deadline))
         @terminal.printColor("99f", rv.toRepr())
         @terminal.printColor("66f", ": #{rv.type.toRepr()}")
         @terminal.println()

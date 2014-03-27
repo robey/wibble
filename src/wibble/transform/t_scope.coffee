@@ -16,6 +16,8 @@ class Scope
   add: (name, type) ->
     @symtab[name] = type
 
+  push: -> new Scope(@)
+  
   toDebug: ->
     keys = Object.keys(@symtab).sort()
     "{#{keys.join(", ")}}" + (if @parent? then " \u21d7 #{@parent.toDebug()}" else "")

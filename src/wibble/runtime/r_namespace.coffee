@@ -5,6 +5,7 @@ misc = require '../misc'
 class Namespace
   constructor: (@parent) ->
     @symtab = {}
+    @typemap = @parent?.typemap
   
   get: (name) ->
     if @symtab[name]? then return @symtab[name]
@@ -19,6 +20,8 @@ class Namespace
 
   set: (name, value) ->
     @symtab[name] = value
+
+  push: -> new Namespace(@)
 
   keys: ->
     Object.keys(@symtab).sort()

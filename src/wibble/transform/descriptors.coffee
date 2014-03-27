@@ -1,5 +1,6 @@
 util = require 'util'
 t_type = require './t_type'
+t_scope = require './t_scope'
 
 DAny = new t_type.NamedType("Any")
 DAny.canCoerceFrom = (other) -> true
@@ -10,13 +11,13 @@ DNothing = new t_type.NamedType("Nothing")
 DString = new t_type.NamedType("String")
 DSymbol = new t_type.NamedType("Symbol")
 
-typemap = {}
-typemap[DAny.name] = DAny
-typemap[DBoolean.name] = DBoolean
-typemap[DInt.name] = DInt
-typemap[DNothing.name] = DNothing
-typemap[DString.name] = DString
-typemap[DSymbol.name] = DSymbol
+typemap = new t_scope.Scope()
+typemap.add DAny.name, DAny
+typemap.add DBoolean.name, DBoolean
+typemap.add DInt.name, DInt
+typemap.add DNothing.name, DNothing
+typemap.add DString.name, DString
+typemap.add DSymbol.name, DSymbol
 
 # types are often self-referential, so do them after all the names are set.
 
