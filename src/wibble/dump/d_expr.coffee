@@ -63,7 +63,9 @@ dump = (expr) ->
   if expr.functionx?
     return [ d_type.dumpType(expr.parameters) + " -> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
   if expr.newObject?
-    return [ "new " + (if expr.type? then expr.type.toRepr() + " " else "") + dumpExpr(expr.newObject), PRECEDENCE.code ]
+    type = expr.type?.toRepr() or "<?>"
+    ctor = if expr.stateless then "<function>" else "new #{type}"
+    return [ "#{ctor} #{dumpExpr(expr.newObject)}", PRECEDENCE.code ]
   if expr.local?
     return [ expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?
