@@ -105,6 +105,14 @@ describe "TypeDescriptor", ->
       s1.canCoerceFrom(descriptors.DInt).should.eql true
       s1.canCoerceFrom(descriptors.DString).should.eql false
 
+    it "structs with single nested structs", ->
+      dPoint = new t_type.CompoundType([
+        { name: "x", type: descriptors.DInt }
+        { name: "y", type: descriptors.DInt }
+      ])
+      dParam = new t_type.CompoundType([ { name: "point", type: dPoint }])
+      dParam.canCoerceFrom(dPoint).should.eql true
+
   describe "buildType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)
     build = (line, options) -> t_type.buildType(parse(line, options))

@@ -118,13 +118,19 @@ class CompoundType extends TypeDescriptor
         other = new CompoundType([ name: "?0", type: other ])
     # check loose equality of compound types
     if @equals(other) then return true
+    if @looselyMatches(other.fields) then return true
+    # special case: if we're a one-field struct that is itself a struct, we have to go deeper.
+    if @fields.length == 1 and (@fields[0].type instanceof CompoundType) and @fields[0].type.looselyMatches(other.fields) then return true
+    false
+
+  looselyMatches: (fields) ->
     # check for loose matching:
     # - no extra fields
     # - positional fields have the right type
     # - all missing fields have default values
     remaining = {}
     for f in @fields then remaining[f.name] = { type: f.type, hasDefault: f.value? }
-    for f, i in other.fields
+    for f, i in fields
       if f.name[0] == "?"
         # positional
         if i >= @fields.length then return false

@@ -88,6 +88,11 @@ describe "Runtime builtin types", ->
     tSingleInt = new types.TStruct(new t_type.CompoundType([ { name: "n", type: descriptors.DInt } ]))
     dPoint = new t_type.CompoundType([ { name: "x", type: descriptors.DInt }, { name: "y", type: descriptors.DInt } ])
     tPoint = new types.TStruct(dPoint)
+    dPointDefaults = new t_type.CompoundType([
+      { name: "x", type: descriptors.DInt, value: types.TInt.create("1") }
+      { name: "y", type: descriptors.DInt, value: types.TInt.create("2") }
+    ])
+    tPointDefaults = new types.TStruct(dPointDefaults)
     i10 = types.TInt.create("10")
     i20 = types.TInt.create("20")
     i30 = types.TInt.create("30")
@@ -115,13 +120,14 @@ describe "Runtime builtin types", ->
       tPoint.coerce(rp1030).type.toRepr().should.eql tPoint.toRepr()
 
     it "coerce with defaults", ->
-      dPoint = new t_type.CompoundType([
-        { name: "x", type: descriptors.DInt, value: types.TInt.create("1") }
-        { name: "y", type: descriptors.DInt, value: types.TInt.create("2") }
-      ])
-      tPoint = new types.TStruct(dPoint)
-      tPoint.coerce(types.TNothing.create()).toRepr().should.eql("(x = 1, y = 2)")
-      tPoint.coerce(types.TInt.create(5)).toRepr().should.eql("(x = 5, y = 2)")
+      tPointDefaults.coerce(types.TNothing.create()).toRepr().should.eql("(x = 1, y = 2)")
+      tPointDefaults.coerce(types.TInt.create(5)).toRepr().should.eql("(x = 5, y = 2)")
+
+    it "coerce nested structs", ->
+      defaultPoint = tPointDefaults.create(x: types.TInt.create("1"), y: types.TInt.create("2"))
+      tNested = new types.TStruct(new t_type.CompoundType([ { name: "point", type: dPointDefaults, value: defaultPoint } ]))
+      tNested.coerce(types.TNothing.create()).toRepr().should.eql("(point = (x = 1, y = 2))")
+      tNested.coerce(tPointDefaults.create(x: types.TInt.create("10"))).toRepr().should.eql("(point = (x = 10, y = 2))")
 
     it "accessors", ->
       callNative(p1020, "x").toRepr().should.eql "10"
