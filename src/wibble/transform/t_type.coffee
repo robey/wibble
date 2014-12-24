@@ -109,19 +109,28 @@ class CompoundType extends TypeDescriptor
     true
 
   canCoerceFrom: (other) ->
+    @coercionKind(other)?
+
+  # (only for structs) figure out what kind of coercion will work, and return it
+  coercionKind: (other) ->
     other = other.flatten()
+    kind = null
     # allow zero-arg to be equivalent to an empty struct, and one-arg to be a single-element struct
-    if not (other instanceof CompoundType)
+    if other instanceof CompoundType
+      kind = "compound"
+    else
       if other.equals(new NamedType("Nothing"))
+        kind = "nothing"
         other = new CompoundType([])
       else
+        kind = "single"
         other = new CompoundType([ name: "?0", type: other ])
     # check loose equality of compound types
-    if @equals(other) then return true
-    if @looselyMatches(other.fields) then return true
+    if @equals(other) then return kind
+    if @looselyMatches(other.fields) then return kind
     # special case: if we're a one-field struct that is itself a struct, we have to go deeper.
-    if @fields.length == 1 and (@fields[0].type instanceof CompoundType) and @fields[0].type.looselyMatches(other.fields) then return true
-    false
+    if @fields.length == 1 and (@fields[0].type instanceof CompoundType) and @fields[0].type.looselyMatches(other.fields) then return "nested"
+    null
 
   looselyMatches: (fields) ->
     # check for loose matching:

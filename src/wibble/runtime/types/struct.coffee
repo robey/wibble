@@ -17,20 +17,19 @@ class TStruct extends r_type.Type
       @on field.name, null, (target, message) -> target.state.get(field.name)
 
   coerce: (other) ->
-    nothing = require './nothing'
-    otherFields =
-      if other.type == nothing.TNothing
-        []
-      else if other.type instanceof TStruct
-        other.state.keys().map (k) -> { name: k, value: other.state.get(k) }
-      else
-        [ { name: "?0", value: other } ]
+    # fill in default values first.
     values = {}
-    for f in otherFields 
-      name = if f.name[0] == "?" then @descriptor.fields[parseInt(f.name[1...])].name else f.name
-      values[name] = f.value
-    # fill in default values:
-    for f in @descriptor.fields when not values[f.name]? then values[f.name] = f.value
+    for f in @descriptor.fields then values[f.name] = f.value
+
+    switch @descriptor.coercionKind(other.type.descriptor)
+      when "single" then values[@descriptor.fields[0].name] = other
+      when "compound"
+        for key in other.state.keys()
+          name = if key[0] == "?" then @descriptor.fields[parseInt(key[1...])].name else key
+          values[name] = other.state.get(key)
+      when "nested"
+        nested = @descriptor.fields[0]
+        values[nested.name] = new TStruct(nested.type).coerce(other)
     @create(values)
 
   ":repr": (target) ->
