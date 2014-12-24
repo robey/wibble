@@ -10,6 +10,7 @@ env =
   debugParse: false
   debugCompile: false
   debugEval: false
+  debugParseDot: false
   maxHistory: 100
   timeLimit: 15
   historyFilename: path.join(process.env["HOME"] or process.env["USERPROFILE"] or ".", ".wibble_history")
@@ -99,7 +100,15 @@ class Repl
       true
 
   parseWibble: (line) ->
-    wibble.parser.code.run(line)
+    ast = wibble.parser.code.run(line, debugGraph: env.debugParseDot)
+    if env.debugParseDot
+      @terminal.println("* Writing repl.dot")
+      try
+        fs = require 'fs'
+        fs.writeFileSync("repl.dot", ast.state.debugGraphToDot())
+      catch e
+        @terminal.println(e.stack)
+    ast
 
   displayError: (e) ->
     [ line, squiggles ] = e.state.toSquiggles()
@@ -143,6 +152,8 @@ class Repl
       when "-compile" then env.debugCompile = false
       when "+eval" then env.debugEval = true
       when "-eval" then env.debugEval = false
+      when "+dot" then env.debugParseDot = true
+      when "-dot" then env.debugParseDot = false
       when "+all"
         env.debugParse = env.debugCompile = env.debugEval = true
       when "-all"
@@ -152,6 +163,7 @@ class Repl
       if env.debugParse then "+parse" else "-parse"
       if env.debugCompile then "+compile" else "-compile"
       if env.debugEval then "+eval" else "-eval"
+      if env.debugParseDot then "+dot" else "-dot"
     ].join(" ")
 
   commandGlobals: ->
