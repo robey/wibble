@@ -22,6 +22,7 @@ RESERVED = [
   "val"
   "def"
   "new"
+  "as"
 ]
 
 OPERATORS = [

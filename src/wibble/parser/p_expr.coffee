@@ -3,6 +3,7 @@ util = require 'util'
 p_code = require './p_code'
 p_common = require './p_common'
 p_const = require './p_const'
+p_type = require './p_type'
 
 codeBlock = -> p_code.codeBlock
 commaSeparated = p_common.commaSeparated
@@ -14,6 +15,7 @@ linespace = p_common.linespace
 RESERVED = p_common.RESERVED
 SYMBOL_NAME = p_common.SYMBOL_NAME
 toState = p_common.toState
+typedecl = p_type.typedecl
 whitespace = p_common.whitespace
 
 #
@@ -21,8 +23,10 @@ whitespace = p_common.whitespace
 #
 
 # { reference: "" }
-reference = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (m, state) ->
-  { reference: m[0], state }
+allowedSymbol = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0)
+reference = pr.alt(allowedSymbol, [ "@", allowedSymbol ], /@/).onMatch (m, state) ->
+  name = if m.length > 1 then m[0] + m[1][0] else m[0]
+  { reference: name, state }
 
 # { array: [] }
 arrayExpr = commaSeparatedSurroundedCommit("[", (-> expression), "]", "Expected array item").onMatch (m, state) ->
@@ -91,7 +95,15 @@ condition = pr([
   else
     { condition: m[1], ifThen: m[2], state: m[0] }
 
-expression = pr.alt(condition, logical).describe("expression")
+toplevel = pr.alt(condition, logical)
+
+typeAssertion = pr([ toplevel, pr([ linespace, pr("as").commit().drop(), linespace, typedecl ]).optional([]) ]).onMatch (m, state) ->
+  if m[1].length > 0
+    { typeAssertion: m[1][0], expr: m[0] }
+  else
+    m[0]
+
+expression = toplevel.describe("expression")
 
 
 exports.expression = expression

@@ -45,7 +45,7 @@
 
     atom := constant | reference | array | struct | function | codeBlock | new
 
-    reference := SYMBOL_NAME
+    reference := SYMBOL_NAME | "@" SYMBOL_NAME | "@"
     
     array := "[" (expression ","?)* "]"
 

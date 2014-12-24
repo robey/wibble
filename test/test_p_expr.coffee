@@ -15,6 +15,8 @@ describe "Parse expressions", ->
   it "reference", ->
     parse("x").should.eql(reference: "x", pos: [ 0, 1 ])
     parse("hello").should.eql(reference: "hello", pos: [ 0, 5 ])
+    parse("@").should.eql(reference: "@", pos: [ 0, 1 ])
+    parse("@name").should.eql(reference: "@name", pos: [ 0, 5 ])
 
   describe "array", ->
     it "empty", ->
