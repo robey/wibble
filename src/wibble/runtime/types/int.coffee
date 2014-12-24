@@ -20,7 +20,7 @@ TInt = r_type.nativeType transform.DInt,
     obj = new object.WObject(TInt)
     if base == 16 then value = fromHex(value)
     if base == 2 then value = fromBin(value)
-    obj.native.value = if value instanceof bigint then value else bigint(value, base)
+    obj.native.value = if typeof value == "object" then value else bigint(value.toString(), base)
     obj
 
   init: ->

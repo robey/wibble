@@ -62,8 +62,13 @@ dump = (expr) ->
     return [ "if #{condition} then #{ifThen}" + (if ifElse then " else #{ifElse}" else ""), PRECEDENCE.ifThen ]
   if expr.functionx?
     return [ d_type.dumpType(expr.parameters) + " -> " + dumpExpr(expr.functionx), PRECEDENCE.code ]
+  if expr.newObject? and expr.stateless
+    # kinda hacky: a stateless "new" is always a function (currently), so just "know" that and display it that way.
+    # must be { code: [ { on: } ] }
+    return [ "#{d_type.dumpType(expr.newObject.code[0].on)} -> #{dumpExpr(expr.newObject.code[0].handler)}", PRECEDENCE.code ]
   if expr.newObject?
-    return [ "new " + (if expr.type? then expr.type.toRepr() + " " else "") + dumpExpr(expr.newObject), PRECEDENCE.code ]
+    type = expr.type?.toRepr() or "<anonymous>"
+    return [ "new #{type} #{dumpExpr(expr.newObject)}", PRECEDENCE.code ]
   if expr.local?
     return [ expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?

@@ -453,3 +453,58 @@ Okay, actually, those might be the same syntax, now that I typed them out instea
       Symbol -> ... # x is a Symbol
     }
 
+
+# just-whenever compiling
+
+san ignacio, belize -- 25 mar 2014
+
+There was a pretty hype-filled Wired article on Facebook's "Hack" language a few days ago, but it had one interesting idea worth keeping in mind -- something that isn't even in Hack, I think.
+
+The idea is "just-whenever" compiling: When you first start working on a project, iteration speed is important. It would be nice to avoid the compilation phase whenever possible, and just go into a tight edit/test cycle. This is a common complaint against the scala compiler, which is too slow to keep the feedback cycle tight.
+
+Once you have things working well, you want a separate compile phase to offload as much work as you can before running the code in production. It sorta "pre-optimizes" or "pre-JITs" the code. Combined with static type-checking, it would let you offload a lot of regression testing to the compile phase. Even without type-checking, the compile phase will find some errors that the parser won't.
+
+So this is more fuel for the argument that wibble's compiler should be a library just as much as its runtime. And the runtime must be able to take a raw text file, parse it, compile it, and then run it. I don't know if it makes sense to create an output format for parsed-but-uncompiled code, but it definitely makes sense to create a format for LLVM bitcode with the original source attached.
+
+
+# swift
+
+santa clara, ca -- 4 jun 2014
+
+Apple just released Swift, a closed-source language to replace Objective-C on iOS devices. It's obviously pretty relevant to wibble:
+
+- They use "->" to declare function return types, so they can't use it for anonymous functions. Instead they have an awkward-looking "<args> in <code>" syntax.
+
+- They use "?" for the optional type, so that's obviously not a unique idea.
+
+- They use "$0", "$1", and so on for placeholder fields in an anonymous function, like "reduce { $0 + $1 }". This is a great idea and I should totally steal it.
+
+- I just saw "func sumVec<A, N: Num where N.N == A>" in an example, meaning they probably came up with "where" independently, too. That's somewhat validating. I think in the current wibble drafts, that would look like "def sumVec($A, $N) where { $N is Num; $A is N.N }".
+
+
+# bartlett GC
+
+san francisco, ca -- 13 jun 2014
+
+This sounds like a good default GC: The "Bartlett method" doesn't attempt to parse the thread stacks, but just pulls out anything that "looks like" a pointer, from the stacks and registers. The ones that point to objects are roots, but the pages referred to by any pointer-like things are treated as "pinned" and no objects on them are moved or collected.
+
+The advantage is that all of the tricky stack-manipulation can go away. LLVM no longer has to be forced to stuff new object references into any stack -- a new object can be referred to only by a register, and that's okay. References in native C code are equally fine. Objects found by tracing can be collected normally.
+
+I think the page pinning relies on stop-the-world GC, so it may not make sense here. (Pointers inside the pinned objects would need to be updated no matter what, and if threads are still running, they may be picking up new references to pin.) It may be possible to merge this with the sneaky page-unmapping of G4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

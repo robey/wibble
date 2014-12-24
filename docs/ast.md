@@ -28,7 +28,7 @@ X = eliminated by transformations
     { logic: "and"/"or", left: expr, right: expr }
     { condition: expr, ifThen: expr, ifElse: expr }
     X: { functionx: expr, parameters: compoundType, type? }
-    { newObject: code, [type] }
+    { newObject: code, stateless: bool }
 
 ## code
 

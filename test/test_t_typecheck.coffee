@@ -128,3 +128,8 @@ describe "Typecheck", ->
     (-> typecheck("{ even = (n: Int) -> #{even}; odd = (n: Int) -> #{odd} }")).should.throw /Recursive/
     x = typecheck("{ even = (n: Int): Int -> #{even}; odd = (n: Int): Int -> #{odd} }")
     x.type.toRepr().should.eql "(n: Int) -> Int"
+
+  it "handles self-types", ->
+    x = typecheck("new { on (x: @) -> true }")
+    x.type.toRepr().should.eql "(x: @) -> Boolean"
+    

@@ -6,16 +6,40 @@ r_namespace = require './r_namespace'
 r_type = require './r_type'
 types = require './types'
 
+class RuntimeState
+  constructor: (options = {}) ->
+    if options.logger? then @logger = options.logger
+    if options.deadline? then @deadline = options.deadline
+    @locals = if options.locals? then options.locals else new r_namespace.Namespace()
+    @typemap = if options.typemap? then options.typemap else transform.typemap
+
+  push: ->
+    new RuntimeState(
+      logger: @logger
+      deadline: @deadline
+      locals: @locals.push()
+      typemap: @typemap.push()
+    )
+
+  pushLocals: (locals) ->
+    new RuntimeState(
+      logger: @logger
+      deadline: @deadline
+      locals: locals.push()
+      typemap: @typemap
+    )
+
+
 error = (message, state) ->
   e = new Error(message)
   e.state = state
   throw e
 
-evalExpr = (expr, locals, logger, deadline = null) ->
-  if deadline? and Date.now() > deadline then error("Out of time", expr.state)
-  recurse = (e) -> evalExpr(e, locals, logger, deadline)
+evalExpr = (expr, rstate) ->
+  if rstate.deadline? and Date.now() > rstate.deadline then error("Out of time", expr.state)
+  recurse = (e) -> evalExpr(e, rstate)
 
-  logger?("#{dump.dumpExpr(expr)} -in- #{locals.toDebug()}")
+  rstate.logger?("#{dump.dumpExpr(expr)} -in- #{rstate.locals.toDebug()}")
   if expr.nothing? then return types.TNothing.create()
   if expr.boolean? then return types.TBoolean.create(expr.boolean)
   if expr.number?
@@ -27,7 +51,7 @@ evalExpr = (expr, locals, logger, deadline = null) ->
   if expr.symbol? then return types.TSymbol.create(expr.symbol)
 #    { string: "" }
   if expr.reference?
-    rv = locals.get(expr.reference)
+    rv = rstate.locals.get(expr.reference)
     if not rv? then error("Missing reference '#{expr.reference}'", expr.state)
     return rv
   # array
@@ -44,9 +68,9 @@ evalExpr = (expr, locals, logger, deadline = null) ->
   if expr.call?
     left = recurse(expr.call)
     right = recurse(expr.arg)
-    logger?("call: ([#{left.type.toRepr()}] #{left.toRepr()}) #{right.toRepr()}")
-    rv = evalCall(left, right, expr.state, logger, deadline)
-    logger?("  \u21b3 [#{rv.type.toRepr()}] #{rv.toRepr()}")
+    rstate.logger?("call: ([#{left.type.toRepr()}] #{left.toRepr()}) #{right.toRepr()}")
+    rv = evalCall(left, right, expr.state, rstate)
+    rstate.logger?("  \u21b3 [#{rv.type.toRepr()}] #{rv.toRepr()}")
     return rv
   if expr.condition?
     cond = recurse(expr.condition)
@@ -55,26 +79,26 @@ evalExpr = (expr, locals, logger, deadline = null) ->
     else
       return recurse(expr.ifElse)
   if expr.newObject?
-    return evalNew(expr, locals, logger, deadline)
+    return evalNew(expr, rstate)
   if expr.local?
     rv = recurse(expr.value)
-    locals.set(expr.local.name, rv)
+    rstate.locals.set(expr.local.name, rv)
     return rv
   if expr.on?
     error("Orphan 'on' (shouldn't happen)", expr.state)
   if expr.code?
-    newLocals = new r_namespace.Namespace(locals)
+    rstate = rstate.push()
     rv = types.TNothing.create()
     for x in expr.code
-      rv = evalExpr(x, newLocals, logger, deadline)
+      rv = evalExpr(x, rstate)
     return rv
 
   error("Not yet implemented", expr.state)
 
-evalCall = (target, message, state, logger, deadline) ->
+evalCall = (target, message, state, rstate) ->
   handler = target.type.handlerForMessage(message)
   if not handler?
-    logger?("No handler for message <#{message.toRepr()}> in #{target.toRepr()}")
+    rstate.logger?("No handler for message <#{message.toRepr()}> in #{target.toRepr()}")
     error("Object [#{target.type.toRepr()}] #{target.toRepr()} can't handle message #{message.toRepr()}", state)
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
@@ -83,31 +107,33 @@ evalCall = (target, message, state, logger, deadline) ->
     new types.TStruct(handler.guard).coerce(message)
   else
     message
-  locals = new r_namespace.Namespace(handler.locals)
+  rstate = rstate.pushLocals(handler.locals)
   if m.type instanceof types.TStruct
-    for k in m.state.keys() then locals.set(k, m.state.get(k))
-  return evalExpr(handler.expr, locals, logger, deadline)
+    for k in m.state.keys() then rstate.locals.set(k, m.state.get(k))
+  return evalExpr(handler.expr, rstate)
 
-evalNew = (expr, locals, logger, deadline) ->
-  type = new r_type.Type(expr.type, expr.newObject)
-  state = new r_namespace.Namespace(locals)
-  obj = new object.WObject(type, state)
+evalNew = (expr, rstate) ->
+  type = new r_type.Type(expr.type, expr)
+  rstate = rstate.push()
+  if not expr.stateless then rstate.typemap.add "@", expr.type
+  obj = new object.WObject(type, rstate.locals)
 
   for x in expr.newObject.code
     if x.on?
       guard = if x.on.symbol?
         types.TSymbol.create(x.on.symbol)
       else
-        descriptor = transform.findType(x.on, transform.typemap)
+        descriptor = transform.findType(x.on, rstate.typemap)
         # this is a little sus.
         for f in descriptor.fields when f.value?
-          f.value = evalExpr(f.value, state, logger, deadline)
+          f.value = evalExpr(f.value, rstate)
         descriptor
-      logger?("on #{guard} locals: #{state.toDebug()}")
-      type.on guard, state, x.handler
+      rstate.logger?("on #{guard} locals: #{rstate.locals.toDebug()}")
+      type.on guard, rstate.locals, x.handler
     else
-      evalExpr(x, state, logger, deadline)
+      evalExpr(x, rstate)
   obj
 
 
 exports.evalExpr = evalExpr
+exports.RuntimeState = RuntimeState

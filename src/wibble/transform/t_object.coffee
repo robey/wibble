@@ -25,7 +25,7 @@ crushFunctions = (expr) ->
       handler: expr.functionx
       type: expr.type
       state: expr.state
-    copy(expr, functionx: null, type: null, parameters: null, newObject: { code: [ handler ] })
+    copy(expr, functionx: null, type: null, parameters: null, newObject: { code: [ handler ] }, stateless: true)
 
 
 exports.checkHandlers = checkHandlers

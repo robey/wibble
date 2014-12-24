@@ -14,7 +14,8 @@ evalExpr = (line, options = {}) ->
   expr = parser.code.run(line, options)
   expr = transform.transformExpr(expr)
   [ expr, type ] = transform.typecheck(scope, expr, options)
-  r_expr.evalExpr(expr, globals, options.logger)
+  if not options.rstate? then options.rstate = new r_expr.RuntimeState(locals: globals, logger: options.logger)
+  r_expr.evalExpr(expr, options.rstate)
 
 stringify = (obj) ->
   "[#{obj.type.toRepr()}] #{obj.toRepr()}"
@@ -52,12 +53,12 @@ describe "Runtime evalExpr", ->
       stringify(evalExpr("{ x = new { value = 3; on .value -> value }; x.value }")).should.eql "[Int] 3"
 
   it "builds a function", ->
-    stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
+    stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] (x: Int) -> x.* x"
 
   it "manages state per function call", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
-    stringify(evalExpr("square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] { on (x: Int) -> x.* x }"
+    stringify(evalExpr("square = (x: Int) -> x * x", scope: scope, globals: globals)).should.eql "[(x: Int) -> Int] (x: Int) -> x.* x"
     stringify(evalExpr("x = 100", scope: scope, globals: globals)).should.eql "[Int] 100"
     stringify(evalExpr("square 4", scope: scope, globals: globals)).should.eql "[Int] 16"
     stringify(evalExpr("square 20", scope: scope, globals: globals)).should.eql "[Int] 400"
@@ -67,10 +68,13 @@ describe "Runtime evalExpr", ->
     scope = new transform.Scope()
     globals = new r_namespace.Namespace()
     stringify(evalExpr("sub = (total: Int, without: Int = 1) -> total - without", scope: scope, globals: globals)).should.eql \
-      "[(total: Int, without: Int = 1) -> Int] { on (total: Int, without: Int = 1) -> total.- without }"
+      "[(total: Int, without: Int = 1) -> Int] (total: Int, without: Int = 1) -> total.- without"
     stringify(evalExpr("sub(100, 5)", scope: scope, globals: globals)).should.eql "[Int] 95"
     stringify(evalExpr("sub(100)", scope: scope, globals: globals)).should.eql "[Int] 99"
     stringify(evalExpr("sub(without=9, total=20)", scope: scope, globals: globals)).should.eql "[Int] 11"
 
-
-
+  it "handles self-types", ->
+    scope = new transform.Scope()
+    rstate = new r_expr.RuntimeState()
+    stringify(evalExpr("wut = new { on (x: @) -> 3 }", scope: scope, rstate: rstate)).should.eql "[(x: @) -> Int] new (x: @) -> Int { on (x: @) -> 3 }"
+    stringify(evalExpr("wut wut", scope: scope, rstate: rstate)).should.eql "[Int] 3"

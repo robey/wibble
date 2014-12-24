@@ -18,6 +18,7 @@ describe "Parse types", ->
   it "simple", ->
     parse("Int").should.eql(typename: "Int", pos: [ 0, 3 ])
     parseFailed("int").should.match(/Expected type/)
+    parse("@").should.eql(typename: "@", pos: [ 0, 1 ])
 
   it "compound", ->
     parse("(n:Int,s:String)").should.eql(
