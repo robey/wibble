@@ -69,6 +69,8 @@ dump = (expr) ->
   if expr.newObject?
     type = expr.type?.toRepr() or "<anonymous>"
     return [ "new #{type} #{dumpExpr(expr.newObject)}", PRECEDENCE.code ]
+  if expr.unless?
+    return [ "#{dumpExpr(expr.nested)} unless #{dumpExpr(expr.unless)}", PRECEDENCE.code ]
   if expr.local?
     return [ expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?

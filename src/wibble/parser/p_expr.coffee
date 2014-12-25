@@ -91,7 +91,16 @@ condition = pr([
   else
     { condition: m[1], ifThen: m[2], state: m[0] }
 
-expression = pr.alt(condition, logical).describe("expression")
+baseExpression = pr.alt(condition, logical)
+
+postfixUnless = pr([ toState("unless"), linespace, -> expression ]).onMatch (m, state) -> { unless: m[1], state: m[0] }
+postfixUntil = pr([ toState("until"), linespace, -> expression ]).onMatch (m, state) -> { until: m[1], state: m[0] }
+
+expression = pr([ baseExpression, pr([ linespace, pr.alt(postfixUnless, postfixUntil) ]).optional([]) ]).describe("expression").onMatch (m, state) ->
+  # pass thru raw expression if there were no postfixes
+  if m[1].length == 0 then return m[0]
+  m[1][0].nested = m[0]
+  m[1][0]
 
 
 exports.expression = expression

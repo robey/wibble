@@ -23,10 +23,18 @@
 
 ## expressions
 
-    expression := condition | logical
+    expression := baseExpression ("unless" expression | "until" expression)?
+
+    baseExpression := condition | loop | logical
 
     condition := "if" expression "then" expression ("else" expression)?
 
+    loop := rawLoop | whileLoop
+
+    rawLoop := "loop" expression
+
+    whileLoop := "while" expression "do" expression
+    
     logical := comparison (("and" | "or") comparison)*
 
     comparison := shifty (("==" | ">=" | "<=" | "!=" | "<" | ">") shifty)*

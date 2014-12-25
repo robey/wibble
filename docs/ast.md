@@ -29,6 +29,7 @@ X = eliminated by transformations
     { condition: expr, ifThen: expr, ifElse: expr }
     X: { functionx: expr, parameters: compoundType, type? }
     { newObject: code, stateless: bool }
+    X: { unless: expr, nested: expr }
 
 ## code
 

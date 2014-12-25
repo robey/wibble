@@ -285,6 +285,31 @@ describe "Parse expressions", ->
       parseFailed("if 3 then ???").should.match(/Expected expression/)
       parseFailed("if 3 then 3 else ???").should.match(/Expected expression/)
 
+  describe "unless", ->
+    it "_ unless _", ->
+      parse("9 unless x > 3").should.eql(
+        unless:
+          binary: ">"
+          left: { reference: "x", pos: [ 9, 10 ] }
+          right: { number: "base10", value: "3", pos: [ 13, 14 ] }
+          pos: [ 9, 14 ]
+        nested: { number: "base10", value: "9", pos: [ 0, 1 ] }
+        pos: [ 2, 8 ]
+      )
+
+    it "complex expression unless _", ->
+      parse("x .drop 9 unless y").should.eql(
+        unless: { reference: "y", pos: [ 17, 18 ] }
+        nested:
+          call:
+            call: { reference: "x", pos: [ 0, 1 ] }
+            arg: { symbol: "drop", pos: [ 2, 7 ] }
+            pos: [ 0, 7 ]
+          arg: { number: "base10", value: "9", pos: [ 8, 9 ] }
+          pos: [ 0, 9 ]
+        pos: [ 10, 16 ]
+      )
+
   describe "new", ->
     it "simple", ->
       parse("new { true }").should.eql(

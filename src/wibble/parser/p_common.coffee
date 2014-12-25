@@ -22,6 +22,8 @@ RESERVED = [
   "val"
   "def"
   "new"
+  "unless"
+  "until"
 ]
 
 OPERATORS = [

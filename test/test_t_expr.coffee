@@ -8,8 +8,9 @@ t_expr = require "#{wibble}/transform/t_expr"
 test_util = require './test_util'
 
 describe "Transform expressions", ->
+  parse = (line, options) -> test_util.parseWith(parser.expression, line, options)
+
   describe "flattenInfix", ->
-    parse = (line, options) -> test_util.parseWith(parser.expression, line, options)
     infix = (line, options) -> dump.dumpExpr(t_expr.flattenInfix(parse(line, options)))
 
     it "binary", ->
@@ -26,3 +27,10 @@ describe "Transform expressions", ->
 
     it "logical", ->
       infix("3 + 5 and 9 - 2").should.eql "3.+ 5 and 9.- 2"
+
+  describe "normalizePostfix", ->
+    postfix = (line, options) -> dump.dumpExpr(t_expr.normalizePostfix(parse(line, options)))
+
+    it "_ unless _", ->
+      postfix("3 unless true").should.eql("if true.not then 3 else ()")
+      postfix("x.dump 9 unless y").should.eql("if y.not then x.dump 9 else ()")

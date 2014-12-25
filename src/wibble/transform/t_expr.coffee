@@ -23,6 +23,7 @@ digExpr = (expr, state, transform) ->
   if expr.condition? then return copy(expr, condition: dig(expr.condition), ifThen: dig(expr.ifThen), ifElse: dig(expr.ifElse))
   if expr.functionx? then return copy(expr, functionx: dig(expr.functionx), parameters: digType(expr.parameters, state, transform))
   if expr.newObject? then return copy(expr, newObject: dig(expr.newObject))
+  if expr.unless? then return copy(expr, unless: dig(expr.unless), nested: dig(expr.nested))
 
   if expr.local? then return copy(expr, value: dig(expr.value))
   if expr.code? then return copy(expr, code: expr.code.map(dig))
@@ -58,6 +59,13 @@ normalizeIf = (expr) ->
       return copy(expr, ifElse: { nothing: true })
     return expr
 
+# turn "unless" into "if"
+normalizePostfix = (expr) ->
+  digExpr expr, {}, (expr, state) ->
+    if expr.unless?
+      return copy(expr, unless: null, nested: null, condition: { call: expr.unless, arg: { symbol: "not" } }, ifThen: expr.nested, ifElse: { nothing: true })
+    return expr
+
 # turn all positional fields into named fields
 normalizeStruct = (expr) ->
   digExpr expr, {}, (expr, state) ->
@@ -80,4 +88,5 @@ normalizeStruct = (expr) ->
 exports.digExpr = digExpr
 exports.flattenInfix = flattenInfix
 exports.normalizeIf = normalizeIf
+exports.normalizePostfix = normalizePostfix
 exports.normalizeStruct = normalizeStruct

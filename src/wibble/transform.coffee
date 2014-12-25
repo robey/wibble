@@ -22,6 +22,7 @@ exports.typemap = descriptors.typemap
 
 exports.transformExpr = (expr) ->
   expr = t_expr.flattenInfix(expr)
+  expr = t_expr.normalizePostfix(expr)
   expr = t_expr.normalizeIf(expr)
   expr = t_expr.normalizeStruct(expr)
   expr = t_object.checkHandlers(expr)
