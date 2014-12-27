@@ -11,7 +11,7 @@ class Type
 
   equals: (other) -> @descriptor.equals(other.descriptor)
 
-  toRepr: -> @descriptor.toRepr()
+  inspect: -> @descriptor.inspect()
 
   handlerForMessage: (message) ->
     if not @inited
@@ -51,7 +51,7 @@ class Type
     # on <symbol> -> <method>
     @on name, null, (target, message) ->
       f = new object.WObject(type)
-      f.toRepr = -> "<native>"
+      f.inspect = -> "<native>"
       f.equals = (other) -> f is other
       f.native.self = target
       f

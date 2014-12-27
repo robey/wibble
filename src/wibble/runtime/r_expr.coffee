@@ -68,9 +68,9 @@ evalExpr = (expr, rstate) ->
   if expr.call?
     left = recurse(expr.call)
     right = recurse(expr.arg)
-    rstate.logger?("call: ([#{left.type.toRepr()}] #{left.toRepr()}) #{right.toRepr()}")
+    rstate.logger?("call: ([#{left.type.inspect()}] #{left.inspect()}) #{right.inspect()}")
     rv = evalCall(left, right, expr.state, rstate)
-    rstate.logger?("  \u21b3 [#{rv.type.toRepr()}] #{rv.toRepr()}")
+    rstate.logger?("  \u21b3 [#{rv.type.inspect()}] #{rv.inspect()}")
     return rv
   if expr.condition?
     cond = recurse(expr.condition)
@@ -98,8 +98,8 @@ evalExpr = (expr, rstate) ->
 evalCall = (target, message, state, rstate) ->
   handler = target.type.handlerForMessage(message)
   if not handler?
-    rstate.logger?("No handler for message <#{message.toRepr()}> in #{target.toRepr()}")
-    error("Object [#{target.type.toRepr()}] #{target.toRepr()} can't handle message #{message.toRepr()}", state)
+    rstate.logger?("No handler for message <#{message.inspect()}> in #{target.inspect()}")
+    error("Object [#{target.type.inspect()}] #{target.inspect()} can't handle message #{message.inspect()}", state)
   # shortcut native-coffeescript implementations:
   if typeof handler.expr == "function"
     return handler.expr(target, message)
@@ -107,9 +107,12 @@ evalCall = (target, message, state, rstate) ->
     new types.TStruct(handler.guard).coerce(message)
   else
     message
+  evalRawCall(rstate, handler, m)
+
+evalRawCall = (rstate, handler, message) ->
   rstate = rstate.pushLocals(handler.locals)
-  if m.type instanceof types.TStruct
-    for k in m.state.keys() then rstate.locals.set(k, m.state.get(k))
+  if message.type instanceof types.TStruct
+    for k in message.state.keys() then rstate.locals.set(k, message.state.get(k))
   return evalExpr(handler.expr, rstate)
 
 evalNew = (expr, rstate) ->
@@ -134,6 +137,17 @@ evalNew = (expr, rstate) ->
       evalExpr(x, rstate)
   obj
 
+# hacky (for now) way to let wibble objects override ":inspect"
+# if an object has a handler for (:inspect -> String), call that first, then call native .inspect()
+inspect = (target, rstate) ->
+  handlerType = target.type.descriptor.handlerTypeForMessage(transform.DSymbol, ":inspect")
+  if handlerType? and handlerType.equals(transform.DString)
+    inspectSymbol = types.TSymbol.create(":inspect")
+    handler = target.type.handlerForMessage(inspectSymbol)
+    target = evalRawCall(rstate, handler, inspectSymbol)
+  target.inspect()
+
 
 exports.evalExpr = evalExpr
+exports.inspect = inspect
 exports.RuntimeState = RuntimeState

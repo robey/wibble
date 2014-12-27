@@ -19,7 +19,7 @@ class UnknownType
 
   isDefined: -> false
 
-  toRepr: ->
+  inspect: ->
     "<Unknown #{@id}: #{@name}>"
 
 
@@ -121,7 +121,7 @@ tryProgress = (variables, tstate) ->
   if tstate.options.logger?
     tstate.options.logger "Unresolved type variables: (#{Object.keys(variables).length})"
     for id, v of variables
-      tstate.options.logger "#{id}: #{util.inspect(Object.keys(v.radicals))} [#{v.type.toRepr()}] #{dump.dumpExpr(v.expr)} -- #{v.tstate.toDebug()}"
+      tstate.options.logger "#{id}: #{util.inspect(Object.keys(v.radicals))} [#{v.type.inspect()}] #{dump.dumpExpr(v.expr)} -- #{v.tstate.toDebug()}"
   remainingVariables = {}
   progress = []
   for id, v of variables
@@ -169,9 +169,9 @@ sniffType = (expr, tstate) ->
   if expr.call?
     ltype = sniffType(expr.call, tstate)
     rtype = sniffType(expr.arg, tstate)
-    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.toRepr()} \u2661 #{dump.dumpExpr(expr.arg)}: #{rtype.toRepr()}"
+    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.inspect()} \u2661 #{dump.dumpExpr(expr.arg)}: #{rtype.inspect()}"
     type = ltype.handlerTypeForMessage(rtype, expr.arg)
-    if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.toRepr()}"
+    if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.inspect()}"
     return type
 
   if expr.logic?
@@ -232,7 +232,7 @@ fillInTypes = (expr, tstate, variables) ->
     # if the "unresolved" type is defined, it was an explicit type annotation: verify it.
     if expr.unresolved.isDefined()
       if not expr.unresolved.canCoerceFrom(handler.type)
-        error("Expected type #{expr.unresolved.toRepr()}; inferred type #{handler.type.toRepr()}", expr.state)
+        error("Expected type #{expr.unresolved.inspect()}; inferred type #{handler.type.inspect()}", expr.state)
     return copy(expr, unresolved: null, handler: handler, type: tstate.type)
   if expr.code?
     code = expr.code.map (x) -> fillInTypes(x, tstate, variables)

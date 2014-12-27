@@ -22,13 +22,13 @@ describe "Runtime type", ->
 
 
   it "builds a native type", ->
-    tToaster.toRepr().should.eql "Toaster"
+    tToaster.inspect().should.eql "Toaster"
     tToaster.equals(tToaster).should.eql true
     tToaster.equals(types.TInt).should.eql false
 
   it "can create objects", ->
     obj = tToaster.create()
-    obj.type.toRepr().should.eql "Toaster"
+    obj.type.inspect().should.eql "Toaster"
 
   it "finds & calls message handlers", ->
     h = tToaster.handlerForMessage(types.TSymbol.create("destroy"))
@@ -38,4 +38,4 @@ describe "Runtime type", ->
     obj = tToaster.create()
     obj.native.size = 123
     rv = h.expr(obj, types.TSymbol.create("size"))
-    rv.toRepr().should.eql "123"
+    rv.inspect().should.eql "123"

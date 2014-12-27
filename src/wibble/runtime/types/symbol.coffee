@@ -11,7 +11,9 @@ TSymbol = r_type.nativeType transform.DSymbol,
 
   init: ->
 
-  ":repr": (target) -> ".#{target.native.name}"
+  ":inspect": (target) ->
+    prefix = if target.native.name[0] == ":" then "" else "."
+    "#{prefix}#{target.native.name}"
 
   ":equals": (target, other) ->
     if other.type != TSymbol then return false

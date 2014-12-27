@@ -47,7 +47,7 @@ class TypeState
     rv
 
   toDebug: ->
-    "<TypeState: scope=#{@scope.toDebug()}, type=#{@type?.toRepr()}, checkReferences=#{@checkReferences}>"
+    "<TypeState: scope=#{@scope.toDebug()}, type=#{@type?.inspect()}, checkReferences=#{@checkReferences}>"
 
 
 exports.TypeState = TypeState

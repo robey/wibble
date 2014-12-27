@@ -68,7 +68,7 @@ dump = (expr) ->
     # must be { code: [ { on: } ] }
     return [ "#{d_type.dumpType(expr.newObject.code[0].on)} -> #{dumpExpr(expr.newObject.code[0].handler)}", PRECEDENCE.code ]
   if expr.newObject?
-    type = expr.type?.toRepr() or "<anonymous>"
+    type = expr.type?.inspect() or "<anonymous>"
     return [ "new #{type} #{dumpExpr(expr.newObject)}", PRECEDENCE.code ]
   if expr.unless?
     return [ "#{dumpExpr(expr.nested)} unless #{dumpExpr(expr.unless)}", PRECEDENCE.code ]

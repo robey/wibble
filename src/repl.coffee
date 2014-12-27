@@ -75,7 +75,7 @@ class Repl
 
       if env.debugCompile
         @terminal.printColor("f80", "  ; ")
-        @terminal.printColor("66f", "#{type.toRepr()}: ")
+        @terminal.printColor("66f", "#{type.inspect()}: ")
         @terminal.println(wibble.dumpExpr(expr))
 
       # eval
@@ -85,9 +85,10 @@ class Repl
             @terminal.printColor("a00", "  ; ")
             @terminal.println(line)
         deadline = Date.now() + env.timeLimit * 1000
-        rv = wibble.runtime.evalExpr(expr, new wibble.runtime.RuntimeState(locals: @globals, logger: logger, deadline: deadline))
-        @terminal.printColor("99f", rv.toRepr())
-        @terminal.printColor("66f", ": #{rv.type.toRepr()}")
+        rstate = new wibble.runtime.RuntimeState(locals: @globals, logger: logger, deadline: deadline)
+        rv = wibble.runtime.evalExpr(expr, rstate)
+        @terminal.printColor("99f", wibble.runtime.inspect(rv, rstate))
+        @terminal.printColor("66f", ": #{rv.type.inspect()}")
         @terminal.println()
       catch e
         if e.state?
@@ -173,7 +174,7 @@ class Repl
       return
     for name in names
       @terminal.printColor("99f", name)
-      @terminal.printColor("66f", ": #{@globals.get(name).type.toRepr()}")
+      @terminal.printColor("66f", ": #{@globals.get(name).type.inspect()}")
       @terminal.println()
 
   commandTimeout: (timeout) ->

@@ -10,13 +10,12 @@ class WObject
     # native state, if this is a native object
     @native = {}
 
-  toRepr: (locals, logger) ->
-    if @type[":repr"]? then return @type[":repr"](@)
+  inspect: ->
+    if @type[":inspect"]? then return @type[":inspect"](@)
     # hack to make a pretty display for simple functions
     if @type.originalAst? then return dump.dumpExpr(@type.originalAst)
-    # FIXME let objects override ":repr" or something
-    fields = @state.keys().map (k) -> "#{k} = #{@state.get(k).toRepr()}"
-    "#{@type.toRepr()}(#{fields.join ', '})"
+    fields = @state.keys().map (k) -> "#{k} = #{@state.get(k).inspect()}"
+    "#{@type.inspect()}(#{fields.join ', '})"
 
   equals: (other) ->
     if @type[":equals"]? then return @type[":equals"](@, other)

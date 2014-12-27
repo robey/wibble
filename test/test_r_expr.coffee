@@ -18,7 +18,7 @@ evalExpr = (line, options = {}) ->
   r_expr.evalExpr(expr, options.rstate)
 
 stringify = (obj) ->
-  "[#{obj.type.toRepr()}] #{obj.toRepr()}"
+  "[#{obj.type.inspect()}] #{obj.inspect()}"
 
 
 describe "Runtime evalExpr", ->

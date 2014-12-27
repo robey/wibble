@@ -14,7 +14,7 @@ TNothing = r_type.nativeType transform.DNothing,
       console.log "Nothing happens."
       target
 
-  ":repr": (target) -> "()"
+  ":inspect": (target) -> "()"
 
   ":equals": (target, other) ->
     if other.type != TNothing then return false

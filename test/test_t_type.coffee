@@ -118,19 +118,19 @@ describe "TypeDescriptor", ->
     build = (line, options) -> t_type.buildType(parse(line, options))
 
     it "simple", ->
-      build("()").toRepr().should.eql "()"
-      build("Nothing").toRepr().should.eql "Nothing"
+      build("()").inspect().should.eql "()"
+      build("Nothing").inspect().should.eql "Nothing"
 
     it "compound", ->
-      build("(x: Int, y: Int)").toRepr().should.eql "(x: Int, y: Int)"
-      build("(x: Int, y: Int = 3)").toRepr().should.eql "(x: Int, y: Int = 3)"
+      build("(x: Int, y: Int)").inspect().should.eql "(x: Int, y: Int)"
+      build("(x: Int, y: Int = 3)").inspect().should.eql "(x: Int, y: Int = 3)"
       (-> build("(x: Int, y: Int = 3, x: Symbol)")).should.throw /repeated/
 
     it "function", ->
-      build("Int -> String").toRepr().should.eql "Int -> String"
+      build("Int -> String").inspect().should.eql "Int -> String"
 
     it "disjoint", ->
-      build("String | Symbol").toRepr().should.eql "String | Symbol"
+      build("String | Symbol").inspect().should.eql "String | Symbol"
 
   describe "findType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)

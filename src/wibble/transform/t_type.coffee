@@ -27,11 +27,13 @@ class TypeDescriptor
 
   canCoerceFrom: (other) -> @equals(other)
 
-  toRepr: (precedence = true) -> @toDescriptor()
+  inspect: (precedence = true) -> @toDescriptor()
 
   toDescriptor: ->
-    valueHandlers = for guard, type of @valueHandlers then ".#{guard} -> #{type.toRepr(false)}"
-    typeHandlers = @typeHandlers.map (h) -> "#{h.guard.toRepr(true)} -> #{h.type.toRepr(false)}"
+    valueHandlers = for guard, type of @valueHandlers
+      prefix = if guard[0] == ":" then "" else "."
+      "#{prefix}#{guard} -> #{type.inspect(false)}"
+    typeHandlers = @typeHandlers.map (h) -> "#{h.guard.inspect(true)} -> #{h.type.inspect(false)}"
     # make a pretty shorthand for the simple function type
     if valueHandlers.length == 0 and typeHandlers.length == 1
       typeHandlers[0]
@@ -68,7 +70,7 @@ class NamedType extends TypeDescriptor
     other = other.flatten()
     (other instanceof NamedType) and @name == other.name
 
-  toRepr: (precedence = true) -> @name
+  inspect: (precedence = true) -> @name
 
 
 class SelfType extends TypeDescriptor
@@ -83,7 +85,7 @@ class SelfType extends TypeDescriptor
 
   canCoerceFrom: (other) -> @type.canCoerceFrom(other)
 
-  toRepr: (precedence = true) -> "@"
+  inspect: (precedence = true) -> "@"
 
   handlerTypeForMessage: (type, expr) -> @type.handlerTypeForMessage(type, expr)
 
@@ -152,8 +154,8 @@ class CompoundType extends TypeDescriptor
     for k, v of remaining then if not v.hasDefault then return false
     true
 
-  toRepr: (precedence = true) ->
-    fields = @fields.map (f) -> f.name + ": " + f.type.toRepr(true) + (if f.value? then " = " + dump.dumpExpr(f.value) else "")
+  inspect: (precedence = true) ->
+    fields = @fields.map (f) -> f.name + ": " + f.type.inspect(true) + (if f.value? then " = " + dump.dumpExpr(f.value) else "")
     "(" + fields.join(", ") + ")"
 
 
@@ -233,8 +235,8 @@ class DisjointType extends TypeDescriptor
     for i in [0 ... @options.length] then if not (@options[i].equals(other.options[i])) then return false
     true
 
-  toRepr: (precedence = true) ->
-    rv = @options.map((t) -> t.toRepr(true)).join(" | ")
+  inspect: (precedence = true) ->
+    rv = @options.map((t) -> t.inspect(true)).join(" | ")
     if precedence then rv else "(#{rv})"
 
 

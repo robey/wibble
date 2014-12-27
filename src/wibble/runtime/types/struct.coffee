@@ -32,8 +32,8 @@ class TStruct extends r_type.Type
         values[nested.name] = new TStruct(nested.type).coerce(other)
     @create(values)
 
-  ":repr": (target) ->
-    fields = target.state.keys().map (k) -> "#{k} = #{target.state.get(k).toRepr()}"
+  ":inspect": (target) ->
+    fields = target.state.keys().map (k) -> "#{k} = #{target.state.get(k).inspect()}"
     "(#{fields.join ', '})"
 
   ":equals": (target, other) ->

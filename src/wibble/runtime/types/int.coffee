@@ -42,7 +42,7 @@ TInt = r_type.nativeType transform.DInt,
     @nativeMethod ">=", (target, message) => boolean.TBoolean.create(target.native.value.greaterOrEquals(message.native.value))
     @nativeMethod "**", (target, message) => @create(target.native.value.pow(message.native.value))
 
-  ":repr": (target) -> target.native.value.toString()
+  ":inspect": (target) -> target.native.value.toString()
 
   ":equals": (target, other) ->
     if other.type != TInt then return false
