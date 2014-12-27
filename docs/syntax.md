@@ -19,7 +19,7 @@
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
-    symbol := "." (SYMBOL_NAME | operator)
+    symbol := "." (SYMBOL_NAME | operator) | ":" SYMBOL_NAME
 
 ## expressions
 

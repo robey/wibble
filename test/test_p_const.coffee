@@ -41,6 +41,7 @@ describe "Parse constants", ->
     parse(".hello").should.eql(symbol: "hello", pos: [ 0, 6 ])
     parse(".xx_").should.eql(symbol: "xx_", pos: [ 0, 4 ])
     parse(".a3").should.eql(symbol: "a3", pos: [ 0, 3 ])
+    parse(":inspect").should.eql(symbol: ":inspect", pos: [ 0, 8 ])
 
   it "opref", ->
     parse(".+").should.eql(symbol: "+", pos: [ 0, 2 ])

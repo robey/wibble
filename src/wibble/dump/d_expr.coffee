@@ -32,7 +32,8 @@ dump = (expr) ->
       when "long-float" then "#{expr.value}L"
     return [ rv, PRECEDENCE.constant ]
   if expr.symbol?
-    return [ ".#{expr.symbol}", PRECEDENCE.constant ]
+    prefix = if expr.symbol[0] == ":" then "" else "."
+    return [ "#{prefix}#{expr.symbol}", PRECEDENCE.constant ]
   if expr.string?
     return [ "\"" + misc.cstring(expr.string) + "\"", PRECEDENCE.constant ]
   if expr.reference?

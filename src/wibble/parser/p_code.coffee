@@ -9,6 +9,7 @@ blockOf = p_common.blockOf
 commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 compoundType = p_type.compoundType
 expression = p_expr.expression
+internalSymbolRef = p_const.internalSymbolRef
 linespace = p_common.linespace
 symbolRef = p_const.symbolRef
 SYMBOL_NAME = p_common.SYMBOL_NAME
@@ -36,7 +37,7 @@ localName = pr(SYMBOL_NAME).onMatch (m, state) -> { name: m[0], state }
 localVal = pr([ localName, linespace, pr("=").commit().drop(), linespace, (-> expression) ]).onMatch (m, state) ->
   { local: m[0], value: m[1], state: m[0].state }
 
-handlerReceiver = pr.alt(symbolRef, compoundType).describe("symbol or parameters")
+handlerReceiver = pr.alt(symbolRef, internalSymbolRef, compoundType).describe("symbol or parameters")
 
 handler = pr([ toState("on"), linespace, handlerReceiver, linespace, pr("->").drop(), whitespace, expression ]).onMatch (m, state) ->
   { on: m[1], handler: m[2], state: m[0] }

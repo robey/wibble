@@ -52,8 +52,15 @@ symbolRef = pr([
 ]).onMatch (m, state) ->
   { symbol: m[0], state }
 
-constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRef).describe("constant")
+# reserved symbol namespace for messages that ALL objects respond to. (:inspect, for example)
+internalSymbolRef = pr([
+  pr(":").commit().drop()
+  SYMBOL_NAME
+]).onMatch (m, state) -> { symbol: ":" + m[0][0], state }
+
+constant = pr.alt(nothing, boolean, numberBase16, numberBase2, number, cstring, symbolRef, internalSymbolRef).describe("constant")
 
 
 exports.constant = constant
+exports.internalSymbolRef = internalSymbolRef
 exports.symbolRef = symbolRef
