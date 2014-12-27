@@ -49,7 +49,7 @@ evalExpr = (expr, rstate) ->
       when "base16" then return types.TInt.create(expr.value, 16)
 #    { number: long-base2/long-base10/long-base16/float/long-float, value: "" }
   if expr.symbol? then return types.TSymbol.create(expr.symbol)
-#    { string: "" }
+  if expr.string? then return types.TString.create(expr.string)
   if expr.reference?
     rv = rstate.locals.get(expr.reference)
     if not rv? then error("Missing reference '#{expr.reference}'", expr.state)

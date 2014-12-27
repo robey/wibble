@@ -41,7 +41,9 @@ t_type.addHandlers DInt, typemap,
   ".<=": "Int -> Boolean"
   ".>=": "Int -> Boolean"
   ".**": "Int -> Int"
-  ".:repr": "String"
+
+t_type.addHandlers DString, typemap,
+  ".size": "Int"
 
 exports.DAny = DAny
 exports.DBoolean = DBoolean

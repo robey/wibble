@@ -31,6 +31,9 @@ describe "Runtime evalExpr", ->
   it "int", ->
     stringify(evalExpr("94110")).should.eql "[Int] 94110"
 
+  it "string", ->
+    stringify(evalExpr("\"hello\"")).should.eql "[String] \"hello\""
+
   it "basic math", ->
     stringify(evalExpr("1 - 2 + 3")).should.eql "[Int] 2"
     stringify(evalExpr("4 + 2 * 10")).should.eql "[Int] 24"
@@ -89,3 +92,8 @@ describe "Runtime evalExpr", ->
       doubler incrementer 10
     }"""
     stringify(evalExpr(code)).should.eql "[Int] 22"
+
+  it "allows overriding :inspect", ->
+    scope = new transform.Scope()
+    rstate = new r_expr.RuntimeState()
+    r_expr.inspect(evalExpr("secret = new { on :inspect -> \"shh\" }", scope: scope, rstate: rstate), rstate).should.eql "\"shh\""
