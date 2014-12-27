@@ -109,6 +109,17 @@ describe "Typecheck", ->
       x.expr.scope.exists("x").should.eql true
       x.expr.code[1].scope.exists("x").should.eql true
 
+  describe "functions", ->
+    it "simple", ->
+      func = "-> 3"
+      typecheck(func).type.toRepr().should.eql "() -> Int"
+      typecheck("(#{func}) ()").type.toRepr().should.eql "Int"
+
+    it "as function parameters", ->
+      func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
+      typecheck(func).type.toRepr().should.eql "(f: Int -> Int) -> (n: Int) -> Int"
+      typecheck("(#{func}) ((n: Int) -> n * 2)").type.toRepr().should.eql "(n: Int) -> Int"
+
   it "merges sub-branches", ->
     x = typecheck("if true then 0 else if false then 1 else 2")
     x.type.toRepr().should.eql "Int"

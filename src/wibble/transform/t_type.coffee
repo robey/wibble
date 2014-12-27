@@ -10,13 +10,13 @@ error = t_common.error
 # the runtime also uses these as the primary reference for a runtime type.
 #
 
-# valueHandlers: { guard: string, type: TypeDescriptor }
-# typeHandlers: { guard: TypeDescriptor, type: TypeDescriptor }
+# valueHandlers: Map(guard: string -> type: TypeDescriptor)
+# typeHandlers: List[{ guard: TypeDescriptor, type: TypeDescriptor }]
 class TypeDescriptor
-  constructor: (@valueHandlers = [], @typeHandlers = []) ->
+  constructor: (@valueHandlers = {}, @typeHandlers = []) ->
 
   isDefined: ->
-    for v in @valueHandlers then if not v.type.isDefined() then return false
+    for guard, type of @valueHandlers then if not type.isDefined() then return false
     for v in @typeHandlers then if not v.type.isDefined() then return false
     true
 
@@ -30,7 +30,7 @@ class TypeDescriptor
   toRepr: (precedence = true) -> @toDescriptor()
 
   toDescriptor: ->
-    valueHandlers = @valueHandlers.map (h) -> ".#{h.guard} -> #{h.type.toRepr(false)}"
+    valueHandlers = for guard, type of @valueHandlers then ".#{guard} -> #{type.toRepr(false)}"
     typeHandlers = @typeHandlers.map (h) -> "#{h.guard.toRepr(true)} -> #{h.type.toRepr(false)}"
     # make a pretty shorthand for the simple function type
     if valueHandlers.length == 0 and typeHandlers.length == 1
@@ -42,19 +42,19 @@ class TypeDescriptor
     # allow "expr" to be a string, too, for native methods.
     if expr.symbol? then expr = expr.symbol
     if typeof expr == "string"
-      for h in @valueHandlers then if expr == h.guard then return h.type
+      for guard, type of @valueHandlers then if expr == guard then return type
     else
       for h in @typeHandlers then if h.guard.canCoerceFrom(type.flatten()) then return h.type.flatten()
     # FIXME warning: not type checked
     descriptors = require './descriptors'
     descriptors.DAny
 
-  addValueHandler: (value, htype) -> @valueHandlers.push { guard: value, type: htype }
+  addValueHandler: (value, htype) -> @valueHandlers[value] = htype
 
   addTypeHandler: (type, htype) -> @typeHandlers.push { guard: type, type: htype }
 
   fillInType: (id, type) ->
-    for h in @valueHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
+    for guard, t of @valueHandlers then if (not t.isDefined()) and t.id == id then @valueHandlers[guard] = type
     for h in @typeHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
 
 
@@ -157,22 +157,62 @@ class CompoundType extends TypeDescriptor
     "(" + fields.join(", ") + ")"
 
 
-class FunctionType extends TypeDescriptor
-  constructor: (@argType, @functionType) ->
+# user-defined classes (or functions) -- use hard-core matching
+class UserType extends TypeDescriptor
+  constructor: ->
     super()
-    @addTypeHandler @argType, @functionType
 
-  isDefined: ->
-    @argType.isDefined() and @functionType.isDefined()
-
-  equals: (other) ->
+  # is every single handler type the same?
+  equals: (other, cache = []) ->
     other = other.flatten()
-    if not (other instanceof FunctionType) then return false
-    other.argType.equals(@argType) and other.functionType.equals(@functionType)
+    # shortcut if they're the same reference or cached
+    if @ == other then return true
+    for [ x, y ] in cache then if x == @ and y == other then return true
+    if Object.keys(@valueHandlers).length != Object.keys(other.valueHandlers).length then return false
+    if @typeHandlers.length != other.typeHandlers.length then return false
+    # preempt any recursive loops:
+    cache.push [ @, other ]
+    # every value handler must match
+    for guard, type in @valueHandlers
+      if (not other.valueHandlers[guard]?) or (not type.equals(other.valueHandlers[guard], cache)) then return false
+    # every type handler must match
+    for handler in @typeHandlers
+      # node is missing Array#find.
+      oh = other.typeHandlers.filter (h) -> handler.guard.equals(h.guard, cache) and handler.type.equals(h.type, cache)
+      if oh.length < 1 then return false
+    true
 
-  toRepr: (precedence = true) ->
-    rv = @argType.toRepr(true) + " -> " + @functionType.toRepr(false)
-    if precedence then rv else "(#{rv})"
+  # does every handler have a matching coerce-from one?
+  canCoerceFrom: (other, cache = []) ->
+    other = other.flatten()
+    # shortcut if they're the same reference or cached
+    if @ == other then return true
+    for [ x, y ] in cache then if x == @ and y == other then return true
+    # preempt any recursive loops:
+    cache.push [ @, other ]
+    # every value handler must coerce
+    for guard, type in @valueHandlers
+      if (not other.valueHandlers[guard]?) or (not type.canCoerceFrom(other.valueHandlers[guard], cache)) then return false
+    # every type handler must coerce
+    for handler in @typeHandlers
+      # node is missing Array#find.
+      oh = other.typeHandlers.filter (h) ->
+        # use the reverse coercion on the arg, so "Int -> Int" can accept "(n: Int) -> Int"
+        h.guard.canCoerceFrom(handler.guard, cache) and handler.type.canCoerceFrom(h.type, cache)
+      # FIXME should pick the best match, not the first.
+      if oh.length < 1 then return false
+    true
+
+  # for internal optimizations: is this basically a function? (one handler, guarded by type)
+  isFunction: ->
+    Object.keys(@valueHandlers).length == 0 and @typeHandlers.length == 1
+
+
+# convenience: make a user type for a single function
+functionType = (argType, functionType) ->
+  type = new UserType()
+  type.addTypeHandler argType, functionType
+  type
 
 
 # FIXME template type
@@ -205,7 +245,7 @@ buildType = (type) ->
     checkCompoundType(type)
     fields = type.compoundType.map (f) -> { name: f.name, type: buildType(f.type), value: f.value }
     return new CompoundType(fields)
-  if type.functionType? then return new FunctionType(buildType(type.argType), buildType(type.functionType))
+  if type.functionType? then return functionType(buildType(type.argType), buildType(type.functionType))
   if type.disjointType?
     options = type.disjointType.map (t) -> buildType(t)
     return new DisjointType(options)
@@ -223,7 +263,7 @@ findType = (type, typemap) ->
       type = if f.type? then findType(f.type, typemap) else descriptors.DAny
       { name: f.name, type, value: f.value }
     return new CompoundType(fields)
-  if type.functionType? then return new FunctionType(findType(type.argType, typemap), findType(type.functionType, typemap))
+  if type.functionType? then return functionType(findType(type.argType, typemap), findType(type.functionType, typemap))
   if type.disjointType?
     options = type.disjointType.map (t) -> findType(t, typemap)
     return new DisjointType(options)
@@ -238,7 +278,7 @@ checkCompoundType = (type) ->
 
 # new anonymous type
 newType = (handlers) ->
-  type = new TypeDescriptor()
+  type = new UserType()
   for h in handlers
     if typeof h[0] == "string"
       type.addValueHandler h[0], h[1]
@@ -262,8 +302,9 @@ exports.buildType = buildType
 exports.CompoundType = CompoundType
 exports.DisjointType = DisjointType
 exports.findType = findType
-exports.FunctionType = FunctionType
+exports.functionType = functionType
 exports.NamedType = NamedType
 exports.newType = newType
 exports.SelfType = SelfType
 exports.TypeDescriptor = TypeDescriptor
+exports.UserType = UserType

@@ -44,10 +44,10 @@ class Type
   # helper for native implementations
   nativeMethod: (name, nativeFunction) ->
     methodType = @descriptor.handlerTypeForMessage(transform.DSymbol, name)
-    if not (methodType instanceof transform.FunctionType) then throw new Error("Native method must be function")
+    if not ((methodType instanceof transform.UserType) and methodType.isFunction()) then throw new Error("Native method must be function")
     # create a native function (arg -> expr)
     type = new Type(methodType)
-    type.on methodType.argType, null, (target, message) -> nativeFunction(target.native.self, message)
+    type.on methodType.typeHandlers[0].guard, null, (target, message) -> nativeFunction(target.native.self, message)
     # on <symbol> -> <method>
     @on name, null, (target, message) ->
       f = new object.WObject(type)

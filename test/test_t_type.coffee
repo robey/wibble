@@ -13,9 +13,9 @@ describe "TypeDescriptor", ->
     new t_type.NamedType("House").equals(new t_type.NamedType("Cat")).should.eql false
 
   it "function type equality", ->
-    f1 = new t_type.FunctionType(descriptors.DInt, descriptors.DSymbol)
-    f2 = new t_type.FunctionType(descriptors.DString, descriptors.DSymbol)
-    f3 = new t_type.FunctionType(descriptors.DInt, descriptors.DSymbol)
+    f1 = t_type.functionType(descriptors.DInt, descriptors.DSymbol)
+    f2 = t_type.functionType(descriptors.DString, descriptors.DSymbol)
+    f3 = t_type.functionType(descriptors.DInt, descriptors.DSymbol)
     f1.equals(f2).should.eql false
     f1.equals(f3).should.eql true
 
@@ -146,11 +146,11 @@ describe "TypeDescriptor", ->
       ])
 
     it "functions", ->
-      find("String -> Int").should.eql new t_type.FunctionType(descriptors.DString, descriptors.DInt)
+      find("String -> Int").should.eql t_type.functionType(descriptors.DString, descriptors.DInt)
       arg = new t_type.CompoundType([ { name: "s", type: descriptors.DString, value: undefined } ])
-      find("(s: String) -> Int").should.eql new t_type.FunctionType(arg, descriptors.DInt)
+      find("(s: String) -> Int").should.eql t_type.functionType(arg, descriptors.DInt)
       arg = new t_type.CompoundType([ { name: "s", type: descriptors.DAny, value: undefined } ])
-      find("(s) -> Int").should.eql new t_type.FunctionType(arg, descriptors.DInt)
+      find("(s) -> Int").should.eql t_type.functionType(arg, descriptors.DInt)
 
     it "disjoint", ->
       find("String | Symbol").should.eql new t_type.DisjointType([ descriptors.DString, descriptors.DSymbol ])
