@@ -78,3 +78,14 @@ describe "Runtime evalExpr", ->
     rstate = new r_expr.RuntimeState()
     stringify(evalExpr("wut = new { on (x: @) -> 3 }", scope: scope, rstate: rstate)).should.eql "[(x: @) -> Int] new (x: @) -> Int { on (x: @) -> 3 }"
     stringify(evalExpr("wut wut", scope: scope, rstate: rstate)).should.eql "[Int] 3"
+
+  it "does simple functions-of-functions metaprogramming", ->
+    # "doubler" wraps an (Int -> Int) function by doubling the result
+    # "incrementer" increments a number (by 1, by default)
+    code = """
+    {
+      doubler = (f: Int -> Int) -> { (n: Int) -> f n * 2 }
+      incrementer = (n: Int, add: Int = 1) -> n + add
+      doubler incrementer 10
+    }"""
+    stringify(evalExpr(code)).should.eql "[Int] 22"

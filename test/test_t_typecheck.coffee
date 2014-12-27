@@ -118,7 +118,11 @@ describe "Typecheck", ->
     it "as function parameters", ->
       func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
       typecheck(func).type.toRepr().should.eql "(f: Int -> Int) -> (n: Int) -> Int"
-      typecheck("(#{func}) ((n: Int) -> n * 2)").type.toRepr().should.eql "(n: Int) -> Int"
+      typecheck("(#{func}) ((n: Int) -> n + 1)").type.toRepr().should.eql "(n: Int) -> Int"
+
+    it "with parameters matched contravariantly", ->
+      func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
+      typecheck("(#{func}) ((n: Int, incr: Int = 1) -> n + incr)").type.toRepr().should.eql "(n: Int) -> Int"      
 
   it "merges sub-branches", ->
     x = typecheck("if true then 0 else if false then 1 else 2")
