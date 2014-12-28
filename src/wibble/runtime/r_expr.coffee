@@ -131,7 +131,7 @@ evalNew = (expr, rstate) ->
         for f in descriptor.fields when f.value?
           f.value = evalExpr(f.value, rstate)
         descriptor
-      rstate.logger?("on #{guard} locals: #{rstate.locals.toDebug()}")
+      rstate.logger?("on #{guard.inspect()} locals: #{rstate.locals.toDebug()}")
       type.on guard, rstate.locals, x.handler
     else
       evalExpr(x, rstate)
