@@ -44,6 +44,8 @@ t_type.addHandlers DInt, typemap,
 
 t_type.addHandlers DString, typemap,
   ".size": "Int"
+  ".==": "String -> Boolean"
+  ".!=": "String -> Boolean"
 
 exports.DAny = DAny
 exports.DBoolean = DBoolean
