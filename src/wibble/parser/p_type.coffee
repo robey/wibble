@@ -35,7 +35,10 @@ templateType = pr([ TYPE_NAME, pr("(").drop(), commaSeparated(-> typedecl), pr("
 nestedType = pr([ pr("(").drop(), (-> typedecl), pr(")").drop() ]).onMatch (m, state) ->
   m[0]
 
-componentType = pr.alt(nestedType, templateType, simpleType, compoundType, functionType)
+parameterType = pr([ pr("$").drop(), pr(TYPE_NAME).onMatch((m) -> m[0]) ]).onMatch (m, state) ->
+  { parameterType: m[0], state }
+
+componentType = pr.alt(nestedType, parameterType, templateType, simpleType, compoundType, functionType)
 
 divergentTypes = pr.repeat([ linespace, pr("|").commit().drop(), linespace, componentType ]).onMatch (m) ->
   m.map (item) -> item[0]

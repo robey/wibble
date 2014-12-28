@@ -23,6 +23,8 @@ dumpType = (t) ->
   if t.disjointType?
     types = t.disjointType.map (x) -> if x.functionType? then "(" + dumpType(x) + ")" else dumpType(x)
     return types.join(" | ")
+  if t.parameterType?
+    return "$" + t.parameterType
   return "???(#{util.inspect(t)})"
 
 dumpNamedType = (t) ->

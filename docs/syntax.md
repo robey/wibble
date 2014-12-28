@@ -71,7 +71,9 @@
 
     typedecl := componentType ("|" componentType)*
 
-    componentType := templateType | simpleType | compoundType | functionType
+    componentType := parameterType | templateType | simpleType | compoundType | functionType
+
+    parameterType := "$" TYPE_NAME
 
     templateType := TYPE_NAME "(" (typedecl ","?)* ")"
 
@@ -90,6 +92,4 @@
     localVal := SYMBOL_NAME "=" expression
 
     handler := "on" (symbol | parameterList) "->" expression
-
-
 

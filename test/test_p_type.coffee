@@ -67,6 +67,19 @@ describe "Parse types", ->
       pos: [ 0, 16 ]
     )
 
+  it "parameter", ->
+    parse("$T").should.eql(
+      parameterType: "T"
+      pos: [ 0, 2 ]
+    )
+    parse("List($Element)").should.eql(
+      templateType: "List"
+      parameters: [
+        { parameterType: "Element", pos: [ 5, 13 ]}
+      ]
+      pos: [ 0, 14 ]
+    )
+
   it "combined", ->
     parse("Map(String, List(Int -> (real: Float, imaginary: Float)))").should.eql(
       templateType: "Map"
