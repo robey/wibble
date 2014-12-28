@@ -42,5 +42,16 @@ X = eliminated by transformations
     { typename: string }
     { compoundType: { name: string, type: type, value: expr }* }
     { functionType: type, argType: type }
+    { parameterType: string }
     { templateType: string, parameters: type* }
     { disjointType: type* }
+
+# AST type objects
+
+- TypeDescriptor (generic)
+- NamedType ("Foo")
+- ParameterType ("$A")
+- SelfType ("@", with link to the actual type)
+- CompoundType ("(x: Int, y: Int)" -- structs)
+- UserType (user-defined objects and functions, matched by prototypes)
+- DisjointType ("Int | String")

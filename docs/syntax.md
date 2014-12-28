@@ -71,7 +71,9 @@
 
     typedecl := componentType ("|" componentType)*
 
-    componentType := parameterType | templateType | simpleType | compoundType | functionType
+    componentType := nestedType | parameterType | templateType | simpleType | compoundType | functionType
+
+    nestedType := "(" typedecl ")"
 
     parameterType := "$" TYPE_NAME
 
