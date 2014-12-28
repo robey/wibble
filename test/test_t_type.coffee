@@ -113,25 +113,6 @@ describe "TypeDescriptor", ->
       dParam = new t_type.CompoundType([ { name: "point", type: dPoint }])
       dParam.canCoerceFrom(dPoint).should.eql true
 
-  describe "buildType", ->
-    parse = (line, options) -> parser.typedecl.run(line, options)
-    build = (line, options) -> t_type.buildType(parse(line, options))
-
-    it "simple", ->
-      build("()").inspect().should.eql "()"
-      build("Nothing").inspect().should.eql "Nothing"
-
-    it "compound", ->
-      build("(x: Int, y: Int)").inspect().should.eql "(x: Int, y: Int)"
-      build("(x: Int, y: Int = 3)").inspect().should.eql "(x: Int, y: Int = 3)"
-      (-> build("(x: Int, y: Int = 3, x: Symbol)")).should.throw /repeated/
-
-    it "function", ->
-      build("Int -> String").inspect().should.eql "Int -> String"
-
-    it "disjoint", ->
-      build("String | Symbol").inspect().should.eql "String | Symbol"
-
   describe "findType", ->
     parse = (line, options) -> parser.typedecl.run(line, options)
     find = (line, options) -> t_type.findType(parse(line, options), descriptors.typemap)
@@ -154,3 +135,7 @@ describe "TypeDescriptor", ->
 
     it "disjoint", ->
       find("String | Symbol").should.eql new t_type.DisjointType([ descriptors.DString, descriptors.DSymbol ])
+
+    it "parameter", ->
+      find("$A").should.eql new t_type.ParameterType("$A")
+      

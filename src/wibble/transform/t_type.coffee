@@ -294,18 +294,6 @@ class DisjointType extends TypeDescriptor
 
 
 # convert an AST type into a type descriptor
-buildType = (type) ->
-  if type.typename? then return new NamedType(type.typename)
-  if type.compoundType?
-    checkCompoundType(type)
-    fields = type.compoundType.map (f) -> { name: f.name, type: buildType(f.type), value: f.value }
-    return new CompoundType(fields)
-  if type.functionType? then return functionType(buildType(type.argType), buildType(type.functionType))
-  if type.disjointType?
-    options = type.disjointType.map (t) -> buildType(t)
-    return new DisjointType(options)
-  error "Not implemented yet: template type"
-
 findType = (type, typemap) ->
   if type.typename?
     if not typemap.get(type.typename)? then error("Unknown type '#{type.typename}'", type.state)
@@ -360,7 +348,6 @@ addHandlers = (type, typemap, table) ->
 
 
 exports.addHandlers = addHandlers
-exports.buildType = buildType
 exports.CompoundType = CompoundType
 exports.DisjointType = DisjointType
 exports.findType = findType
