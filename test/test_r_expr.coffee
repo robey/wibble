@@ -76,6 +76,12 @@ describe "Runtime evalExpr", ->
     stringify(evalExpr("sub(100)", scope: scope, globals: globals)).should.eql "[Int] 99"
     stringify(evalExpr("sub(without=9, total=20)", scope: scope, globals: globals)).should.eql "[Int] 11"
 
+  it "recursively coerces struct parameters", ->
+    scope = new transform.Scope()
+    globals = new r_namespace.Namespace()
+    evalExpr("go = (point: (x: Int, y: Int)) -> point.x * point.y", scope: scope, globals: globals)
+    stringify(evalExpr("go(point = (5, 3))", scope: scope, globals: globals)).should.eql "[Int] 15"
+
   it "handles self-types", ->
     scope = new transform.Scope()
     rstate = new r_expr.RuntimeState()

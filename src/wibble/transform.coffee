@@ -6,6 +6,7 @@ t_type = require './transform/t_type'
 t_typecheck = require './transform/t_typecheck'
 t_typestate = require './transform/t_typestate'
 
+exports.CompoundType = t_type.CompoundType
 exports.DAny = descriptors.DAny
 exports.DBoolean = descriptors.DBoolean
 exports.DInt = descriptors.DInt

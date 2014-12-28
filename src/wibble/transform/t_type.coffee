@@ -192,6 +192,11 @@ class CompoundType extends TypeDescriptor
     fields = @fields.map (f) -> f.name + ": " + f.type.inspect(true) + (if f.value? then " = " + dump.dumpExpr(f.value) else "")
     "(" + fields.join(", ") + ")"
 
+  fieldByName: (name) ->
+    if name[0] == "?" then return @fields[parseInt(name[1...])]
+    for field in @fields then if field.name == name then return field
+    null
+
 
 # user-defined classes (or functions) -- use hard-core matching
 class UserType extends TypeDescriptor

@@ -1,6 +1,7 @@
-util = require 'util'
 object = require '../object'
 r_type = require '../r_type'
+transform = require '../../transform'
+util = require 'util'
 
 class TStruct extends r_type.Type
   constructor: (descriptor) ->
@@ -19,17 +20,24 @@ class TStruct extends r_type.Type
   coerce: (other) ->
     # fill in default values first.
     values = {}
-    for f in @descriptor.fields then values[f.name] = f.value
+    for field in @descriptor.fields then values[field.name] = field.value
 
     switch @descriptor.coercionKind(other.type.descriptor)
-      when "single" then values[@descriptor.fields[0].name] = other
+      # do nothing for "nothing"
+      when "single"
+        field = @descriptor.fields[0]
+        values[field.name] = other
       when "compound"
         for key in other.state.keys()
-          name = if key[0] == "?" then @descriptor.fields[parseInt(key[1...])].name else key
-          values[name] = other.state.get(key)
+          field = @descriptor.fieldByName(key)
+          value = other.state.get(key)
+          # FIXME: is this really specific to nested structs? seems like it should be more generic.
+          if field.type instanceof transform.CompoundType
+            value = new TStruct(field.type).coerce(value)
+          values[field.name] = value
       when "nested"
-        nested = @descriptor.fields[0]
-        values[nested.name] = new TStruct(nested.type).coerce(other)
+        field = @descriptor.fields[0]
+        values[field.name] = new TStruct(field.type).coerce(other)
     @create(values)
 
   ":inspect": (target) ->

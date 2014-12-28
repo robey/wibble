@@ -206,6 +206,11 @@ fillInTypes = (expr, tstate, variables) ->
   if expr.newType? then tstate = tstate.enterType(expr.newType)
 
   if expr.reference? then return copy(expr, type: tstate.scope.get(expr.reference))
+
+  if expr.struct?
+    fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value, tstate), value: fillInTypes(f.value, tstate, variables) }
+    return copy(expr, struct: fields, type: new t_type.CompoundType(fields))
+
   if expr.call?
     call = fillInTypes(expr.call, tstate, variables)
     arg = fillInTypes(expr.arg, tstate, variables)
