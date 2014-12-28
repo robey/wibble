@@ -122,7 +122,18 @@ describe "Typecheck", ->
 
     it "with parameters matched contravariantly", ->
       func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
-      typecheck("(#{func}) ((n: Int, incr: Int = 1) -> n + incr)").type.inspect().should.eql "(n: Int) -> Int"      
+      typecheck("(#{func}) ((n: Int, incr: Int = 1) -> n + incr)").type.inspect().should.eql "(n: Int) -> Int"
+
+    it "simple type parameters", ->
+      func = "(x: $A) -> x"
+      typecheck(func).type.inspect().should.eql "(x: $A) -> $A"
+      typecheck("(#{func}) 10").type.inspect().should.eql "Int"
+
+    it "type parameters in a disjoint type", ->
+      func = "(x: $A, y: Boolean) -> if y then x else 100"
+      typecheck(func).type.inspect().should.eql "(x: $A, y: Boolean) -> ($A | Int)"
+      typecheck("(#{func}) (10, true)").type.inspect().should.eql "Int"
+      typecheck("(#{func}) (10, false)").type.inspect().should.eql "Int"
 
   it "merges sub-branches", ->
     x = typecheck("if true then 0 else if false then 1 else 2")

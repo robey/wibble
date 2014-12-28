@@ -24,10 +24,9 @@ class UnknownType
 
 
 # transform the expression tree, checking locals and references.
-# - attach a new "scope" object to each place we enter a new scope.
+# - attach a new "scope", "typemap" object to each place we enter a new scope.
 # - mark locals and handlers with an unresolved type.
-# - complain about references that don't appear to resolve to anything (and
-#   can't be forward references)
+# - complain about references that don't appear to resolve to anything (and can't be forward references)
 buildScopes = (expr, tstate) ->
   t_expr.digExpr expr, tstate, (expr, tstate) ->
     findType = (type) -> t_type.findType(type, tstate.typemap)
@@ -41,10 +40,10 @@ buildScopes = (expr, tstate) ->
       tstate = tstate.newType()
       if not expr.stateless
         # open a new scope too
-        tstate = tstate.newScope().newTypemap()
+        tstate = tstate.newScope()
         tstate.scope.add("@", tstate.type)
         tstate.typemap.add("@", new t_type.SelfType(tstate.type))
-      return [ copy(expr, newType: tstate.type), tstate ]
+      return [ copy(expr, newType: tstate.type, scope: tstate.scope, typemap: tstate.typemap), tstate ]
 
     if expr.local?
       if tstate.scope.exists(expr.local.name) and not tstate.options.allowOverride
@@ -62,21 +61,20 @@ buildScopes = (expr, tstate) ->
         for p in expr.on.compoundType
           tstate.scope.add(p.name, if p.type? then findType(p.type) else descriptors.DAny)
         tstate.type.addTypeHandler findType(expr.on), type
-        return [ copy(expr, scope: tstate.scope, unresolved: type, type: null), tstate ]
+        return [ copy(expr, scope: tstate.scope, typemap: tstate.typemap, unresolved: type, type: null), tstate ]
       else
         tstate.type.addValueHandler expr.on.symbol, type
         return [ copy(expr, unresolved: type, type: null), tstate ]
 
     if expr.code?
       tstate = tstate.newScope()
-      return [ copy(expr, scope: tstate.scope), tstate ]
+      return [ copy(expr, scope: tstate.scope, typemap: tstate.typemap), tstate ]
 
     [ expr, tstate ]
 
 # pass 2:
 # - check forward references for code inside handlers
-# - for each unresolved type, memoize the expression and the dependent refs
-#   into a 'variables' table
+# - for each unresolved type, memoize the expression and the dependent refs into a 'variables' table
 checkForwardReferences = (expr, tstate) ->
   variables = {}
   walk expr, tstate, (expr, tstate) ->
@@ -146,7 +144,7 @@ fixType = (id, v, type) ->
 # walk an expression tree, sniffing out the type, depth-first.
 sniffType = (expr, tstate) ->
   if expr.type? then return expr.type
-  if expr.scope? then tstate = tstate.enterScope(expr.scope)
+  if expr.scope? then tstate = tstate.enterScope(expr.scope, expr.typemap)
 
   # constants
   if expr.nothing? then return descriptors.DNothing
@@ -204,7 +202,7 @@ sniffType = (expr, tstate) ->
 
 fillInTypes = (expr, tstate, variables) ->
   if expr.type? and expr.type.isDefined() then return expr
-  if expr.scope? then tstate = tstate.enterScope(expr.scope)
+  if expr.scope? then tstate = tstate.enterScope(expr.scope, expr.typeMap)
   if expr.newType? then tstate = tstate.enterType(expr.newType)
 
   if expr.reference? then return copy(expr, type: tstate.scope.get(expr.reference))
@@ -244,7 +242,7 @@ fillInTypes = (expr, tstate, variables) ->
 # helper for walking the expression tree without transforming it
 walk = (expr, tstate, f) ->
   t_expr.digExpr expr, tstate, (expr, tstate) ->
-    if expr.scope? then tstate = tstate.enterScope(expr.scope)
+    if expr.scope? then tstate = tstate.enterScope(expr.scope, expr.typemap)
     if expr.newType? then tstate = tstate.enterType(expr.newType)
     f(expr, tstate)
     [ expr, tstate ]
@@ -256,19 +254,7 @@ branch = (types) ->
       options = options.concat(t.options)
     else
       options.push t
-  options = mergeTypes(options)
-  if options.length == 1 then return options[0]
-  new t_type.DisjointType(options)
-
-# for a disjoint type, try to merge compatible types together
-mergeTypes = (types) ->
-  return types if types.length == 1
-  for i in [0 ... types.length]
-    for j in [i ... types.length]
-      continue if i == j
-      if types[i].canCoerceFrom(types[j])
-        return mergeTypes [types[i]].concat(for n in [0 ... types.length] when n != i and n != j then types[n])
-  types
+  new t_type.DisjointType(options).mergeIfPossible()
 
 
 exports.buildScopes = buildScopes

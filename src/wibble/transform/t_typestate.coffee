@@ -18,11 +18,12 @@ class TypeState
     rv
 
   newScope: ->
-    @enterScope new t_scope.Scope(@scope)
+    @enterScope new t_scope.Scope(@scope), new t_scope.Scope(@typemap)
 
-  enterScope: (scope) ->
+  enterScope: (scope, typemap) ->
     rv = @copy()
     rv.scope = scope
+    rv.typemap = typemap
     rv
 
   newType: ->
@@ -33,14 +34,6 @@ class TypeState
     rv.type = type
     rv
 
-  newTypemap: ->
-    @enterTypemap new t_scope.Scope(@typemap)
-
-  enterTypemap: (typemap) ->
-    rv = @copy()
-    rv.typemap = typemap
-    rv
-    
   stopCheckingReferences: ->
     rv = @copy()
     rv.checkReferences = false

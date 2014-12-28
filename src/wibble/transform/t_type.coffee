@@ -23,9 +23,15 @@ class TypeDescriptor
   # SelfType wraps another type, so allow lookups to flatten these kind of annotated references
   flatten: -> @
 
+  # fill in any "$A"-style type parameters from this map, returning a new TypeDescriptor if necessary.
+  resolveParameters: (parameterMap) -> @
+
   equals: (other) -> @ == other
 
-  canCoerceFrom: (other) -> @equals(other)
+  # can 'other' be passed to this type?
+  # if there are type parameters (like "$A"), parameterMap will map them to concrete types.
+  canCoerceFrom: (other, parameterMap = {}) ->
+    @equals(other)
 
   inspect: (precedence = true) -> @toDescriptor()
 
@@ -46,7 +52,10 @@ class TypeDescriptor
     if typeof expr == "string"
       for guard, type of @valueHandlers then if expr == guard then return type
     else
-      for h in @typeHandlers then if h.guard.canCoerceFrom(type.flatten()) then return h.type.flatten()
+      for h in @typeHandlers
+        parameterMap = {}
+        if h.guard.canCoerceFrom(type.flatten(), parameterMap)
+          return h.type.resolveParameters(parameterMap)
     # FIXME warning: not type checked
     descriptors = require './descriptors'
     descriptors.DAny
@@ -73,6 +82,26 @@ class NamedType extends TypeDescriptor
   inspect: (precedence = true) -> @name
 
 
+class ParameterType extends TypeDescriptor
+  constructor: (@name) ->
+    super()
+
+  isDefined: -> true
+
+  resolveParameters: (parameterMap) -> parameterMap[@name]
+
+  equals: (other) ->
+    other = other.flatten()
+    (other instanceof ParameterType) and @name == other.name
+
+  canCoerceFrom: (other, parameterMap = {}) ->
+    # i'm a wildcard! i can coerce anything! tag, you're it!
+    parameterMap[@name] = other
+    true
+
+  inspect: (precedence = true) -> @name
+
+
 class SelfType extends TypeDescriptor
   constructor: (@type) ->
     super()
@@ -81,9 +110,11 @@ class SelfType extends TypeDescriptor
 
   flatten: -> @type
 
+  resolveParameters: (parameterMap) -> @type.resolveParameters(parameterMap)
+
   equals: (other) -> @type.equals(other)
 
-  canCoerceFrom: (other) -> @type.canCoerceFrom(other)
+  canCoerceFrom: (other, parameterMap = {}) -> @type.canCoerceFrom(other, parameterMap)
 
   inspect: (precedence = true) -> "@"
 
@@ -101,6 +132,9 @@ class CompoundType extends TypeDescriptor
     for f in @fields then if not f.type.isDefined() then return false
     true
 
+  resolveParameters: (parameterMap) ->
+    new CompoundType(@fields.map (f) -> { name: f.name, type: f.type.resolveParameters(parameterMap), value: f.value })
+
   equals: (other) ->
     other = other.flatten()
     if not (other instanceof CompoundType) then return false
@@ -110,11 +144,11 @@ class CompoundType extends TypeDescriptor
     for f in @fields then if not (otherFields[f.name]? and f.type.equals(otherFields[f.name])) then return false
     true
 
-  canCoerceFrom: (other) ->
-    @coercionKind(other)?
+  canCoerceFrom: (other, parameterMap = {}) ->
+    @coercionKind(other, parameterMap)?
 
   # (only for structs) figure out what kind of coercion will work, and return it
-  coercionKind: (other) ->
+  coercionKind: (other, parameterMap = {}) ->
     other = other.flatten()
     kind = null
     # allow zero-arg to be equivalent to an empty struct, and one-arg to be a single-element struct
@@ -129,12 +163,12 @@ class CompoundType extends TypeDescriptor
         other = new CompoundType([ name: "?0", type: other ])
     # check loose equality of compound types
     if @equals(other) then return kind
-    if @looselyMatches(other.fields) then return kind
+    if @looselyMatches(other.fields, parameterMap) then return kind
     # special case: if we're a one-field struct that is itself a struct, we have to go deeper.
-    if @fields.length == 1 and (@fields[0].type instanceof CompoundType) and @fields[0].type.looselyMatches(other.fields) then return "nested"
+    if @fields.length == 1 and (@fields[0].type instanceof CompoundType) and @fields[0].type.looselyMatches(other.fields, parameterMap) then return "nested"
     null
 
-  looselyMatches: (fields) ->
+  looselyMatches: (fields, parameterMap) ->
     # check for loose matching:
     # - no extra fields
     # - positional fields have the right type
@@ -149,7 +183,7 @@ class CompoundType extends TypeDescriptor
       else
         name = f.name
       if not remaining[name]? then return false
-      if not remaining[name].type.flatten().canCoerceFrom(f.type.flatten()) then return false
+      if not remaining[name].type.flatten().canCoerceFrom(f.type.flatten(), parameterMap) then return false
       delete remaining[name]
     for k, v of remaining then if not v.hasDefault then return false
     true
@@ -185,7 +219,7 @@ class UserType extends TypeDescriptor
     true
 
   # does every handler have a matching coerce-from one?
-  canCoerceFrom: (other, cache = []) ->
+  canCoerceFrom: (other, parameterMap = {}, cache = []) ->
     other = other.flatten()
     # shortcut if they're the same reference or cached
     if @ == other then return true
@@ -194,13 +228,13 @@ class UserType extends TypeDescriptor
     cache.push [ @, other ]
     # every value handler must coerce
     for guard, type in @valueHandlers
-      if (not other.valueHandlers[guard]?) or (not type.canCoerceFrom(other.valueHandlers[guard], cache)) then return false
+      if (not other.valueHandlers[guard]?) or (not type.canCoerceFrom(other.valueHandlers[guard], parameterMap, cache)) then return false
     # every type handler must coerce
     for handler in @typeHandlers
       # node is missing Array#find.
       oh = other.typeHandlers.filter (h) ->
         # use the reverse coercion on the arg, so "Int -> Int" can accept "(n: Int) -> Int"
-        h.guard.canCoerceFrom(handler.guard, cache) and handler.type.canCoerceFrom(h.type, cache)
+        h.guard.canCoerceFrom(handler.guard, parameterMap, cache) and handler.type.canCoerceFrom(h.type, parameterMap, cache)
       # FIXME should pick the best match, not the first.
       if oh.length < 1 then return false
     true
@@ -228,6 +262,9 @@ class DisjointType extends TypeDescriptor
     for t in @options then if not t.isDefined() then return false
     true
 
+  resolveParameters: (parameterMap) ->
+    new DisjointType(@options.map (t) -> t.resolveParameters(parameterMap)).mergeIfPossible()
+
   equals: (other) ->
     other = other.flatten()
     if not (other instanceof DisjointType) then return false
@@ -238,6 +275,22 @@ class DisjointType extends TypeDescriptor
   inspect: (precedence = true) ->
     rv = @options.map((t) -> t.inspect(true)).join(" | ")
     if precedence then rv else "(#{rv})"
+
+  # try to unify.
+  mergeIfPossible: ->
+    for i in [0 ... @options.length]
+      for j in [i + 1 ... @options.length]
+        continue unless @options[i]? and @options[j]?
+        if @options[i].equals(@options[j])
+          @options[j] = null
+          continue
+        continue if @options[i] instanceof ParameterType
+        if @options[i].canCoerceFrom(@options[j])
+          @options[j] = null
+        else if @options[j].canCoerceFrom(@options[i])
+          @options[i] = null
+    types = @options.filter (x) -> x?
+    if types.length == 1 then types[0] else new DisjointType(types)
 
 
 # convert an AST type into a type descriptor
@@ -269,6 +322,13 @@ findType = (type, typemap) ->
   if type.disjointType?
     options = type.disjointType.map (t) -> findType(t, typemap)
     return new DisjointType(options)
+  if type.parameterType?
+    name = "$" + type.parameterType
+    t = typemap.get(name)
+    if t? then return t
+    t = new ParameterType(name)
+    typemap.add(name, t)
+    return t
   error "Not implemented yet: template type"
 
 # check for repeated fields before it's too late
@@ -307,6 +367,7 @@ exports.findType = findType
 exports.functionType = functionType
 exports.NamedType = NamedType
 exports.newType = newType
+exports.ParameterType = ParameterType
 exports.SelfType = SelfType
 exports.TypeDescriptor = TypeDescriptor
 exports.UserType = UserType
