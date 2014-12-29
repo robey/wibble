@@ -50,8 +50,7 @@ dump = (expr) ->
   if expr.call?
     # prettify symbol-calls, and paren-wrapped args.
     arg = parenthesize(expr.arg, PRECEDENCE.call)
-    space = if expr.arg.symbol? or arg[0] == "(" then "" else " "
-    return [ parenthesize(expr.call, PRECEDENCE.call + 1) + space + arg, PRECEDENCE.call ]
+    return [ parenthesize(expr.call, PRECEDENCE.call + 1) + " " + arg, PRECEDENCE.call ]
   if expr.binary?
     return [ parenthesize(expr.left, PRECEDENCE[expr.binary] + 1) + " #{expr.binary} " + parenthesize(expr.right, PRECEDENCE[expr.binary]), PRECEDENCE[expr.binary] ]
   if expr.logic?
