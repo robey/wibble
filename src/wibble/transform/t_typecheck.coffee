@@ -184,7 +184,7 @@ sniffType = (expr, tstate) ->
     if not ctype.equals(descriptors.DBoolean) then error("Conditional expression must be true or false", expr.condition.state)
     ttype = sniffType(expr.ifThen, tstate)
     etype = sniffType(expr.ifElse, tstate)
-    return branch([ ttype, etype ])
+    return branch([ ttype, etype ], tstate)
 
   if expr.newObject? then return expr.newType
 
@@ -252,14 +252,16 @@ walk = (expr, tstate, f) ->
     f(expr, tstate)
     [ expr, tstate ]
 
-branch = (types) ->
+branch = (types, tstate) ->
   options = []
   for t in types
     if t instanceof t_type.DisjointType
       options = options.concat(t.options)
     else
       options.push t
-  new t_type.DisjointType(options).mergeIfPossible()
+  rv = new t_type.DisjointType(options).mergeIfPossible()
+  if tstate?.options?.logger? then tstate.options.logger "unify types: #{types.map((t) -> t.inspect()).join(' | ')} -> #{rv.inspect()}"
+  rv
 
 
 exports.buildScopes = buildScopes
