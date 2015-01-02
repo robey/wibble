@@ -1,3 +1,4 @@
+fs = require "fs"
 packrattle = require 'packrattle'
 util = require 'util'
 
@@ -17,6 +18,7 @@ stateToPos = (x) ->
 
 parseWith = (parser, line, options) ->
   rv = parser.run(line, options)
+  if options?.debugGraph? then fs.writeFileSync("test.dot", rv.state.debugGraphToDot())
   stateToPos(rv)
 
 parseFailedWith = (parser, line, options) ->
