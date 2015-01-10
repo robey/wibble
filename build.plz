@@ -6,6 +6,8 @@ load "mocha"
 settings.clean = [ "lib" ]
 settings.distclean = [ "node_modules" ]
 
+settings.coffee.options = [ "--map" ]
+
 task "build_date", after: "build", run: ->
   dateString = new Date().toISOString()
   dateString = dateString[0...4] + dateString[5...7] + dateString[8...10]

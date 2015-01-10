@@ -16,7 +16,8 @@
   "devDependencies": {
     "mocha": "*",
     "plz": "*",
-    "should": "*"
+    "should": "*",
+    "source-map-support": "*"
   },
   "main": "./lib/wibble",
   "files": [

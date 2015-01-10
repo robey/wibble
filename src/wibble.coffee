@@ -1,3 +1,4 @@
+require("source-map-support").install()
 
 parser = require './wibble/parser'
 exports.parser = parser
