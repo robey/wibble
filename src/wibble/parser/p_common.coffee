@@ -1,6 +1,8 @@
 pr = require 'packrattle'
 util = require 'util'
 
+require("source-map-support").install()
+
 #
 # common regexs and definitions used by different parsers
 #
@@ -74,45 +76,56 @@ comment = pr(/\#[^\n]*/).drop()
 linespace = pr(/([ ]+|\\\n)*/).drop()
 
 # linefeed is acceptable whitespace here
-whitespace = pr(/([ \n]+|\\\n|\#[^\n]*\n)*/).drop()
+whitespace = pr(/([ \n]+|\\\n|\#[^\n]*\n)+/).optional().drop()
+commentspace = pr(/([ \n]+|\\\n|\#[^\n]*\n)+/).onMatch (m) ->
+  m[0].split("\n").map((x) -> x.trim()).filter((x) -> x[0] == "#").join("\n")
+.optional()
 
 # match a keyword, commit on it, and turn it into its state (covering span)
 toState = (p) ->
   pr(p).commit().onMatch((m, state) -> state)
 
-repeatSeparated = (p, separator, ws = linespace) ->
-  middle = pr([ ws, pr(separator).drop(), ws, p ]).onMatch (m) -> m[0]
-  foo = pr([ p, middle.repeat(), ws, pr(separator).optional().drop() ]).onMatch (m) ->
-    [ m[0] ].concat(m[1])
-  foo.optional([])
+# ws -- whitespace preceding 'p'.
+# if it's not dropped, the ws will be added to each 'p' as 'comment'.
+repeatSeparated = (p, separator, ws) ->
+  middle = pr([ linespace, pr(separator).drop(), ws, p ]).onMatch (m) ->
+    if m.length > 1
+      if m[0].length > 0 then m[1].comment = m[0]
+      m[1]
+    else
+      m[0]
+  rv = pr([ ws, p, middle.repeat(), linespace, pr(separator).optional().drop() ]).onMatch (m) ->
+    if m.length > 2
+      if m[0].length > 0 then m[1].comment = m[0]
+      [ m[1] ].concat(m[2])
+    else
+      [ m[0] ].concat(m[1])
+  rv.optional([])
 
-# repeat 'p' with optional whitespace around it, separated by commas, with a trailing comma OK
-commaSeparated = (p) -> repeatSeparated(p, /,\s*/)
-
-# same as commaSeparated, but with a surrounding group syntax like [ ], and committing after the open and close
-commaSeparatedSurrounded = (open, p, close, message) ->
-  pr([ pr(open).drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).drop() ]).onMatch (m) -> m[0]
-
-commaSeparatedSurroundedCommit = (open, p, close, message) ->
-  pr([ pr(open).commit().drop(), whitespace, commaSeparated(p), whitespace, pr(close).onFail(message).commit().drop() ]).onMatch (m) -> m[0]
-
-lineSeparated = (p) -> repeatSeparated(p, /[\n;]/)
+# same as repeatSeparated, but with a surrounding group syntax like [ ].
+# ws -- whitespace preceding the close-group parser.
+# message -- what you expected if a group member can't parse.
+# if ws isn't dropped, it will be added as 'trailingComment'.
+repeatSurrounded = (open, p, separator, close, ws, message) ->
+  pr([
+    pr(open).drop(),
+    repeatSeparated(p, separator, ws),
+    ws,
+    pr(close).onFail(message).drop()
+  ]).onMatch (m) ->
+    rv = { items: m[0] }
+    if m.length > 1 and m[1].length > 0
+      rv.trailingComment = m[1]
+    rv
 
 # repeat 'p' separated by linefeeds or ; inside { }
 blockOf = (p) ->
-  pr([
-    pr("{").commit().drop()
-    whitespace
-    lineSeparated(p).optional([])
-    whitespace
-    pr("}").commit().drop()
-  ]).onMatch (m) -> m[0]
+  repeatSurrounded pr("{").commit(), p, /[\n;]+/, pr("}").commit(), commentspace, "Expected code"
 
 
 exports.blockOf = blockOf
-exports.commaSeparated = commaSeparated
-exports.commaSeparatedSurrounded = commaSeparatedSurrounded
-exports.commaSeparatedSurroundedCommit = commaSeparatedSurroundedCommit
+exports.commentspace = commentspace
+exports.repeatSurrounded = repeatSurrounded
 exports.linespace = linespace
 exports.OPERATORS = OPERATORS
 exports.PRECEDENCE = PRECEDENCE

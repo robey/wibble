@@ -3,7 +3,6 @@ util = require 'util'
 p_common = require './p_common'
 misc = require '../misc'
 
-commaSeparated = p_common.commaSeparated
 OPERATORS = p_common.OPERATORS
 SYMBOL_NAME = p_common.SYMBOL_NAME
 

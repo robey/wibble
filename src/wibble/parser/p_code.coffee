@@ -6,7 +6,6 @@ p_expr = require './p_expr'
 p_type = require './p_type'
 
 blockOf = p_common.blockOf
-commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 compoundType = p_type.compoundType
 expression = p_expr.expression
 internalSymbolRef = p_const.internalSymbolRef
@@ -42,10 +41,14 @@ handlerReceiver = pr.alt(symbolRef, internalSymbolRef, compoundType).describe("s
 handler = pr([ toState("on"), linespace, handlerReceiver, linespace, pr("->").drop(), whitespace, expression ]).onMatch (m, state) ->
   { on: m[1], handler: m[2], state: m[0] }
 
-code = pr.alt(localVal, handler, expression).onFail("Expected declaration or expression")
+code1 = pr.alt(localVal, handler, expression).onFail("Expected declaration or expression")
+
+code = pr([ whitespace, code1 ]).onMatch (m) -> m[0]
 
 codeBlock = blockOf(code).onMatch (m, state) ->
-  { code: m, state: state }
+  rv = { code: m.items, state: state }
+  if m.trailingComment? then rv.trailingComment = m.trailingComment
+  rv
 
 
 exports.code = code

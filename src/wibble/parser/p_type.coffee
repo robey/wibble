@@ -3,9 +3,8 @@ util = require 'util'
 p_common = require './p_common'
 p_expr = require './p_expr'
 
-commaSeparated = p_common.commaSeparated
-commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
 linespace = p_common.linespace
+repeatSurrounded = p_common.repeatSurrounded
 SYMBOL_NAME = p_common.SYMBOL_NAME
 TYPE_NAME = p_common.TYPE_NAME
 
@@ -23,14 +22,14 @@ namedType = pr([
 ]).onMatch (m) ->
   { name: m[0].name, type: m[1][0], value: m[2][0], state: m[0].state }
 
-compoundType = commaSeparatedSurrounded("(", namedType, ")", "Expected named type").onMatch (m, state) ->
-  { compoundType: m, state }
+compoundType = repeatSurrounded("(", namedType, ",", ")", linespace, "Expected named type").onMatch (m, state) ->
+  { compoundType: m.items, state }
 
 functionType = pr([ (-> typedecl), linespace, pr("->").commit().drop(), linespace, (-> typedecl) ]).onMatch (m, state) ->
   { functionType: m[1], argType: m[0], state }
 
-templateType = pr([ TYPE_NAME, pr("(").drop(), commaSeparated(-> typedecl), pr(")").drop() ]).onMatch (m, state) ->
-  { templateType: m[0][0], parameters: m[1], state }
+templateType = pr([ TYPE_NAME, repeatSurrounded("(", (-> typedecl), ",", ")", linespace, "Expected type") ]).onMatch (m, state) ->
+  { templateType: m[0][0], parameters: m[1].items, state }
 
 nestedType = pr([ pr("(").drop(), (-> typedecl), pr(")").drop() ]).onMatch (m, state) ->
   m[0]

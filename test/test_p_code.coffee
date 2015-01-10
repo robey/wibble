@@ -224,9 +224,10 @@ describe "Parse code", ->
       )
 
     it "comments", ->
-      parse("{  # code\n# 3\n  true\n}").should.eql(
+      parse("{  # code\n# 3\n  true\n  # ok!\n}").should.eql(
         code: [
-          { boolean: true, pos: [ 16, 20 ] }
+          { boolean: true, comment: "# code\n# 3", pos: [ 16, 20 ] }
         ]
-        pos: [ 0, 22 ]
+        trailingComment: "# ok!"
+        pos: [ 0, 30 ]
       )

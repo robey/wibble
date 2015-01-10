@@ -5,12 +5,11 @@ p_common = require './p_common'
 p_const = require './p_const'
 
 codeBlock = -> p_code.codeBlock
-commaSeparated = p_common.commaSeparated
-commaSeparatedSurrounded = p_common.commaSeparatedSurrounded
-commaSeparatedSurroundedCommit = p_common.commaSeparatedSurroundedCommit
+commentspace = p_common.commentspace
 constant = p_const.constant
 functionx = -> p_code.functionx
 linespace = p_common.linespace
+repeatSurrounded = p_common.repeatSurrounded
 RESERVED = p_common.RESERVED
 SYMBOL_NAME = p_common.SYMBOL_NAME
 toState = p_common.toState
@@ -25,8 +24,17 @@ reference = pr(SYMBOL_NAME).matchIf((m) -> RESERVED.indexOf(m[0]) < 0).onMatch (
   { reference: m[0], state }
 
 # { array: [] }
-arrayExpr = commaSeparatedSurroundedCommit("[", (-> expression), "]", "Expected array item").onMatch (m, state) ->
-  { array: m, state }
+arrayExpr = repeatSurrounded(
+  pr("[").commit(),
+  (-> expression),
+  /[\n,]+/,
+  pr("]").commit(),
+  commentspace,
+  "Expected array item"
+).onMatch (m, state) ->
+  rv = { array: m.items, state }
+  if m.trailingComment? then rv.trailingComment = m.trailingComment
+  rv
 
 structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> expression) ]).onMatch (m, state) ->
   if m[0].length > 0
@@ -34,10 +42,12 @@ structMember = pr([ pr([ SYMBOL_NAME, pr(/\s*=\s*/).drop() ]).optional([]), (-> 
   else
     { value: m[1], state: state }
 
-struct = commaSeparatedSurrounded("(", structMember, ")", "Expected struct item").onMatch (m, state) ->
+struct = repeatSurrounded("(", structMember, /[\n,]+/, ")", commentspace, "Expected struct item").onMatch (m, state) ->
   # AST optimization: "(expr)" is just a precedence-bumped expression.
-  if m.length == 1 and (not m[0].name?) then return m[0].value
-  { struct: m, state }
+  if m.items.length == 1 and (not m.items[0].name?) then return m.items[0].value
+  rv = { struct: m.items, state }
+  if m.trailingComment? then rv.trailingComment = m.trailingComment
+  rv
 
 newObject = pr([ toState("new"), whitespace, codeBlock ]).onMatch (m, state) ->
   { newObject: m[1], state: m[0] }
