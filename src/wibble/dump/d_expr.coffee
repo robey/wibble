@@ -72,7 +72,10 @@ dump = (expr) ->
   if expr.unless?
     return [ "#{dumpExpr(expr.nested)} unless #{dumpExpr(expr.unless)}", PRECEDENCE.code ]
   if expr.local?
-    return [ expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
+    modifier = if expr.mutable then "mutable " else ""
+    return [ modifier + expr.local.name + " = " + dumpExpr(expr.value), PRECEDENCE.code ]
+  if expr.assignment?
+    return [ expr.assignment.name + " := " + dumpExpr(expr.value), PRECEDENCE.code ]
   if expr.on?
     parameters = if expr.on.compoundType? then d_type.dumpType(expr.on) else ".#{expr.on.symbol}"
     return [ "on #{parameters} -> " + dumpExpr(expr.handler), PRECEDENCE.code ]

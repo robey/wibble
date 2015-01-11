@@ -166,7 +166,30 @@ describe "Parse code", ->
       parse("x = 100").should.eql(
         local: { name: "x", pos: [ 0, 1 ] }
         value: { number: "base10", value: "100", pos: [ 4, 7 ] }
+        mutable: false
         pos: [ 0, 1 ]
+      )
+      parse("mutable count = 3").should.eql(
+        local: { name: "count", pos: [ 8, 13 ] }
+        value: { number: "base10", value: "3", pos: [ 16, 17 ] }
+        mutable: true
+        pos: [ 8, 13 ]
+      )
+
+    it "assignment", ->
+      parse("count := 9").should.eql(
+        assignment: { name: "count", pos: [ 0, 5 ] }
+        value: { number: "base10", value: "9", pos: [ 9, 10 ] }
+        pos: [ 6, 8 ]
+      )
+      parse("count := count + 1").should.eql(
+        assignment: { name: "count", pos: [ 0, 5 ] }
+        value:
+          binary: "+"
+          left: { reference: "count", pos: [ 9, 14 ] }
+          right: { number: "base10", value: "1", pos: [ 17, 18 ] }
+          pos: [ 9, 18 ]
+        pos: [ 6, 8 ]
       )
 
     it "handler", ->

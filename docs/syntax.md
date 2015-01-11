@@ -34,7 +34,7 @@
     rawLoop := "loop" expression
 
     whileLoop := "while" expression "do" expression
-    
+
     logical := comparison (("and" | "or") comparison)*
 
     comparison := shifty (("==" | ">=" | "<=" | "!=" | "<" | ">") shifty)*
@@ -89,9 +89,11 @@
 
 ## code
 
-    code := localVal | handler | expression
+    code := localVal | assignment | handler | expression
 
-    localVal := SYMBOL_NAME "=" expression
+    localVal := ("mutable")? SYMBOL_NAME "=" expression
 
+    assignment := SYMBOL_NAME ":=" expression
+    
     handler := "on" (symbol | parameterList) "->" expression
 

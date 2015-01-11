@@ -21,6 +21,10 @@ describe "Dump expressions", ->
 
   it "dump locals", ->
     dump.dumpExpr(parse("{ x = 9 + a }")).should.eql("{ x = 9 + a }")
+    dump.dumpExpr(parse("{ mutable count = x }")).should.eql("{ mutable count = x }")
+
+  it "dump assignments", ->
+    dump.dumpExpr(parse("{ count := x + 1 }")).should.eql("{ count := x + 1 }")
 
   it "dump handlers", ->
     dump.dumpExpr(parse("{ on .start -> true }")).should.eql("{ on .start -> true }")

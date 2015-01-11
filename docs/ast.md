@@ -17,7 +17,7 @@ X = eliminated by transformations
     { symbol: "" }
     { string: "" }
 
-## expressions
+## expressions 
 
     { reference: "" }
     { array: [ expr* ] }
@@ -33,7 +33,7 @@ X = eliminated by transformations
 
 ## code
 
-    { local: { name: string }, value: expr }
+    { local: { name: string }, value: expr, mutable: bool }
     { on: { symbol | compoundType }, handler: expr, type?, [scope] }
     { code: [ expr* ], [scope] }
 
