@@ -84,6 +84,10 @@ evalExpr = (expr, rstate) ->
     rv = recurse(expr.value)
     rstate.locals.set(expr.local.name, rv)
     return rv
+  if expr.assignment?
+    rv = recurse(expr.value)
+    rstate.locals.set(expr.assignment, rv)
+    return rv
   if expr.on?
     error("Orphan 'on' (shouldn't happen)", expr.state)
   if expr.code?

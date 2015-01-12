@@ -55,6 +55,9 @@ describe "Runtime evalExpr", ->
     it "nest inside 'new' correctly", ->
       stringify(evalExpr("{ x = new { value = 3; on .value -> value }; x.value }")).should.eql "[Int] 3"
 
+    it "mutable locals", ->
+      stringify(evalExpr("{ mutable count = 10; count := count + 1; count }")).should.eql "[Int] 11"
+
   it "builds a function", ->
     stringify(evalExpr("(x: Int) -> x * x")).should.eql "[(x: Int) -> Int] (x: Int) -> x .* x"
 
