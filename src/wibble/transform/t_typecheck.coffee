@@ -32,8 +32,13 @@ buildScopes = (expr, tstate) ->
     findType = (type) -> t_type.findType(type, tstate.typemap)
 
     if expr.reference? and tstate.checkReferences
-      type = tstate.scope.get(expr.reference)
-      if not type? then error("Unknown reference '#{expr.reference}'", expr.state)
+      tdef = tstate.scope.get(expr.reference)
+      if not tdef? then error("Unknown reference '#{expr.reference}'", expr.state)
+
+    if expr.assignment? and tstate.checkReferences
+      tdef = tstate.scope.get(expr.assignment)
+      if not tdef? then error("Unknown reference '#{expr.assignment}'", expr.state)
+      if not tdef.mutable then error("Assignment to immutable '#{expr.assignment}'", expr.state)
 
     if expr.newObject?
       # attach a new (blank) type that we'll fill in with handlers
@@ -48,7 +53,7 @@ buildScopes = (expr, tstate) ->
     if expr.local?
       if tstate.scope.exists(expr.local.name) and not tstate.options.allowOverride
         error("Redefined local '#{expr.local.name}'", expr.local.state)
-      tstate.scope.add(expr.local.name, new UnknownType(expr.local.name))
+      tstate.scope.add(expr.local.name, new UnknownType(expr.local.name), expr.mutable)
 
     if expr.on?
       # code inside a handler is allowed to make forward references, so stop
@@ -82,7 +87,7 @@ checkForwardReferences = (expr, tstate) ->
       if not tstate.scope.get(expr.reference)?
         error("Unknown reference #{tstate.scope.toDebug()} '#{expr.reference}'", expr.state)
     if expr.local?
-      type = tstate.scope.get(expr.local.name)
+      type = tstate.scope.get(expr.local.name).type
       if not type.isDefined()
         variables[type.id] = { local: expr.local.name, expr: expr.value, type: type, tstate: tstate }
     if expr.on? and not expr.unresolved?.isDefined()
@@ -94,7 +99,7 @@ checkForwardReferences = (expr, tstate) ->
     v.radicals = {}
     walk v.expr, v.tstate, (expr, tstate) ->
       if expr.reference?
-        type = tstate.scope.get(expr.reference)
+        type = tstate.scope.get(expr.reference).type
         if not type.isDefined() then v.radicals[type.id] = true
 
   unresolved = variables
@@ -142,6 +147,7 @@ fixType = (id, v, type) ->
     v.tstate.type.fillInType(parseInt(id), v.type)
 
 # walk an expression tree, sniffing out the type, depth-first.
+# this also enforces implicit type constraints (like: "if" must refer to a bool).
 sniffType = (expr, tstate) ->
   if expr.type? then return expr.type
   if expr.scope? then tstate = tstate.enterScope(expr.scope, expr.typemap)
@@ -156,7 +162,7 @@ sniffType = (expr, tstate) ->
   if expr.symbol? then return descriptors.DSymbol
   if expr.string? then return descriptors.DString
 
-  if expr.reference? then return tstate.scope.get(expr.reference)
+  if expr.reference? then return tstate.scope.get(expr.reference).type
 
   # { array: [ expr* ] }
 
@@ -188,7 +194,13 @@ sniffType = (expr, tstate) ->
 
   if expr.newObject? then return expr.newType
 
-  if expr.local? then return tstate.scope.get(expr.local.name)
+  if expr.local? then return tstate.scope.get(expr.local.name).type
+
+  if expr.assignment?
+    vtype = sniffType(expr.value, tstate)
+    ltype = tstate.scope.get(expr.assignment).type
+    if not ltype.canCoerceFrom(vtype) then error("Incompatible types in assignment: #{vtype.inspect()} assigned to #{ltype.inspect()}", expr.state)
+    return ltype
 
   if expr.on? then return descriptors.DNothing
 
@@ -205,7 +217,7 @@ fillInTypes = (expr, tstate, variables) ->
   if expr.scope? then tstate = tstate.enterScope(expr.scope, expr.typeMap)
   if expr.newType? then tstate = tstate.enterType(expr.newType)
 
-  if expr.reference? then return copy(expr, type: tstate.scope.get(expr.reference))
+  if expr.reference? then return copy(expr, type: tstate.scope.get(expr.reference).type)
 
   if expr.struct?
     fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value, tstate), value: fillInTypes(f.value, tstate, variables) }
@@ -225,11 +237,13 @@ fillInTypes = (expr, tstate, variables) ->
   if expr.newObject?
     return copy(expr, newObject: fillInTypes(expr.newObject, tstate, variables), type: expr.newType, newType: null)
   if expr.local?
-    type = tstate.scope.get(expr.local.name)
+    type = tstate.scope.get(expr.local.name).type
     if not type.isDefined()
       tstate.scope.add(expr.local.name, variables[type.id].type)
     value = fillInTypes(expr.value, tstate, variables)
     return copy(expr, value: value)
+  if expr.assignment?
+    return copy(expr, value: fillInTypes(expr.value, tstate, variables))
   if expr.on? and expr.unresolved?
     handler = fillInTypes(expr.handler, tstate, variables)
     # if the "unresolved" type is defined, it was an explicit type annotation: verify it.

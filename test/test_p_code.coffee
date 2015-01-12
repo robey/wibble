@@ -178,12 +178,12 @@ describe "Parse code", ->
 
     it "assignment", ->
       parse("count := 9").should.eql(
-        assignment: { name: "count", pos: [ 0, 5 ] }
+        assignment: "count"
         value: { number: "base10", value: "9", pos: [ 9, 10 ] }
         pos: [ 6, 8 ]
       )
       parse("count := count + 1").should.eql(
-        assignment: { name: "count", pos: [ 0, 5 ] }
+        assignment: "count"
         value:
           binary: "+"
           left: { reference: "count", pos: [ 9, 14 ] }

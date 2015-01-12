@@ -13,8 +13,8 @@ class Scope
     if @parent? then return @parent.get(name)
     null
 
-  add: (name, type) ->
-    @symtab[name] = type
+  add: (name, type, mutable = false) ->
+    @symtab[name] = { type, mutable }
 
   push: -> new Scope(@)
   

@@ -44,7 +44,7 @@ localVal = pr([
   { local: m[1], value: m[2], mutable: m[0].length > 0, state: m[1].state }
 
 assignment = pr([ localName, linespace, toState(":="), linespace, (-> expression) ]).onMatch (m, state) ->
-  { assignment: m[0], value: m[2], state: m[1] }
+  { assignment: m[0].name, value: m[2], state: m[1] }
 
 handlerReceiver = pr.alt(symbolRef, internalSymbolRef, compoundType).describe("symbol or parameters")
 

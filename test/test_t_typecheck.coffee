@@ -62,7 +62,7 @@ describe "Typecheck", ->
       x.type.inspect().should.eql "() -> Boolean"
       d_expr.dumpExpr(x.expr).should.eql "new () -> Boolean { hidden = .ok; on () -> true }"
       # verify that inner locals were type-checked
-      x.expr.newObject.scope.get("hidden").inspect().should.eql "Symbol"
+      x.expr.newObject.scope.get("hidden").type.inspect().should.eql "Symbol"
 
     it "inner reference", ->
       x = typecheck("new { on (x: Int) -> x }")
@@ -71,7 +71,7 @@ describe "Typecheck", ->
 
     it "generates a scope for 'on' handlers", ->
       x = typecheck("new { on (x: Int) -> x .+ 2 }")
-      x.expr.newObject.code[0].scope.get("x").inspect().should.eql "Int"
+      x.expr.newObject.code[0].scope.get("x").type.inspect().should.eql "Int"
 
     it "can do forward references from inside the closure", ->
       x = typecheck("new { on (x: Int) -> { y + 3 }; y = 10 }")
@@ -91,18 +91,26 @@ describe "Typecheck", ->
 
     it "finds a local", ->
       x = typecheck("{ x = 9 }")
-      x.expr.scope.get("x").inspect().should.eql "Int"
+      x.expr.scope.get("x").type.inspect().should.eql "Int"
 
     it "resolves inner references", ->
       x = typecheck("{ x = true; x }")
       x.type.inspect().should.eql "Boolean"
-      x.expr.scope.get("x").inspect().should.eql "Boolean"
+      x.expr.scope.get("x").type.inspect().should.eql "Boolean"
 
     it "gets unhappy about duped vars", ->
       (-> typecheck("{ x = 9; x = 3 }")).should.throw /Redefined/
 
     it "gets unhappy about forward references", ->
       (-> typecheck("{ y = 3 + x; x = 9 }")).should.throw /reference/
+      (-> typecheck("{ q := 9 }")).should.throw /reference/
+
+    it "insists that assignments target mutables", ->
+      (-> typecheck("{ count = 3; count := 4 }")).should.throw /immutable/
+      typecheck("{ mutable count = 3; count := 4 }").type.inspect().should.eql "Int"
+
+    it "insists that assignments are typesafe", ->
+      (-> typecheck("{ mutable count = 3; count := false }")).should.throw /Incompatible types/
 
     it "allows nested duped vars", ->
       x = typecheck("{ x = 9; { x = 3 } }")

@@ -302,7 +302,7 @@ class DisjointType extends TypeDescriptor
 findType = (type, typemap) ->
   if type.typename?
     if not typemap.get(type.typename)? then error("Unknown type '#{type.typename}'", type.state)
-    return typemap.get(type.typename)
+    return typemap.get(type.typename).type
   if type.compoundType?
     descriptors = require './descriptors'
     checkCompoundType(type)
@@ -317,7 +317,7 @@ findType = (type, typemap) ->
     return new DisjointType(options)
   if type.parameterType?
     name = "$" + type.parameterType
-    t = typemap.get(name)
+    t = typemap.get(name)?.type
     if t? then return t
     t = new ParameterType(name)
     typemap.add(name, t)
