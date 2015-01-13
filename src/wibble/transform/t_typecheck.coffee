@@ -85,7 +85,11 @@ checkForwardReferences = (expr, tstate) ->
   walk expr, tstate, (expr, tstate) ->
     if expr.reference?
       if not tstate.scope.get(expr.reference)?
-        error("Unknown reference #{tstate.scope.toDebug()} '#{expr.reference}'", expr.state)
+        error("Unknown reference '#{expr.reference}'", expr.state)
+    if expr.assignment?
+      tdef = tstate.scope.get(expr.assignment)
+      if not tdef? then error("Unknown reference '#{expr.assignment}'", expr.state)
+      if not tdef.mutable then error("Assignment to immutable '#{expr.assignment}'", expr.state)
     if expr.local?
       type = tstate.scope.get(expr.local.name).type
       if not type.isDefined()
@@ -100,6 +104,9 @@ checkForwardReferences = (expr, tstate) ->
     walk v.expr, v.tstate, (expr, tstate) ->
       if expr.reference?
         type = tstate.scope.get(expr.reference).type
+        if not type.isDefined() then v.radicals[type.id] = true
+      if expr.assignment?
+        type = tstate.scope.get(expr.assignment).type
         if not type.isDefined() then v.radicals[type.id] = true
 
   unresolved = variables
@@ -124,7 +131,7 @@ tryProgress = (variables, tstate) ->
   if tstate.options.logger?
     tstate.options.logger "Unresolved type variables: (#{Object.keys(variables).length})"
     for id, v of variables
-      tstate.options.logger "#{id}: #{util.inspect(Object.keys(v.radicals))} [#{v.type.inspect()}] #{dump.dumpExpr(v.expr)} -- #{v.tstate.toDebug()}"
+      tstate.options.logger "#{id}: radicals=#{util.inspect(Object.keys(v.radicals))} [#{v.type.inspect()}] #{dump.dumpExpr(v.expr)} -- #{v.tstate.toDebug()}"
   remainingVariables = {}
   progress = []
   for id, v of variables

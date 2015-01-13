@@ -76,9 +76,13 @@ describe "Typecheck", ->
     it "can do forward references from inside the closure", ->
       x = typecheck("new { on (x: Int) -> { y + 3 }; y = 10 }")
       x.type.inspect().should.eql "(x: Int) -> Int"
+      x = typecheck("new { on (x: Int) -> { y := 3 }; mutable y = 10 }")
+      x.type.inspect().should.eql "(x: Int) -> Int"
 
     it "can still trap unknown references inside the closure", ->
       (-> typecheck("new { on (x: Int) -> { y + 3 } }")).should.throw /reference/
+      (-> typecheck("new { on (x: Int) -> { y := 3 } }")).should.throw /reference/
+      (-> typecheck("new { on (x: Int) -> { y := 3 }; y = 10 }")).should.throw /immutable/
 
   it "locals", ->
     x = typecheck("x = 3")
