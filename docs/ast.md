@@ -34,7 +34,9 @@ X = eliminated by transformations
 ## code
 
     { local: { name: string }, value: expr, mutable: bool }
+    { assignment: string, value: expr }
     { on: { symbol | compoundType }, handler: expr, type?, [scope] }
+    { returnEarly: expr }
     { code: [ expr* ], [scope] }
 
 ## types

@@ -220,6 +220,12 @@ describe "Parse code", ->
     it "handler error", ->
       parseFailed("on 3 -> 3").should.match /symbol or parameters/
 
+    it "return", ->
+      parse("return 3").should.eql(
+        returnEarly: { number: "base10", value: "3", pos: [ 7, 8 ] }
+        pos: [ 0, 6 ]
+      )
+
   describe "block of code", ->
     parse = (line, options) -> parseWith(p_code.codeBlock, line, options)
     parseFailed = (line, options) -> parseFailedWith(p_code.codeBlock, line, options)

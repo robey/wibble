@@ -30,6 +30,9 @@ describe "Dump expressions", ->
     dump.dumpExpr(parse("{ on .start -> true }")).should.eql("{ on .start -> true }")
     dump.dumpExpr(parse("{ on (x: Int) -> { 16 } }")).should.eql("{ on (x: Int) -> { 16 } }")
 
+  it "dump return", ->
+    dump.dumpExpr(parse("{ return if true then 3 else 4 }")).should.eql("{ return if true then 3 else 4 }")
+
 describe "Dump types", ->
   parse = (line, options) -> test_util.parseWith(parser.typedecl, line, options)
 

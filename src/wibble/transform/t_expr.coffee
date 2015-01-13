@@ -31,6 +31,7 @@ digExpr = (expr, state, transform) ->
   if expr.on?
     newOn = if expr.on.compoundType? then digType(expr.on, state, transform) else expr.on
     return copy(expr, on: newOn, handler: dig(expr.handler))
+  if expr.returnEarly? then return copy(expr, returnEarly: dig(expr.returnEarly))
   expr
 
 digType = (t, state, transform) ->

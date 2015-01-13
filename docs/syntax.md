@@ -89,11 +89,13 @@
 
 ## code
 
-    code := localVal | assignment | handler | expression
+    code := localVal | assignment | return | handler | expression
 
     localVal := ("mutable")? SYMBOL_NAME "=" expression
 
     assignment := SYMBOL_NAME ":=" expression
+
+    return := "return" expression
     
     handler := "on" (symbol | parameterList) "->" expression
 

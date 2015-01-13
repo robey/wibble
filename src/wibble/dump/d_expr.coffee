@@ -79,6 +79,8 @@ dump = (expr) ->
   if expr.on?
     parameters = if expr.on.compoundType? then d_type.dumpType(expr.on) else ".#{expr.on.symbol}"
     return [ "on #{parameters} -> " + dumpExpr(expr.handler), PRECEDENCE.code ]
+  if expr.returnEarly?
+    return [ "return " + dumpExpr(expr.returnEarly), PRECEDENCE.code ]
   if expr.code?
     return [ "{ " + expr.code.map(dumpExpr).join('; ') + " }", PRECEDENCE.constant ]
   [ "???(#{util.inspect(expr)})", PRECEDENCE.none ]

@@ -51,7 +51,10 @@ handlerReceiver = pr.alt(symbolRef, internalSymbolRef, compoundType).describe("s
 handler = pr([ toState("on"), linespace, handlerReceiver, linespace, pr("->").drop(), whitespace, expression ]).onMatch (m, state) ->
   { on: m[1], handler: m[2], state: m[0] }
 
-code1 = pr.alt(localVal, assignment, handler, expression).onFail("Expected declaration or expression")
+returnEarly = pr([ toState("return"), linespace, expression ]).onMatch (m, state) ->
+  { returnEarly: m[1], state: m[0] }
+
+code1 = pr.alt(localVal, assignment, handler, returnEarly, expression).onFail("Expected declaration or expression")
 
 code = pr([ whitespace, code1 ]).onMatch (m) -> m[0]
 
