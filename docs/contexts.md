@@ -114,7 +114,7 @@ access to an object's state should always be limited to that object, but by
 default each state field should have an accessor in the behavior.
 
 the real question is how to sort all this out so that it's clear (when
-writing a prototype) what's being referenced. it seems like the following 
+writing a prototype) what's being referenced. it seems like the following
 things are frequently allowed as "visible" in the lexical scope of a piece
 of code in a method on a class:
 
@@ -493,18 +493,19 @@ The advantage is that all of the tricky stack-manipulation can go away. LLVM no 
 I think the page pinning relies on stop-the-world GC, so it may not make sense here. (Pointers inside the pinned objects would need to be updated no matter what, and if threads are still running, they may be picking up new references to pin.) It may be possible to merge this with the sneaky page-unmapping of G4.
 
 
+# function metadata
+
+san francisco, ca -- 8 feb 2015
+
+Writing this down because it's been in my RTM list for over a year: Wibble functions should keep their text source around as metadata, for introspection.
 
 
+# duck typing
 
+san jose, ca -- 16 mar 2015
 
+Rus described a work problem that sounds like a great selling point for duck typing. They have a java library, and they'd like to swap it out for another, but the interface is in the library, so at the very least, the new library would need to reproduce (most of) the original API in a new namespace, and their code would need to change package names everywhere.
 
+Node has a similar thing, where "express" is the standard web server, and other libraries like "restify" mimic the API so that plugins written for express will work (usually) with restify. It works because there's no formal interface file that has to be installed with express (or pulled out into a standard library). Duck typing means that if you swap in a new library for express, and it has the same API, then it will work.
 
-
-
-
-
-
-
-
-
-
+Duck typing. It's what's for dinner.
