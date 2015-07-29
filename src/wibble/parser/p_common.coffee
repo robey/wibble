@@ -1,7 +1,7 @@
 pr = require 'packrattle'
 util = require 'util'
 
-require("source-map-support").install()
+#require("source-map-support").install()
 
 #
 # common regexs and definitions used by different parsers
