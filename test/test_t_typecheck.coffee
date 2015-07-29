@@ -56,7 +56,7 @@ describe "Typecheck", ->
       x = typecheck("new { on .foo -> 3 }")
       x.type.inspect().should.eql "[.foo -> Int]"
       d_expr.dumpExpr(x.expr).should.eql "new [.foo -> Int] { on .foo -> 3 }"
-  
+
     it "nothing", ->
       x = typecheck("new { hidden = .ok; on () -> true }")
       x.type.inspect().should.eql "() -> Boolean"
@@ -147,6 +147,14 @@ describe "Typecheck", ->
       typecheck("(#{func}) (10, true)").type.inspect().should.eql "Int"
       typecheck("(#{func}) (10, false)").type.inspect().should.eql "Int"
 
+    it "insists that the returned type match the prototype", ->
+      func = "(n: Int): Int -> true"
+      (-> typecheck(func)).should.throw /Expected type Int; inferred type Boolean/
+
+    it "unifies struct return types", ->
+      func = "(n: Int): (x: Int, y: Int) -> (4, 8)"
+      typecheck(func).type.inspect().should.eql "(n: Int) -> (x: Int, y: Int)"
+
   it "merges sub-branches", ->
     x = typecheck("if true then 0 else if false then 1 else 2")
     x.type.inspect().should.eql "Int"
@@ -170,4 +178,3 @@ describe "Typecheck", ->
   it "handles self-types", ->
     x = typecheck("new { on (x: @) -> true }")
     x.type.inspect().should.eql "(x: @) -> Boolean"
-    
