@@ -4,24 +4,31 @@
   "description": "wibble",
   "keywords": [ ],
   "author": "Robey Pointer <robeypointer@gmail.com>",
+  "homepage": "https://github.com/robey/wibble",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/robey/wibble.git"
+  },
+  "license": "Apache-2.0",
   "scripts": {
-    "test": "./node_modules/.bin/plz -v test"
+    "clean": "rm -rf lib test/lib",
+    "distclean": "npm run clean && rm -rf node_modules npm-debug.log",
+    "prepublish": "babel --source-maps --out-dir lib src && babel --source-maps --out-dir test/lib test/src",
+    "test": "mocha -R spec --colors --recursive test/lib"
   },
   "dependencies": {
     "antsy": "*",
     "big-integer": "*",
-    "coffee-script": "*",
     "packrattle": "*"
   },
   "devDependencies": {
-    "mocha": "*",
-    "plz": "*",
-    "should": "*",
-    "source-map-support": "*"
+    "babel": "latest",
+    "mocha": "latest",
+    "should": "latest",
+    "source-map-support": "latest"
   },
   "main": "./lib/wibble",
   "files": [
-    "build.plz",
     "lib",
     "test"
   ]

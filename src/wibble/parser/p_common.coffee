@@ -7,43 +7,6 @@ util = require 'util'
 # common regexs and definitions used by different parsers
 #
 
-SYMBOL_NAME = /[a-z][A-Za-z_0-9]*/
-
-TYPE_NAME = /[A-Z][A-Za-z_0-9]*/
-
-RESERVED = [
-  "if"
-  "then"
-  "else"
-  "match"
-  "true"
-  "false"
-  "and"
-  "or"
-  "on"
-  "val"
-  "def"
-  "new"
-  "unless"
-  "until"
-]
-
-OPERATORS = [
-  "**"
-  "*"
-  "/"
-  "%"
-  "+"
-  "-"
-  "<<"
-  ">>"
-  "=="
-  "!="
-  ">="
-  "<="
-  ">"
-  "<"
-]
 
 PRECEDENCE =
   constant: 1

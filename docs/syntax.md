@@ -11,11 +11,11 @@
 
     number := numberBase2 | numberBase16 | numberBase10
 
-    numberBase2 := "0b" [01]+ "L"?
+    numberBase2 := "0b" [01_]+
 
-    numberBase16 := "0x" [0-9a-fA-F]+ "L"?
+    numberBase16 := "0x" [0-9a-fA-F_]+
 
-    numberBase10 := "-"? [0-9]+ ("." [0-9]+)? "L"?
+    numberBase10 := [0-9_]+ ("." [0-9_]+)? ([eE] [-+]? [0-9_]+)?
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
@@ -54,7 +54,7 @@
     atom := constant | reference | array | struct | function | codeBlock | new
 
     reference := SYMBOL_NAME
-    
+
     array := "[" (expression ","?)* "]"
 
     struct := "(" (structMember ","?)* ")"
@@ -96,6 +96,5 @@
     assignment := SYMBOL_NAME ":=" expression
 
     return := "return" expression
-    
-    handler := "on" (symbol | parameterList) "->" expression
 
+    handler := "on" (symbol | parameterList) "->" expression

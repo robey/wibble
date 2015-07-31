@@ -3,7 +3,7 @@
 
 X = eliminated by transformations
 
-- everything has a "state" field.
+- everything has a "span" field.
 - a few nodes have a "scope" field, meaning they open a new lexical scope.
   scope is (name -> type).
 - a few nodes will grow a "type" field to hold the descriptor of the object
@@ -11,13 +11,12 @@ X = eliminated by transformations
 
 ## constants
 
-    { nothing: true }
-    { boolean: true/false }
+- PConstant(type, value, span)
+  - PConstantType: NOTHING, BOOLEAN, SYMBOL
     { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
-    { symbol: "" }
     { string: "" }
 
-## expressions 
+## expressions
 
     { reference: "" }
     { array: [ expr* ] }
