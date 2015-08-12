@@ -27,9 +27,15 @@ class PConstant {
   }
 
   inspect() {
-    return `const(${PConstantType.name(this.type)}, ${this.value})[${this.span.start}...${this.span.end}]`;
+    let rv = `const(${PConstantType.name(this.type)}, ${this.value})`;
+    if (this.comment) rv += "#\"" + util.cstring(this.comment) + "\"";
+    rv += `[${this.span.start}:${this.span.end}]`;
+    return rv;
   }
 }
+
+
+// ----- parsers
 
 const nothing = $("()").map((value, span) => new PConstant(PConstantType.NOTHING, null, span));
 
@@ -38,7 +44,7 @@ const boolean = $.alt("true", "false").map((value, span) => {
 });
 
 const symbolRef = $([
-  $(".").drop(),
+  $.drop(".").commit(),
   $.alt(
     $(p_common.SYMBOL_NAME).map(match => match[0]),
     ...(p_common.OPERATORS)
@@ -48,7 +54,7 @@ const symbolRef = $([
 // reserved symbol namespace for messages that ALL objects respond to. (:inspect, for example)
 // FIXME i don't think i like this.
 const internalSymbolRef = $([
-  $(":").commit().drop(),
+  $.drop($.commit(":")),
   p_common.SYMBOL_NAME
 ]).map((match, span) => new PConstant(PConstantType.SYMBOL, ":" + match[0][0], span));
 
@@ -59,21 +65,21 @@ const numberBase10 = $([
 ]).map((match, span) => new PConstant(PConstantType.NUMBER_BASE10, match.join(""), span));
 
 const numberBase16 = $([
-  $("0x").commit().drop(),
+  $.drop($.commit("0x")),
   $(/[0-9a-fA-F_]+/).onFail("Hex constant must contain only 0-9, A-F, _")
 ]).map((match, span) => {
   return new PConstant(PConstantType.NUMBER_BASE16, match[0], span);
 });
 
 const numberBase2 = $([
-  $("0b").commit().drop(),
+  $.drop($.commit("0b")),
   $(/[01_]+/).onFail("Binary constant must contain only 0, 1, _")
 ]).map((match, span) => {
   return new PConstant(PConstantType.NUMBER_BASE2, match[0], span);
 });
 
 const cstring = $([
-  $(/"(([^"\\]|\\.)*)/).commit(),
+  $.commit(/"(([^"\\]|\\.)*)/),
   $('"').onFail("Unterminated string")
 ]).map((match, span) => new PConstant(PConstantType.STRING, util.uncstring(match[0][1]), span));
 
@@ -86,8 +92,7 @@ const constant = $.alt(
   numberBase16,
   numberBase2,
   cstring
-  // .describe("constant")
-);
+).named("constant");
 
 exports.constant = constant;
 // exports.internalSymbolRef = internalSymbolRef
