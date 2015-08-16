@@ -21,8 +21,8 @@ class PExpr {
     if (this.children.length > 0) {
       rv += "(" + this.children.map(c => c.inspect()).join(", ") + ")";
     }
-    if (this.comment) rv += "#\"" + util.cstring(this.comment) + "\"";
-    if (this.trailingComment) rv += "##\"" + util.cstring(this.trailingComment) + "\"";
+    if (this.comment) rv += "#\"" + cstring(this.comment) + "\"";
+    if (this.trailingComment) rv += "##\"" + cstring(this.trailingComment) + "\"";
     rv += "[" + this.span.start + ":" + this.span.end + "]";
     return rv;
   }
@@ -64,37 +64,49 @@ class PNew extends PExpr {
   }
 }
 
+class PUnary extends PExpr {
+  constructor(op, expr, span) {
+    super(op, span, [ expr ]);
+    this.op = op;
+  }
+}
+
+class PCall extends PExpr {
+  constructor(left, right, span) {
+    super("call", span, [ left, right ]);
+  }
+}
 
 // ----- parsers
 
-const reference = $(p_common.SYMBOL_NAME).filter(match => !p_common.isReserved(match[0])).map((match, span) => {
+const reference = $(SYMBOL_NAME).filter(match => !isReserved(match[0])).map((match, span) => {
   return new PReference(match[0], span);
 });
 
-const xarray = p_common.repeatSurrounded(
+const xarray = repeatSurrounded(
   $.commit("["),
   () => expression,
   /[\n,]+/,
   $.commit("]"),
-  p_common.commentspace,
+  commentspace,
   "array items"
 ).map(([ items, comment ], span) => {
   return new PArray(items, comment, span);
 }).named("array");
 
 const structMember = $([
-  $.optional([ p_common.SYMBOL_NAME, p_common.linespace, "=", p_common.linespace ], []),
+  $.optional([ SYMBOL_NAME, linespace, "=", linespace ], []),
   () => expression
 ]).map(([ prefix, value ], span) => {
   return new PStructField(prefix.length > 0 ? prefix[0][0] : null, value, span);
 });
 
-const struct = p_common.repeatSurrounded(
+const struct = repeatSurrounded(
   $.commit("("),
   structMember,
   /[\n,]+/,
   ")",
-  p_common.commentspace,
+  commentspace,
   "struct member"
 ).map(([ items, comment ], span) => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
@@ -103,13 +115,13 @@ const struct = p_common.repeatSurrounded(
 }).named("struct");
 
 const newObject = $([
-  p_common.toSpan("new"),
-  p_common.whitespace,
+  toSpan("new"),
+  whitespace,
   codeBlock
 ]).map(([ state, code ]) => new PNew(code, state));
 
 const atom = $.alt(
-  p_const.constant,
+  constant,
   reference,
   xarray,
   /* xfunction */
@@ -118,10 +130,29 @@ const atom = $.alt(
   // newObject
 ).named("atom");
 
-// FIXME
-const codeBlock = p_const.constant;
+const unary = $.alt(
+  [ $.commit(/(\+|-(?!>)|not)/), $.drop(linespace), () => unary ],
+  [ atom ]
+).named("unary").map(([ op, expr ], span) => {
+  if (!expr) return op;
+  return new PUnary(op[0], expr, span);
+});
 
-const expression = atom.named("expression");
+const call = $([
+  unary,
+  $.optional(linespace).drop(),
+  // $.optional($([ "?" ]).map((match, span) => new PExpr("?", span)), [])
+  $.repeatIgnore(atom, linespace)
+]).map(([ first, rest ], span) => {
+  return [ first ].concat(rest).reduce((x, y) => new PCall(x, y, y.span.merge(x.span)));
+});
+
+
+
+// FIXME
+const codeBlock = constant;
+
+export const expression = call.named("expression");
 // $([
 //   baseExpression,
 //   // pr([ linespace, pr.alt(postfixUnless, postfixUntil) ]).optional([]) ]).describe("expression").onMatch (m, state) ->
@@ -131,4 +162,3 @@ const expression = atom.named("expression");
 //   // m[1][0].nested = m[0]
 //   // m[1][0]
 // });
-exports.expression = expression;

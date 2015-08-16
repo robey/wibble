@@ -1,12 +1,11 @@
 "use strict";
 
-const wibble = "../../../lib/wibble";
-const p_expr = require(wibble + "/parser/p_expr");
+import { parser } from "../../../lib/wibble";
 
-require("should");
-require("source-map-support").install();
+import "should";
+import "source-map-support/register";
 
-const parse = (s, options) => p_expr.expression.run(s, options).inspect();
+const parse = (s, options) => parser.expression.run(s, options).inspect();
 
 describe("Parse expressions", () => {
   it("reference", () => {
@@ -77,84 +76,53 @@ describe("Parse expressions", () => {
     });
 
     it("failing", () => {
-      p_expr.expression.writeDotFile("expr.dot");
       (() => parse("(???)")).should.throw(/Expected struct member/);
       (() => parse("(x = ???)")).should.throw(/Expected struct member/);
     });
   });
 
-//   it "unary", ->
-//     parse("not true").should.eql(unary: "not", right: { boolean: true, pos: [ 4, 8 ] }, pos: [ 0, 8 ])
-//     parse("-  5").should.eql(unary: "-", right: { number: "base10", value: "5", pos: [ 3, 4 ] }, pos: [ 0, 4 ])
-//     parse("+a").should.eql(unary: "+", right: { reference: "a", pos: [ 1, 2 ] }, pos: [ 0, 2 ])
-//     parse("not not true").should.eql(
-//       unary: "not"
-//       right:
-//         unary: "not"
-//         right: { boolean: true, pos: [ 8, 12 ] }
-//         pos: [ 4, 12 ]
-//       pos: [ 0, 12 ]
-//     )
-//
-//   describe "call", ->
-//     it "simple", ->
-//       parse("a b").should.eql(
-//         call: { reference: "a", pos: [ 0, 1 ] }
-//         arg: { reference: "b", pos: [ 2, 3 ] }
-//         pos: [ 0, 3 ]
-//       )
-//       parse("3 .+").should.eql(
-//         call: { number: "base10", value: "3", pos: [ 0, 1 ] }
-//         arg: { symbol: "+", pos: [ 2, 4 ] }
-//         pos: [ 0, 4 ]
-//       )
-//
-//     it "compound", ->
-//       parse("widget.draw()").should.eql(
-//         call:
-//           call: { reference: "widget", pos: [ 0, 6 ] }
-//           arg: { symbol: "draw", pos: [ 6, 11 ] }
-//           pos: [ 0, 11 ]
-//         arg: { nothing: true, pos: [ 11, 13 ] }
-//         pos: [ 0, 13 ]
-//       )
-//       parse("widget .height .subtract 3").should.eql(
-//         call:
-//           call:
-//             call: { reference: "widget", pos: [ 0, 6 ] }
-//             arg: { symbol: "height", pos: [ 7, 14 ] }
-//             pos: [ 0, 14 ]
-//           arg: { symbol: "subtract", pos: [ 15, 24 ] }
-//           pos: [ 0, 24 ]
-//         arg: { number: "base10", value: "3", pos: [ 25, 26 ] }
-//         pos: [ 0, 26 ]
-//       )
-//
-//     it "with struct", ->
-//       parse("b.add(4, 5)").should.eql(
-//         call:
-//           call: { reference: "b", pos: [ 0, 1 ] }
-//           arg: { symbol: "add", pos: [ 1, 5 ] }
-//           pos: [ 0, 5 ]
-//         arg:
-//           struct: [
-//             { value: { number: "base10", value: "4", pos: [ 6, 7 ] }, pos: [ 6, 7 ] }
-//             { value: { number: "base10", value: "5", pos: [ 9, 10 ] }, pos: [ 9, 10 ] }
-//           ]
-//           pos: [ 5, 11 ]
-//         pos: [ 0, 11 ]
-//       )
-//
-//     it "multi-line", ->
-//       parse("a .b \\\n  .c").should.eql(
-//         call:
-//           call: { reference: "a", pos: [ 0, 1 ] }
-//           arg: { symbol: "b", pos: [ 2, 4 ] }
-//           pos: [ 0, 4 ]
-//         arg: { symbol: "c", pos: [ 9, 11 ] }
-//         pos: [ 0, 11 ]
-//       )
-//
+  it("unary", () => {
+    parse("not true").should.eql("not(const(BOOLEAN, true)[4:8])[0:8]");
+    parse("-  5").should.eql("-(const(NUMBER_BASE10, 5)[3:4])[0:4]");
+    parse("+a").should.eql("+(a[1:2])[0:2]");
+    parse("not not true").should.eql("not(not(const(BOOLEAN, true)[8:12])[4:12])[0:12]");
+  });
+
+  describe("call", () => {
+    it("simple", () => {
+      parse("a b").should.eql("call(a[0:1], b[2:3])[0:3]");
+      parse("3 .+").should.eql("call(const(NUMBER_BASE10, 3)[0:1], const(SYMBOL, +)[2:4])[0:4]");
+    });
+
+    it("compound", () => {
+      parse("widget.draw()").should.eql("call(" +
+        "call(widget[0:6], const(SYMBOL, draw)[6:11])[0:11], " +
+        "const(NOTHING)[11:13]" +
+      ")[0:13]");
+      parse("widget .height .subtract 3").should.eql("call(" +
+        "call(" +
+          "call(widget[0:6], const(SYMBOL, height)[7:14])[0:14], " +
+          "const(SYMBOL, subtract)[15:24]" +
+        ")[0:24], " +
+        "const(NUMBER_BASE10, 3)[25:26]" +
+      ")[0:26]");
+    });
+
+    it("with struct", () => {
+      parse("b.add(4, 5)").should.eql("call(" +
+        "call(b[0:1], const(SYMBOL, add)[1:5])[0:5], " +
+        "struct(field(const(NUMBER_BASE10, 4)[6:7])[6:7], field(const(NUMBER_BASE10, 5)[9:10])[9:10])[5:11]" +
+      ")[0:11]");
+    });
+
+    it("multi-line", () => {
+      parse("a .b \\\n  .c").should.eql("call(" +
+        "call(a[0:1], const(SYMBOL, b)[2:4])[0:4], " +
+        "const(SYMBOL, c)[9:11]" +
+      ")[0:11]");
+    });
+  });
+
 //   describe "binary", ->
 //     it "**", ->
 //       parse("2 ** 3 ** 4").should.eql(
