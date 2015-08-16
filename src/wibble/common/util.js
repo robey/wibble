@@ -1,6 +1,6 @@
 "use strict";
 
-function uncstring(s) {
+export function uncstring(s) {
   return s.replace(/\\(u(.{0,4})|.)/g, (match, c, hex) => {
     if (hex) {
       // uHHHH
@@ -18,7 +18,7 @@ function uncstring(s) {
   });
 }
 
-function cstring(s) {
+export function cstring(s) {
   return s.replace(/[^\u0020-\u007e]|\"/g, c => {
     if (c == '"') return "\\\"";
     const n = c.charCodeAt(0);
@@ -34,7 +34,3 @@ function cstring(s) {
     }
   });
 }
-
-
-exports.cstring = cstring;
-exports.uncstring = uncstring;

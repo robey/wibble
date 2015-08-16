@@ -10,7 +10,7 @@ const parse = (s, options) => p_const.constant.run(s, options).inspect();
 
 describe("Parse constants", () => {
   it("nothing", () => {
-    parse("()").should.eql("const(NOTHING, null)[0:2]");
+    parse("()").should.eql("const(NOTHING)[0:2]");
   });
 
   it("boolean", () => {

@@ -1,15 +1,15 @@
 "use strict";
 
-const $ = require("packrattle");
-const p_common = require("./p_common");
-const util = require("../common/util");
-const wenum = require("../common/wenum");
+import $ from "packrattle";
+import Enum from "../common/wenum";
+import { cstring, uncstring } from "../common/util";
+import { OPERATORS, SYMBOL_NAME } from "./p_common";
 
 /*
  * parse constants
  */
 
-const PConstantType = new wenum.Enum([
+const PConstantType = new Enum([
   "NOTHING",
   "BOOLEAN",
   "SYMBOL",
@@ -27,8 +27,10 @@ class PConstant {
   }
 
   inspect() {
-    let rv = `const(${PConstantType.name(this.type)}, ${this.value})`;
-    if (this.comment) rv += "#\"" + util.cstring(this.comment) + "\"";
+    let rv = this.type == PConstantType.NOTHING ?
+      "const(NOTHING)" :
+      `const(${PConstantType.name(this.type)}, ${this.value})`;
+    if (this.comment) rv += "#\"" + cstring(this.comment) + "\"";
     rv += `[${this.span.start}:${this.span.end}]`;
     return rv;
   }
@@ -46,8 +48,8 @@ const boolean = $.alt("true", "false").map((value, span) => {
 const symbolRef = $([
   $.drop(".").commit(),
   $.alt(
-    $(p_common.SYMBOL_NAME).map(match => match[0]),
-    ...(p_common.OPERATORS)
+    $(SYMBOL_NAME).map(match => match[0]),
+    ...(OPERATORS)
   ).onFail("Invalid symbol name after .")
 ]).map((match, span) => new PConstant(PConstantType.SYMBOL, match[0], span));
 
@@ -55,7 +57,7 @@ const symbolRef = $([
 // FIXME i don't think i like this.
 const internalSymbolRef = $([
   $.drop($.commit(":")),
-  p_common.SYMBOL_NAME
+  SYMBOL_NAME
 ]).map((match, span) => new PConstant(PConstantType.SYMBOL, ":" + match[0][0], span));
 
 const numberBase10 = $([
@@ -78,12 +80,12 @@ const numberBase2 = $([
   return new PConstant(PConstantType.NUMBER_BASE2, match[0], span);
 });
 
-const cstring = $([
+const string = $([
   $.commit(/"(([^"\\]|\\.)*)/),
   $('"').onFail("Unterminated string")
-]).map((match, span) => new PConstant(PConstantType.STRING, util.uncstring(match[0][1]), span));
+]).map((match, span) => new PConstant(PConstantType.STRING, uncstring(match[0][1]), span));
 
-const constant = $.alt(
+export const constant = $.alt(
   nothing,
   boolean,
   symbolRef,
@@ -91,9 +93,8 @@ const constant = $.alt(
   numberBase10,
   numberBase16,
   numberBase2,
-  cstring
+  string
 ).named("constant");
 
-exports.constant = constant;
 // exports.internalSymbolRef = internalSymbolRef
 // exports.symbolRef = symbolRef

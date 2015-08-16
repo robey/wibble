@@ -1,10 +1,9 @@
 "use strict";
 
-const $ = require("packrattle");
-const p_common = require("./p_common");
-const p_const = require("./p_const");
-const util = require("../common/util");
-const wenum = require("../common/wenum");
+import $ from "packrattle";
+import { cstring } from "../common/util";
+import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan, whitespace } from "./p_common";
+import { constant } from "./p_const";
 
 /*
  * parse expressions

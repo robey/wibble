@@ -1,11 +1,9 @@
 "use strict";
 
-// this module can't be called "enum" because it was a reserved word!
-
 /*
  * construct an enum string values, giving each a unique int.
  */
-class Enum {
+export default class Enum {
   constructor(values) {
     let counter = 1;
     this._names = [];
@@ -24,6 +22,3 @@ class Enum {
     return "Enum(" + this._names.slice(1).map(name => `${name} = ${this[name]}`).join(", ") + ")";
   }
 }
-
-
-exports.Enum = Enum;
