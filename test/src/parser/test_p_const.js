@@ -1,12 +1,11 @@
 "use strict";
 
-const wibble = "../../../lib/wibble";
-const p_const = require(wibble + "/parser/p_const");
+import { parser } from "../../../lib/wibble";
 
-require("should");
-require("source-map-support").install();
+import "should";
+import "source-map-support/register";
 
-const parse = (s, options) => p_const.constant.run(s, options).inspect();
+const parse = (s, options) => parser.constant.run(s, options).inspect();
 
 describe("Parse constants", () => {
   it("nothing", () => {
