@@ -66,7 +66,7 @@ class PNew extends PExpr {
 
 class PUnary extends PExpr {
   constructor(op, expr, span) {
-    super(op, span, [ expr ]);
+    super("unary(" + op + ")", span, [ expr ]);
     this.op = op;
   }
 }
@@ -74,6 +74,19 @@ class PUnary extends PExpr {
 class PCall extends PExpr {
   constructor(left, right, span) {
     super("call", span, [ left, right ]);
+  }
+}
+
+class PBinary extends PExpr {
+  constructor(left, op, right, span) {
+    super("binary(" + op + ")", span, [ left, right ]);
+    this.op = op;
+  }
+}
+
+class PIf extends PExpr {
+  constructor(condition, onTrue, onFalse, span) {
+    super("if", span, (onFalse != null) ? [ condition, onTrue, onFalse ] : [ condition, onTrue ]);
   }
 }
 
@@ -147,12 +160,46 @@ const call = $([
   return [ first ].concat(rest).reduce((x, y) => new PCall(x, y, y.span.merge(x.span)));
 });
 
+// helper
+function binary(subexpr, op) {
+  const sep = $.commit([ $.drop(whitespace), op, $.drop(whitespace) ]).map(match => match[0]);
+  return $.reduce($(subexpr).named("operand"), sep, {
+    first: x => x,
+    next: (left, op, right) => new PBinary(left, op, right, left.span.merge(right.span))
+  }).named("binary(" + op + ")");
+}
 
+const power = binary(call, "**");
+const factor = binary(power, $.alt("*", "/", "%"));
+const term = binary(factor, $.alt("+", "-"));
+const shifty = binary(term, $.alt("<<", ">>"));
+const comparison = binary(shifty, $.alt("==", ">=", "<=", "!=", "<", ">"));
+const logical = binary(comparison, $.alt("and", "or"));
+
+const condition = $([
+  toSpan("if"),
+  $.drop(linespace),
+  () => expression,
+  $.drop(linespace),
+  toSpan("then"),
+  $.drop(linespace),
+  () => expression,
+  $.optional([
+    $.drop(linespace),
+    toSpan("else"),
+    $.drop(linespace),
+    () => expression
+  ], [])
+]).named("condition").map((match, span) => {
+  return new PIf(match[1], match[3], (match[4].length > 0) ? match[4][1] : null, match[0]);
+});
+
+const baseExpression = $.alt(condition, logical);
 
 // FIXME
 const codeBlock = constant;
 
-export const expression = call.named("expression");
+export const expression = baseExpression.named("expression");
 // $([
 //   baseExpression,
 //   // pr([ linespace, pr.alt(postfixUnless, postfixUntil) ]).optional([]) ]).describe("expression").onMatch (m, state) ->

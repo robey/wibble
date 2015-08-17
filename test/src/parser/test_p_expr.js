@@ -82,10 +82,10 @@ describe("Parse expressions", () => {
   });
 
   it("unary", () => {
-    parse("not true").should.eql("not(const(BOOLEAN, true)[4:8])[0:8]");
-    parse("-  5").should.eql("-(const(NUMBER_BASE10, 5)[3:4])[0:4]");
-    parse("+a").should.eql("+(a[1:2])[0:2]");
-    parse("not not true").should.eql("not(not(const(BOOLEAN, true)[8:12])[4:12])[0:12]");
+    parse("not true").should.eql("unary(not)(const(BOOLEAN, true)[4:8])[0:8]");
+    parse("-  5").should.eql("unary(-)(const(NUMBER_BASE10, 5)[3:4])[0:4]");
+    parse("+a").should.eql("unary(+)(a[1:2])[0:2]");
+    parse("not not true").should.eql("unary(not)(unary(not)(const(BOOLEAN, true)[8:12])[4:12])[0:12]");
   });
 
   describe("call", () => {
@@ -123,147 +123,107 @@ describe("Parse expressions", () => {
     });
   });
 
-//   describe "binary", ->
-//     it "**", ->
-//       parse("2 ** 3 ** 4").should.eql(
-//         binary: "**"
-//         left:
-//           binary: "**"
-//           left: { number: "base10", value: "2", pos: [ 0, 1 ] }
-//           right: { number: "base10", value: "3", pos: [ 5, 6 ] }
-//           pos: [ 0, 6 ]
-//         right: { number: "base10", value: "4", pos: [ 10, 11 ] }
-//         pos: [ 0, 11 ]
-//       )
-//
-//     it "* / %", ->
-//       parse("a * b / c % d").should.eql(
-//         binary: "%"
-//         left:
-//           binary: "/"
-//           left:
-//             binary: "*"
-//             left: { reference: "a", pos: [ 0, 1 ] }
-//             right: { reference: "b", pos: [ 4, 5 ] }
-//             pos: [ 0, 5 ]
-//           right: { reference: "c", pos: [ 8, 9 ] }
-//           pos: [ 0, 9 ]
-//         right: { reference: "d", pos: [ 12, 13 ] }
-//         pos: [ 0, 13 ]
-//       )
-//
-//     it "+ -", ->
-//       parse("a + b - c").should.eql(
-//         binary: "-"
-//         left:
-//           binary: "+"
-//           left: { reference: "a", pos: [ 0, 1 ] }
-//           right: { reference: "b", pos: [ 4, 5 ] }
-//           pos: [ 0, 5 ]
-//         right: { reference: "c", pos: [ 8, 9 ] }
-//         pos: [ 0, 9 ]
-//       )
-//
-//     it "* vs + precedence", ->
-//       parse("a + b * c + d").should.eql(
-//         binary: "+"
-//         left:
-//           binary: "+"
-//           left: { reference: "a", pos: [ 0, 1 ] }
-//           right:
-//             binary: "*"
-//             left: { reference: "b", pos: [ 4, 5 ] }
-//             right: { reference: "c", pos: [ 8, 9 ] }
-//             pos: [ 4, 9 ]
-//           pos: [ 0, 9 ]
-//         right: { reference: "d", pos: [ 12, 13 ] }
-//         pos: [ 0, 13 ]
-//       )
-//
-//     it "+, ==, and precedence", ->
-//       parse("a and b + c == d").should.eql(
-//         binary: "and"
-//         left: { reference: "a", pos: [ 0, 1 ] }
-//         right:
-//           binary: "=="
-//           left:
-//             binary: "+"
-//             left: { reference: "b", pos: [ 6, 7 ] }
-//             right: { reference: "c", pos: [ 10, 11 ] }
-//             pos: [ 6, 11 ]
-//           right: { reference: "d", pos: [ 15, 16 ] }
-//           pos: [ 6, 16 ]
-//         pos: [ 0, 16 ]
-//       )
-//
-//     it "can span multiple lines", ->
-//       parse("3 + \\\n 4").should.eql(
-//         binary: "+"
-//         left: { number: "base10", value: "3", pos: [ 0, 1 ] }
-//         right: { number: "base10", value: "4", pos: [ 7, 8 ] }
-//         pos: [ 0, 8 ]
-//       )
-//
-//     it "notices a missing argument", ->
-//       parseFailed("3 +").should.eql "Expected operand"
-//       parseFailed("3 + 6 *").should.eql "Expected operand"
-//
-//   describe "if", ->
-//     it "if _ then _", ->
-//       parse("if x < 0 then x").should.eql(
-//         condition:
-//           binary: "<"
-//           left: { reference: "x", pos: [ 3, 4 ] }
-//           right: { number: "base10", value: "0", pos: [ 7, 8 ] }
-//           pos: [ 3, 8 ]
-//         ifThen: { reference: "x", pos: [ 14, 15 ] }
-//         pos: [ 0, 2 ]
-//       )
-//
-//     it "if _ then _ else _", ->
-//       parse("if x < 0 then -x else x").should.eql(
-//         condition:
-//           binary: "<"
-//           left: { reference: "x", pos: [ 3, 4 ] }
-//           right: { number: "base10", value: "0", pos: [ 7, 8 ] }
-//           pos: [ 3, 8 ]
-//         ifThen:
-//           unary: "-"
-//           right: { reference: "x", pos: [ 15, 16 ] }
-//           pos: [ 14, 16 ]
-//         ifElse: { reference: "x", pos: [ 22, 23 ] }
-//         pos: [ 0, 2 ]
-//       )
-//
-//     it "if {block} then _ else _", ->
-//       parse("if { 3; true } then 1 else 2").should.eql(
-//         condition:
-//           code: [
-//             { number: "base10", value: "3", pos: [ 5, 6 ] }
-//             { boolean: true, pos: [ 8, 12 ] }
-//           ]
-//           pos: [ 3, 14 ]
-//         ifThen: { number: "base10", value: "1", pos: [ 20, 21 ] }
-//         ifElse: { number: "base10", value: "2", pos: [ 27, 28 ] }
-//         pos: [ 0, 2 ]
-//       )
-//
-//     it "nested", ->
-//       parse("if a then (if b then 3) else 9").should.eql(
-//         condition: { reference: "a", pos: [ 3, 4 ] }
-//         ifThen:
-//           condition: { reference: "b", pos: [ 14, 15 ] }
-//           ifThen: { number: "base10", value: "3", pos: [ 21, 22 ] }
-//           pos: [ 11, 13 ]
-//         ifElse: { number: "base10", value: "9", pos: [ 29, 30 ] }
-//         pos: [ 0, 2 ]
-//       )
-//
-//     it "failing", ->
-//       parseFailed("if ???").should.match(/Expected expression/)
-//       parseFailed("if 3 then ???").should.match(/Expected expression/)
-//       parseFailed("if 3 then 3 else ???").should.match(/Expected expression/)
-//
+  describe("binary", () => {
+    it("**", () => {
+      parse("2 ** 3 ** 4").should.eql("binary(**)(" +
+        "binary(**)(const(NUMBER_BASE10, 2)[0:1], const(NUMBER_BASE10, 3)[5:6])[0:6], " +
+        "const(NUMBER_BASE10, 4)[10:11]" +
+      ")[0:11]");
+    });
+
+    it("* / %", () => {
+      parse("a * b / c % d").should.eql("binary(%)(" +
+        "binary(/)(" +
+          "binary(*)(a[0:1], b[4:5])[0:5], " +
+          "c[8:9]" +
+        ")[0:9], " +
+        "d[12:13]" +
+      ")[0:13]");
+    });
+
+    it("+ -", () => {
+      parse("a + b - c").should.eql("binary(-)(" +
+        "binary(+)(a[0:1], b[4:5])[0:5], " +
+        "c[8:9]" +
+      ")[0:9]");
+    });
+
+    it("* vs + precedence", () => {
+      parse("a + b * c + d").should.eql("binary(+)(" +
+        "binary(+)(a[0:1], binary(*)(b[4:5], c[8:9])[4:9])[0:9], " +
+        "d[12:13]" +
+      ")[0:13]");
+    });
+
+    it("+, ==, and precedence", () => {
+      parse("a and b + c == d").should.eql("binary(and)(" +
+        "a[0:1], " +
+        "binary(==)(binary(+)(b[6:7], c[10:11])[6:11], d[15:16])[6:16]" +
+      ")[0:16]");
+    });
+
+    it("can span multiple lines", () => {
+      parse("3 + \\\n 4").should.eql("binary(+)(" +
+        "const(NUMBER_BASE10, 3)[0:1], " +
+        "const(NUMBER_BASE10, 4)[7:8]" +
+      ")[0:8]");
+    });
+
+    it("notices a missing argument", () => {
+      (() => parse("3 +")).should.throw(/Expected operand/);
+      (() => parse("3 + 6 *")).should.throw(/Expected operand/);
+    });
+  });
+
+  describe("if", () => {
+    it("if _ then _", () => {
+      parse("if x < 0 then x").should.eql("if(" +
+        "binary(<)(x[3:4], const(NUMBER_BASE10, 0)[7:8])[3:8], " +
+        "x[14:15]" +
+      ")[0:2]");
+    });
+
+    it("if _ then _ else _", () => {
+      parse("if x < 0 then -x else x").should.eql("if(" +
+        "binary(<)(x[3:4], const(NUMBER_BASE10, 0)[7:8])[3:8], " +
+        "unary(-)(x[15:16])[14:16], " +
+        "x[22:23]" +
+      ")[0:2]");
+    });
+
+    it("if {block} then _ else _", () => {
+      parse("if { 3; true } then 1 else 2").should.eql("if(" +
+        "code??, " +
+        "const(NUMBER_BASE10, 1)[20:21], " +
+        "const(NUMBER_BASE10, 2)[27:28]" +
+      ")[0:2]");
+    });
+      //   condition:
+      //     code: [
+      //       { number: "base10", value: "3", pos: [ 5, 6 ] }
+      //       { boolean: true, pos: [ 8, 12 ] }
+      //     ]
+      //     pos: [ 3, 14 ]
+      //   ifThen: { number: "base10", value: "1", pos: [ 20, 21 ] }
+      //   ifElse: { number: "base10", value: "2", pos: [ 27, 28 ] }
+      //   pos: [ 0, 2 ]
+      // )
+
+    it("nested", () => {
+      parse("if a then (if b then 3) else 9").should.eql("if(" +
+        "a[3:4], " +
+        "if(b[14:15], const(NUMBER_BASE10, 3)[21:22])[11:13], " +
+        "const(NUMBER_BASE10, 9)[29:30]" +
+      ")[0:2]");
+    });
+    
+    it("failing", () => {
+      (() => parse("if ???")).should.throw(/Expected expression/);
+      (() => parse("if 3 then ???")).should.throw(/Expected expression/);
+      (() => parse("if 3 then 3 else ???")).should.throw(/Expected expression/);
+    });
+  });
+
 //   describe "unless", ->
 //     it "_ unless _", ->
 //       parse("9 unless x > 3").should.eql(

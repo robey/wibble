@@ -63,7 +63,7 @@ export { linespace, whitespace, commentspace };
 
 // match a keyword, commit on it, and turn it into its covering span.
 export function toSpan(p) {
-  return $(p).commit().map((match, span) => span);
+  return $.commit(p).map((match, span) => span);
 }
 
 // match: ws p (linespace separator ws p)* (linespace separator)?
