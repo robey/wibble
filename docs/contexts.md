@@ -473,7 +473,7 @@ santa clara, ca -- 4 jun 2014
 
 Apple just released Swift, a closed-source language to replace Objective-C on iOS devices. It's obviously pretty relevant to wibble:
 
-- They use "->" to declare function return types, so they can't use it for anonymous functions. Instead they have an awkward-looking "<args> in <code>" syntax.
+- They use "->" to declare function return types, so they can't use it for anonymous functions. Instead they have an awkward-looking "\<args> in \<code>" syntax.
 
 - They use "?" for the optional type, so that's obviously not a unique idea.
 
@@ -509,3 +509,38 @@ Rus described a work problem that sounds like a great selling point for duck typ
 Node has a similar thing, where "express" is the standard web server, and other libraries like "restify" mimic the API so that plugins written for express will work (usually) with restify. It works because there's no formal interface file that has to be installed with express (or pulled out into a standard library). Duck typing means that if you swap in a new library for express, and it has the same API, then it will work.
 
 Duck typing. It's what's for dinner.
+
+
+# bitwise operators
+
+san josé, ca -- 20 aug 2015
+
+Just finished reading a nice critique of C# by one of the designers: http://www.informit.com/articles/article.aspx?p=2425867
+
+He gave one short mention to the presence of a unary `+` operator, which I suddenly agreed *is* a silly idea. Wibble should remove that. Many other points in the article were recognitions of things the PL world has learned since the original C# design (like old-style for loops, and a bunch of archaic C syntax).
+
+But a really fresh upsight was that bitwise operators do not belong in standard int syntax. I now agree. The `Int` type should be restricted to number operations, and there shouldn't be any line-noise symbols that represent bitwise operators: so no `&`, `|`, `^`, `>>`, or `<<`.
+
+Instead, there should be a special type for "set of bits", and probably one for each common machine word size: 8, 16, 32, 64. Maybe `Bits64`? Then those should have word-operators for bit operations.
+
+    let flags = cstruct.readBits32()
+    if flags.mask(WritePermission).nonZero() then write()
+
+
+# let, make
+
+san josé, ca -- 6 sep 2015
+
+I have an old note here that I never typed up: For a while I was infatuated with the python/coffee way of declaring variables: just use them, and the first use is the declaration. But after playing with ES6 a bit more, I see the advantage of having declarations leap out at you when scanning code (especially with a syntax highlighter). Having a keyword like "var" or "val" makes it easy to figure out what scope a local is in when you're confused.
+
+So my current idea is to use a different keyword for mutables and immutables, like scala and ES6.
+
+- let: immutable (like lisp)
+- make: mutable
+
+    let pi = 3.14159
+    make count := 0
+
+
+
+decimal.js
