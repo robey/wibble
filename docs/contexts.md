@@ -479,7 +479,7 @@ Apple just released Swift, a closed-source language to replace Objective-C on iO
 
 - They use "$0", "$1", and so on for placeholder fields in an anonymous function, like "reduce { $0 + $1 }". This is a great idea and I should totally steal it.
 
-- I just saw "func sumVec<A, N: Num where N.N == A>" in an example, meaning they probably came up with "where" independently, too. That's somewhat validating. I think in the current wibble drafts, that would look like "def sumVec($A, $N) where { $N is Num; $A is N.N }".
+- I just saw "func sumVec\<A, N: Num where N.N == A\>" in an example, meaning they probably came up with "where" independently, too. That's somewhat validating. I think in the current wibble drafts, that would look like "def sumVec($A, $N) where { $N is Num; $A is N.N }".
 
 
 # bartlett GC
