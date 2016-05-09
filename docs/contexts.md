@@ -544,15 +544,15 @@ So my current idea is to use a different keyword for mutables and immutables, li
 
 # this, self, @
 
-San Jose, CA -- 30 Apr 2016
+san josé, ca -- 30 Apr 2016
 
 One fallout of simplifying new object creation is that there doesn't need to be any special syntax for referring to local fields. Any local defined inside the `new` block is visible to any of the message handlers. It no longer needs special syntax to disambiguate lexical locals from "this" because the "this" fields are _also_ lexical.
 
 To avoid confusion, the compiler should now explicitly forbid local variable name shadowing. If code refers to a variable, there should be exactly one definition in the scope chain.
 
-This doesn't avoid the need for `@`though, sadly. Message handlers will still need to send messages to themselves, like sibling method calls. So we still need `@.name`and similar.
+This doesn't avoid the need for `@` though, sadly. Message handlers will still need to send messages to themselves, like sibling method calls. So we still need `@.name`and similar.
 
-
+Generic types will need a constructor other than random factory functions. Example: How do I create a new `Buffer(Byte)`?
 
 
 
