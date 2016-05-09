@@ -82,7 +82,7 @@ const numberBase2 = $([
 
 const string = $([
   $.commit(/"(([^"\\]|\\.)*)/),
-  $('"').onFail("Unterminated string")
+  $("\"").onFail("Unterminated string")
 ]).map((match, span) => new PConstant(PConstantType.STRING, uncstring(match[0][1]), span));
 
 export const constant = $.alt(
