@@ -2,7 +2,7 @@
   "name": "wibble",
   "version": "0.5.0",
   "description": "wibble",
-  "keywords": [ ],
+  "keywords": [],
   "author": "Robey Pointer <robeypointer@gmail.com>",
   "homepage": "https://github.com/robey/wibble",
   "repository": {
@@ -11,19 +11,22 @@
   },
   "license": "Apache-2.0",
   "scripts": {
-    "build": "npm run prepublish",
+    "build-source": "eslint src --fix && babel --source-maps --out-dir lib src",
+    "build-test": "eslint test/src && babel --source-maps --out-dir test/lib test/src",
     "clean": "rm -rf lib test/lib",
     "distclean": "npm run clean && rm -rf node_modules npm-debug.log",
-    "prepublish": "babel --source-maps --out-dir lib src && babel --source-maps --out-dir test/lib test/src",
-    "test": "mocha -R spec --colors --recursive test/lib"
+    "prepublish": "npm run build-source",
+    "test": "npm run build-source && npm run build-test && mocha -R spec --colors --recursive test/lib"
   },
   "dependencies": {
-    "antsy": "*",
-    "big-integer": "*",
-    "packrattle": "*"
+    "antsy": "^1.1.1",
+    "big-integer": "^1.6.12",
+    "packrattle": "^4.1.0"
   },
   "devDependencies": {
-    "babel": "latest",
+    "babel-cli": "^6.0.0",
+    "babel-preset-es2015": "^6.5.0",
+    "eslint": "^2.9.0",
     "mocha": "latest",
     "should": "latest",
     "source-map-support": "latest"
