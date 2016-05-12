@@ -1,0 +1,145 @@
+"use strict";
+
+import $ from "packrattle";
+import { linespace, repeatSeparated, repeatSurrounded, TYPE_NAME } from "./p_common";
+import { expression, reference } from "./p_expr";
+
+/*
+ * parse type declarations.
+ */
+
+class PType {
+  constructor(description, span, children) {
+    this.description = description;
+    this.span = span;
+    this.children = children || [];
+  }
+
+  inspect() {
+    let rv = this.description;
+    if (this.children.length > 0) {
+      rv += "(" + this.children.map(c => c.inspect()).join(", ") + ")";
+    }
+    rv += "[" + this.span.start + ":" + this.span.end + "]";
+    return rv;
+  }
+}
+
+class PSimpleType extends PType {
+  constructor(name, span) {
+    super(`Type(${name})`, span);
+  }
+}
+
+// used only in compound types: a field name with an optional type and optional default value.
+class PTypedField {
+  constructor(name, type, defaultValue, span) {
+    this.name = name;
+    this.type = type;
+    this.defaultValue = defaultValue;
+    this.span = span;
+  }
+
+  inspect() {
+    let rv = `Field(${this.name}`;
+    if (this.type) rv += ": " + this.type.inspect();
+    if (this.defaultValue) rv += " = " + this.defaultValue.inspect();
+    rv += ")[" + this.span.start + ":" + this.span.end + "]";
+    return rv;
+  }
+}
+
+class PCompoundType extends PType {
+  constructor(fields, span) {
+    super("CompoundType", span, fields);
+  }
+}
+
+class PTemplateType extends PType {
+  constructor(name, params, span) {
+    super(`TemplateType(${name})`, span, params);
+  }
+}
+
+class PParameterType extends PType {
+  constructor(name, span) {
+    super(`ParameterType(${name})`, span);
+  }
+}
+
+class PFunctionType extends PType {
+  constructor(argType, resultType, span) {
+    super("FunctionType", span, [ argType, resultType ]);
+    this.argType = argType;
+    this.resultType = resultType;
+  }
+}
+
+class PDisjointType extends PType {
+  constructor(types, span) {
+    super("DisjointType", span, types);
+  }
+}
+
+
+// ----- parsers
+
+const simpleType = $.alt("@", $(TYPE_NAME).map(match => match[0])).map((match, span) => {
+  return new PSimpleType(match, span);
+});
+
+const typedField = $([
+  reference,
+  $.optional([ $.drop(linespace), $.drop(":"), $.drop(linespace), () => typedecl ]),
+  $.optional([ $.drop(linespace), $.drop("="), $.drop(linespace), () => expression ])
+]).map(match => {
+  const type = match[1] ? match[1][0] : null;
+  return new PTypedField(match[0].name, type, match[2], match[0].span);
+});
+
+const compoundType = repeatSurrounded(
+  "(",
+  typedField,
+  ",",
+  ")",
+  linespace,
+  "type field"
+).map((match, span) => {
+  return new PCompoundType(match[0], span);
+});
+
+const templateType = $([
+  $(TYPE_NAME).map(match => match[0]),
+  repeatSurrounded("(", () => typedecl, ",", ")", linespace, "type")
+]).map((match, span) => {
+  return new PTemplateType(match[0], match[1][0], span);
+});
+
+const parameterType = $([ $.drop("$"), $(TYPE_NAME).map(match => match[0]) ]).map((match, span) => {
+  return new PParameterType(match[0], span);
+});
+
+const nestedType = $([ $.drop("("), () => typedecl, $.drop(")") ]).map(match => match[0]);
+
+const componentType = $.alt(nestedType, parameterType, templateType, simpleType, compoundType);
+
+const functionType = $([
+  componentType,
+  $.drop(linespace),
+  $.commit("->").drop(),
+  $.drop(linespace),
+  () => typedecl
+]).map((match, span) => {
+  return new PFunctionType(match[0], match[1], span);
+}).or(componentType);
+
+const disjointType  = repeatSeparated(
+  functionType,
+  $.drop("|"),
+  linespace
+).map((match, span) => {
+  if (match.length == 1) return match[0];
+  return new PDisjointType(match, span);
+});
+
+export const typedecl = disjointType.named("type");
