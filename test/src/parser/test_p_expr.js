@@ -84,7 +84,6 @@ describe("Parse expressions", () => {
   it("unary", () => {
     parse("not true").should.eql("unary(not)(const(BOOLEAN, true)[4:8])[0:8]");
     parse("-  5").should.eql("unary(-)(const(NUMBER_BASE10, 5)[3:4])[0:4]");
-    parse("+a").should.eql("unary(+)(a[1:2])[0:2]");
     parse("not not true").should.eql("unary(not)(unary(not)(const(BOOLEAN, true)[8:12])[4:12])[0:12]");
   });
 
@@ -216,7 +215,7 @@ describe("Parse expressions", () => {
         "const(NUMBER_BASE10, 9)[29:30]" +
       ")[0:2]");
     });
-    
+
     it("failing", () => {
       (() => parse("if ???")).should.throw(/Expected expression/);
       (() => parse("if 3 then ???")).should.throw(/Expected expression/);

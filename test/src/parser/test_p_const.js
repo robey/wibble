@@ -65,27 +65,27 @@ describe("Parse constants", () => {
 
   describe("string", () => {
     it("empty", () => {
-      parse('""').should.eql("const(STRING, )[0:2]");
+      parse("\"\"").should.eql("const(STRING, )[0:2]");
     });
 
     it("simple", () => {
-      parse('"hello"').should.eql("const(STRING, hello)[0:7]");
+      parse("\"hello\"").should.eql("const(STRING, hello)[0:7]");
     });
 
     it("with quotes", () => {
-      parse('"quote \\" ha"').should.eql("const(STRING, quote \" ha)[0:13]");
+      parse("\"quote \\\" ha\"").should.eql("const(STRING, quote \" ha)[0:13]");
     });
 
     it("with escapes", () => {
-      parse('"\\e[34m"').should.eql("const(STRING, \u001b[34m)[0:8]");
-      (() => parse('"\\u99"')).should.match(/Illegal/);
-      (() => parse('"\\ucats"')).should.match(/Illegal/);
-      parse('"what\\u2022?"').should.eql("const(STRING, what\u2022?)[0:13]");
-      parse('"what\\nup\\rup"').should.eql("const(STRING, what\nup\rup)[0:14]");
+      parse("\"\\e[34m\"").should.eql("const(STRING, \u001b[34m)[0:8]");
+      (() => parse("\"\\u99\"")).should.match(/Illegal/);
+      (() => parse("\"\\ucats\"")).should.match(/Illegal/);
+      parse("\"what\\u2022?\"").should.eql("const(STRING, what\u2022?)[0:13]");
+      parse("\"what\\nup\\rup\"").should.eql("const(STRING, what\nup\rup)[0:14]");
     });
 
     it("unterminated", () => {
-      (() => parse('"hello')).should.match(/Unterminated string/);
+      (() => parse("\"hello")).should.match(/Unterminated string/);
     });
   });
 
