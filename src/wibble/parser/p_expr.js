@@ -90,9 +90,10 @@ class PIf extends PExpr {
   }
 }
 
+
 // ----- parsers
 
-const reference = $(SYMBOL_NAME).filter(match => !isReserved(match[0])).map((match, span) => {
+export const reference = $(SYMBOL_NAME).filter(match => !isReserved(match[0])).map((match, span) => {
   return new PReference(match[0], span);
 });
 
@@ -144,7 +145,7 @@ const atom = $.alt(
 ).named("atom");
 
 const unary = $.alt(
-  [ $.commit(/(\+|-(?!>)|not)/), $.drop(linespace), () => unary ],
+  [ $.commit(/(-(?!>)|not)/), $.drop(linespace), () => unary ],
   [ atom ]
 ).named("unary").map(([ op, expr ], span) => {
   if (!expr) return op;
@@ -154,10 +155,9 @@ const unary = $.alt(
 const call = $([
   unary,
   $.optional(linespace).drop(),
-  // $.optional($([ "?" ]).map((match, span) => new PExpr("?", span)), [])
   $.repeatIgnore(atom, linespace)
-]).map(([ first, rest ], span) => {
-  return [ first ].concat(rest).reduce((x, y) => new PCall(x, y, y.span.merge(x.span)));
+]).map(([ first, rest ]) => {
+  return [ first ].concat(rest).reduce((x, y) => new PCall(x, y, x.span.merge(y.span)));
 });
 
 // helper
@@ -172,8 +172,7 @@ function binary(subexpr, op) {
 const power = binary(call, "**");
 const factor = binary(power, $.alt("*", "/", "%"));
 const term = binary(factor, $.alt("+", "-"));
-const shifty = binary(term, $.alt("<<", ">>"));
-const comparison = binary(shifty, $.alt("==", ">=", "<=", "!=", "<", ">"));
+const comparison = binary(term, $.alt("==", ">=", "<=", "!=", "<", ">"));
 const logical = binary(comparison, $.alt("and", "or"));
 
 const condition = $([
@@ -190,7 +189,7 @@ const condition = $([
     $.drop(linespace),
     () => expression
   ], [])
-]).named("condition").map((match, span) => {
+]).named("condition").map(match => {
   return new PIf(match[1], match[3], (match[4].length > 0) ? match[4][1] : null, match[0]);
 });
 
@@ -198,6 +197,7 @@ const baseExpression = $.alt(condition, logical);
 
 // FIXME
 const codeBlock = constant;
+newObject;
 
 export const expression = baseExpression.named("expression");
 // $([
