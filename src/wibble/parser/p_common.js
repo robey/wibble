@@ -2,32 +2,35 @@
 
 import $ from "packrattle";
 
-const SYMBOL_NAME = /[a-z][A-Za-z_0-9]*/;
+export const SYMBOL_NAME = /[a-z][A-Za-z_0-9]*/;
 
-const TYPE_NAME = /[A-Z][A-Za-z_0-9]*/;
+export const TYPE_NAME = /[A-Z][A-Za-z_0-9]*/;
 
-const RESERVED = [
+export const RESERVED = [
+  "true",
+  "false",
   "if",
   "then",
   "else",
   "match",
-  "true",
-  "false",
   "and",
   "or",
+  "forever",
+  "while",
+  "do",
+  "not",
+  "let",
+  "make",
+  "return",
   "on",
-  "val",
-  "def",
-  "new",
-  "unless",
-  "until"
+  "new"
 ];
 
 export function isReserved(s) {
   return RESERVED.indexOf(s) >= 0;
 }
 
-const OPERATORS = [
+export const OPERATORS = [
   "**",
   "*",
   "/",
@@ -44,29 +47,25 @@ const OPERATORS = [
   "<"
 ];
 
-export { SYMBOL_NAME, TYPE_NAME, OPERATORS };
-
 // const comment = $(/\#[^\n]*/).drop();
 
 // line may be continued with "\"
-const linespace = $.optional(/([ ]+|\\[ ]*\n)+/, null);
+export const linespace = $.optional(/([ ]+|\\[ ]*\n)+/, null);
 
 // linefeed is acceptable whitespace here
-const whitespace = $.optional(/([ \n]+|\\\n|\#[^\n]*\n)+/, null);
+export const whitespace = $.optional(/([ \n]+|\\\n|\#[^\n]*\n)+/, null);
 
-const commentspace = whitespace.map(match => {
+export const commentspace = whitespace.map(match => {
   if (!match) return match;
   return match[0].split("\n").map(x => x.trim()).filter(x => x[0] == "#").join("\n");
 });
-
-export { linespace, whitespace, commentspace };
 
 // match a keyword, commit on it, and turn it into its covering span.
 export function toSpan(p) {
   return $.commit(p).map((match, span) => span);
 }
 
-// match: ws p (linespace separator ws p)* (linespace separator)?
+// match: (ws p (linespace separator ws p)* (linespace separator)?)?
 // if ws isn't dropped, it's added to the result of p as a 'comment' field.
 export function repeatSeparated(p, separator, ws) {
   const element = $([ ws, p ]).map(([ comment, x ]) => {
@@ -80,9 +79,9 @@ export function repeatSeparated(p, separator, ws) {
   });
 
   return $([
-    $.repeatSeparated(element, $([ linespace, separator ])).optional([]),
+    $.repeatSeparated(element, $([ linespace, separator ])),
     $.optional([ linespace, separator ])
-  ]).map(match => match[0]);
+  ]).map(match => match[0]).optional([]);
 }
 
 // same as repeatSeparated, but with a surrounding group syntax like [ ].
