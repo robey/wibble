@@ -53,8 +53,7 @@ export const OPERATORS = [
 export const linespace = $.optional(/([ ]+|\\[ ]*\n)+/, null);
 
 // linefeed is acceptable whitespace here
-export const whitespace = $.optional(/([ \n]+|\\\n|\#[^\n]*\n)+/, null);
-
+const whitespace = $.optional(/([ \n]+|\\\n|\#[^\n]*\n)+/, null);
 export const commentspace = whitespace.map(match => {
   if (!match) return match;
   return match[0].split("\n").map(x => x.trim()).filter(x => x[0] == "#").join("\n");
