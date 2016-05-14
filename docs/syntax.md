@@ -75,19 +75,21 @@
 
     parameterType := "$" TYPE_NAME
 
-    templateType := TYPE_NAME "(" (typedecl ","?)* ")"
+    templateType := TYPE_NAME "(" typedecl ("," typedecl)* ")"
 
     simpleType := "@" | TYPE_NAME
 
-    compoundType := "(" (typedField ","?)* ")"
+    compoundType := "(" (typedField ("," typedField)\*)? ")"
 
     typedField := SYMBOL_NAME (":" typedecl)? ("=" expression)?
 
 ## code
 
-    code := localVal | assignment | return | handler | expression
+    code := localLet | localMake | assignment | return | handler | expression
 
-    localVal := ("mutable")? SYMBOL_NAME "=" expression
+    localLet := "let" SYMBOL_NAME "=" expression ("," SYMBOL_NAME "=" expression)*
+
+    localMake := "make" SYMBOL_NAME ":=" expression ("," SYMBOL_NAME "=" expression)*
 
     assignment := SYMBOL_NAME ":=" expression
 
