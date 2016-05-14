@@ -2,6 +2,7 @@
 
 import $ from "packrattle";
 import { cstring } from "../common/util";
+import { func } from "./p_code";
 import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan, whitespace } from "./p_common";
 import { constant } from "./p_const";
 
@@ -9,7 +10,7 @@ import { constant } from "./p_const";
  * parse expressions
  */
 
-class PExpr {
+export class PExpr {
   constructor(description, span, children) {
     this.description = description;
     this.span = span;
@@ -138,7 +139,7 @@ const atom = $.alt(
   constant,
   reference,
   xarray,
-  /* xfunction */
+  () => func,
   struct //,
   /* codeBlock */
   // newObject
