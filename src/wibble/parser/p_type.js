@@ -27,7 +27,7 @@ class PType {
 
 class PSimpleType extends PType {
   constructor(name, span) {
-    super(`Type(${name})`, span);
+    super(`type(${name})`, span);
   }
 }
 
@@ -41,7 +41,7 @@ class PTypedField {
   }
 
   inspect() {
-    let rv = `Field(${this.name}`;
+    let rv = `field(${this.name}`;
     if (this.type) rv += ": " + this.type.inspect();
     if (this.defaultValue) rv += " = " + this.defaultValue.inspect();
     rv += ")[" + this.span.start + ":" + this.span.end + "]";
@@ -51,25 +51,25 @@ class PTypedField {
 
 class PCompoundType extends PType {
   constructor(fields, span) {
-    super("CompoundType", span, fields);
+    super("compoundType", span, fields);
   }
 }
 
 class PTemplateType extends PType {
   constructor(name, params, span) {
-    super(`TemplateType(${name})`, span, params);
+    super(`templateType(${name})`, span, params);
   }
 }
 
 class PParameterType extends PType {
   constructor(name, span) {
-    super(`ParameterType(${name})`, span);
+    super(`parameterType(${name})`, span);
   }
 }
 
 class PFunctionType extends PType {
   constructor(argType, resultType, span) {
-    super("FunctionType", span, [ argType, resultType ]);
+    super("functionType", span, [ argType, resultType ]);
     this.argType = argType;
     this.resultType = resultType;
   }
@@ -77,7 +77,7 @@ class PFunctionType extends PType {
 
 class PDisjointType extends PType {
   constructor(types, span) {
-    super("DisjointType", span, types);
+    super("disjointType", span, types);
   }
 }
 
