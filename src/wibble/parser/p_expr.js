@@ -2,7 +2,7 @@
 
 import $ from "packrattle";
 import { cstring } from "../common/strings";
-import { func } from "./p_code";
+import { codeBlock, func } from "./p_code";
 import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan, whitespace } from "./p_common";
 import { constant } from "./p_const";
 
@@ -133,7 +133,7 @@ const struct = repeatSurrounded(
 const newObject = $([
   toSpan("new"),
   whitespace,
-  codeBlock
+  () => codeBlock
 ]).map(([ state, code ]) => new PNew(code, state));
 
 const atom = $.alt(
@@ -141,8 +141,8 @@ const atom = $.alt(
   reference,
   xarray,
   () => func,
-  struct //,
-  /* codeBlock */
+  struct,
+  () => codeBlock
   // newObject
 ).named("atom");
 
@@ -202,7 +202,6 @@ const condition = $([
 const baseExpression = $.alt(condition, logical);
 
 // FIXME
-const codeBlock = constant;
 newObject;
 
 export const expression = baseExpression.named("expression");

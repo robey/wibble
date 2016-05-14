@@ -199,7 +199,10 @@ describe("Parse expressions", () => {
 
     it("if {block} then _ else _", () => {
       parse("if { 3; true } then 1 else 2").should.eql("if(" +
-        "code??, " +
+        "block(" +
+          "const(NUMBER_BASE10, 3)[5:6], " +
+          "const(BOOLEAN, true)[8:12]" +
+        ")[3:14], " +
         "const(NUMBER_BASE10, 1)[20:21], " +
         "const(NUMBER_BASE10, 2)[27:28]" +
       ")[0:2]");
