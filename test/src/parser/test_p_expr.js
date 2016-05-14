@@ -162,10 +162,17 @@ describe("Parse expressions", () => {
     });
 
     it("can span multiple lines", () => {
-      parse("3 + \\\n 4").should.eql("binary(+)(" +
+      parse("3 + \n  4").should.eql("binary(+)(" +
         "const(NUMBER_BASE10, 3)[0:1], " +
         "const(NUMBER_BASE10, 4)[7:8]" +
       ")[0:8]");
+    });
+
+    it("with comment", () => {
+      parse("3 + # add numbers\n  4").should.eql("binary(+)(" +
+        "const(NUMBER_BASE10, 3)[0:1], " +
+        "const(NUMBER_BASE10, 4)[20:21]" +
+      ")#\"# add numbers\"[0:21]");
     });
 
     it("notices a missing argument", () => {

@@ -1,7 +1,7 @@
 "use strict";
 
 import $ from "packrattle";
-import { cstring } from "../common/util";
+import { cstring } from "../common/strings";
 import { func } from "./p_code";
 import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan, whitespace } from "./p_common";
 import { constant } from "./p_const";
@@ -94,7 +94,8 @@ class PIf extends PExpr {
 
 // ----- parsers
 
-export const reference = $(SYMBOL_NAME).filter(match => !isReserved(match[0])).map((match, span) => {
+const ReservedError = "Reserved word can't be used as identifier";
+export const reference = $(SYMBOL_NAME).filter(match => !isReserved(match[0]), ReservedError).map((match, span) => {
   return new PReference(match[0], span);
 });
 
@@ -163,10 +164,14 @@ const call = $([
 
 // helper
 function binary(subexpr, op) {
-  const sep = $.commit([ $.drop(whitespace), op, $.drop(whitespace) ]).map(match => match[0]);
+  const sep = $.commit([ $.drop(linespace), op, commentspace ]);
   return $.reduce($(subexpr).named("operand"), sep, {
     first: x => x,
-    next: (left, op, right) => new PBinary(left, op, right, left.span.merge(right.span))
+    next: (left, [ op, comment ], right) => {
+      const binary = new PBinary(left, op, right, left.span.merge(right.span));
+      if (comment) binary.comment = comment;
+      return binary;
+    }
   }).named("binary(" + op + ")");
 }
 
