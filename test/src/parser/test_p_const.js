@@ -21,7 +21,6 @@ describe("Parse constants", () => {
     parse(".hello").should.eql("const(SYMBOL, hello)[0:6]");
     parse(".xx_").should.eql("const(SYMBOL, xx_)[0:4]");
     parse(".a3").should.eql("const(SYMBOL, a3)[0:3]");
-    parse(":inspect").should.eql("const(SYMBOL, :inspect)[0:8]");
   });
 
   it("opref", () => {

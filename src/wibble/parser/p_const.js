@@ -2,7 +2,7 @@
 
 import $ from "packrattle";
 import Enum from "../common/wenum";
-import { cstring, uncstring } from "../common/util";
+import { cstring, uncstring } from "../common/strings";
 import { OPERATORS, SYMBOL_NAME } from "./p_common";
 
 /*
@@ -45,20 +45,13 @@ const boolean = $.alt("true", "false").map((value, span) => {
   return new PConstant(PConstantType.BOOLEAN, value == "true", span);
 });
 
-const symbolRef = $([
+export const symbolRef = $([
   $.drop(".").commit(),
   $.alt(
     $(SYMBOL_NAME).map(match => match[0]),
     ...(OPERATORS)
   ).onFail("Invalid symbol name after .")
 ]).map((match, span) => new PConstant(PConstantType.SYMBOL, match[0], span));
-
-// reserved symbol namespace for messages that ALL objects respond to. (:inspect, for example)
-// FIXME i don't think i like this.
-const internalSymbolRef = $([
-  $.drop($.commit(":")),
-  SYMBOL_NAME
-]).map((match, span) => new PConstant(PConstantType.SYMBOL, ":" + match[0][0], span));
 
 const numberBase10 = $([
   /[0-9_]+/,
@@ -89,7 +82,6 @@ export const constant = $.alt(
   nothing,
   boolean,
   symbolRef,
-  internalSymbolRef,
   numberBase10,
   numberBase16,
   numberBase2,
