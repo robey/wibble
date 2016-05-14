@@ -23,33 +23,29 @@
 
 ## expressions
 
-    expression := baseExpression ("unless" expression | "until" expression)?
-
-    baseExpression := condition | loop | logical
+    expression := condition | loop | logical
 
     condition := "if" expression "then" expression ("else" expression)?
 
     loop := rawLoop | whileLoop
 
-    rawLoop := "loop" expression
+    rawLoop := "forever" expression
 
     whileLoop := "while" expression "do" expression
 
     logical := comparison (("and" | "or") comparison)*
 
-    comparison := shifty (("==" | ">=" | "<=" | "!=" | "<" | ">") shifty)*
-
-    shifty := term (("<<" | ">>") term)*
+    comparison := term (("==" | ">=" | "<=" | "!=" | "<" | ">") term)*
 
     term := factor (("+" | "-") factor)*
 
-    factor := power (("*" | "/" | "%") power)*
+    factor := power (("\*" | "/" | "%") power)*
 
-    power := call ("**" call)*
+    power := call ("\*\*" call)*
 
     call := unary (ws* atom)*
 
-    unary := ("+" | "-" | "not") atom
+    unary := ("-" | "not") atom
 
     atom := constant | reference | array | struct | function | codeBlock | new
 
@@ -69,9 +65,11 @@
 
 ## typedecl
 
-    typedecl := componentType ("|" componentType)*
+    typedecl := functionType ("|" functionType)*
 
-    componentType := nestedType | parameterType | templateType | simpleType | compoundType | functionType
+    functionType := (componentType "->" componentType) | componentType
+
+    componentType := nestedType | parameterType | templateType | simpleType | compoundType
 
     nestedType := "(" typedecl ")"
 
@@ -81,11 +79,9 @@
 
     simpleType := "@" | TYPE_NAME
 
-    compoundType := "(" (namedType ","?)* ")"
+    compoundType := "(" (typedField ","?)* ")"
 
-    namedType := SYMBOL_NAME (":" typedecl)? ("=" expression)?
-
-    functionType := typedecl "->" typedecl
+    typedField := SYMBOL_NAME (":" typedecl)? ("=" expression)?
 
 ## code
 
