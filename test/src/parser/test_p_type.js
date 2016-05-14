@@ -24,6 +24,12 @@ describe("Parse types", () => {
     parse("(x: Int, y:String)").should.eql(
       "CompoundType(Field(x: Type(Int)[4:7])[1:2], Field(y: Type(String)[11:17])[9:10])[0:18]"
     );
+    parse("(x: Int = 4)").should.eql(
+      "CompoundType(Field(x: Type(Int)[4:7] = const(NUMBER_BASE10, 4)[10:11])[1:2])[0:12]"
+    );
+    parse("()").should.eql(
+      "CompoundType[0:2]"
+    );
   });
 
   it("function", () => {

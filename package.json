@@ -12,7 +12,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build-source": "eslint src --fix && babel --source-maps --out-dir lib src",
-    "build-test": "eslint test/src && babel --source-maps --out-dir test/lib test/src",
+    "build-test": "eslint test/src --fix && babel --source-maps --out-dir test/lib test/src",
     "clean": "rm -rf lib test/lib",
     "distclean": "npm run clean && rm -rf node_modules npm-debug.log",
     "prepublish": "npm run build-source",

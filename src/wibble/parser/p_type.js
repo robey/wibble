@@ -90,14 +90,17 @@ const simpleType = $.alt("@", $(TYPE_NAME).map(match => match[0])).map((match, s
 
 const typedField = $([
   reference,
-  $.optional([ $.drop(linespace), $.drop(":"), $.drop(linespace), () => typedecl ]),
-  $.optional([ $.drop(linespace), $.drop("="), $.drop(linespace), () => expression ])
+  $.optional([ $.drop(linespace), $.drop(":"), $.drop(linespace), () => typedecl ], ""),
+  $.optional([ $.drop(linespace), $.drop("="), $.drop(linespace), () => expression ], "")
 ]).map(match => {
+  if (match[1] == "") match[1] = null;
+  if (match[2] == "") match[2] = null;
   const type = match[1] ? match[1][0] : null;
-  return new PTypedField(match[0].name, type, match[2], match[0].span);
+  const defaultValue = match[2] ? match[2][0] : null;
+  return new PTypedField(match[0].name, type, defaultValue, match[0].span);
 });
 
-const compoundType = repeatSurrounded(
+export const compoundType = repeatSurrounded(
   "(",
   typedField,
   ",",

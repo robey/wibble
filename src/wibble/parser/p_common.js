@@ -65,7 +65,7 @@ export function toSpan(p) {
   return $.commit(p).map((match, span) => span);
 }
 
-// match: (ws p (linespace separator ws p)* (linespace separator)?)?
+// match: ws p (linespace separator ws p)* (linespace separator)?
 // if ws isn't dropped, it's added to the result of p as a 'comment' field.
 export function repeatSeparated(p, separator, ws) {
   const element = $([ ws, p ]).map(([ comment, x ]) => {
@@ -81,18 +81,19 @@ export function repeatSeparated(p, separator, ws) {
   return $([
     $.repeatSeparated(element, $([ linespace, separator ])),
     $.optional([ linespace, separator ])
-  ]).map(match => match[0]).optional([]);
+  ]).map(match => match[0]);
 }
 
 // same as repeatSeparated, but with a surrounding group syntax like [ ].
 // returns [ []:items, comment ] -- where comment is any non-dropped content
 // from 'ws' after the last item.
 // 'name' is what to name the items expected, for errors.
+// an empty list is allowed.
 export function repeatSurrounded(open, p, separator, close, ws, name) {
   return $([
     $.drop(open),
     $([
-      repeatSeparated(p, separator, ws),
+      repeatSeparated(p, separator, ws).optional([]),
       ws,
       $.drop(close)
     ]).named(name)
