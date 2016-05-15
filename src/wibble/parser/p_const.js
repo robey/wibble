@@ -1,7 +1,7 @@
 "use strict";
 
 import $ from "packrattle";
-import Enum from "../common/wenum";
+import Enum from "../common/enum";
 import { cstring, uncstring } from "../common/strings";
 import { OPERATORS, SYMBOL_NAME } from "./p_common";
 
@@ -87,6 +87,3 @@ export const constant = $.alt(
   numberBase2,
   string
 ).named("constant");
-
-// exports.internalSymbolRef = internalSymbolRef
-// exports.symbolRef = symbolRef
