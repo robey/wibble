@@ -223,57 +223,20 @@ describe("Parse expressions", () => {
     });
   });
 
-//   describe "unless", ->
-//     it "_ unless _", ->
-//       parse("9 unless x > 3").should.eql(
-//         unless:
-//           binary: ">"
-//           left: { reference: "x", pos: [ 9, 10 ] }
-//           right: { number: "base10", value: "3", pos: [ 13, 14 ] }
-//           pos: [ 9, 14 ]
-//         nested: { number: "base10", value: "9", pos: [ 0, 1 ] }
-//         pos: [ 2, 8 ]
-//       )
-//
-//     it "complex expression unless _", ->
-//       parse("x .drop 9 unless y").should.eql(
-//         unless: { reference: "y", pos: [ 17, 18 ] }
-//         nested:
-//           call:
-//             call: { reference: "x", pos: [ 0, 1 ] }
-//             arg: { symbol: "drop", pos: [ 2, 7 ] }
-//             pos: [ 0, 7 ]
-//           arg: { number: "base10", value: "9", pos: [ 8, 9 ] }
-//           pos: [ 0, 9 ]
-//         pos: [ 10, 16 ]
-//       )
-//
-//   describe "new", ->
-//     it "simple", ->
-//       parse("new { true }").should.eql(
-//         newObject:
-//           code: [
-//             { boolean: true, pos: [ 6, 10 ] }
-//           ]
-//           pos: [ 4, 12 ]
-//         pos: [ 0, 3 ]
-//       )
-//
-//     it "part of a call", ->
-//       parse("new { on .foo -> 3 } .foo").should.eql(
-//         call:
-//           newObject:
-//             code: [
-//               {
-//                 on: { symbol: "foo", pos: [ 9, 13 ] }
-//                 handler: { number: "base10", value: "3", pos: [ 17, 18 ] }
-//                 pos: [ 6, 8 ]
-//               }
-//             ]
-//             pos: [ 4, 20 ]
-//           pos: [ 0, 3 ]
-//         arg: { symbol: "foo", pos: [ 21, 25 ] }
-//         pos: [ 0, 25 ]
-//       )
+  describe("new", () => {
+    it("simple", () => {
+      parse("new { true }").should.eql(
+        "new(block(const(BOOLEAN, true)[6:10])[4:12])[0:3]"
+      );
+    });
 
+    it("part of a call", () => {
+      parse("new { on .foo -> 3 } .foo").should.eql(
+        "call(" +
+          "new(block(on(const(SYMBOL, foo)[9:13], const(NUMBER_BASE10, 3)[17:18])[6:8])[4:20])[0:3], " +
+          "const(SYMBOL, foo)[21:25]" +
+        ")[0:25]"
+      );
+    });
+  });
 });

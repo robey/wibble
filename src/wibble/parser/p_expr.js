@@ -3,7 +3,7 @@
 import $ from "packrattle";
 import { cstring } from "../common/strings";
 import { codeBlock, func } from "./p_code";
-import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan, whitespace } from "./p_common";
+import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan } from "./p_common";
 import { constant } from "./p_const";
 
 /*
@@ -61,7 +61,6 @@ class PStruct extends PExpr {
 class PNew extends PExpr {
   constructor(code, span) {
     super("new", span, [ code ]);
-    this.code = code;
   }
 }
 
@@ -132,9 +131,9 @@ const struct = repeatSurrounded(
 
 const newObject = $([
   toSpan("new"),
-  whitespace,
+  $.drop(linespace),
   () => codeBlock
-]).map(([ state, code ]) => new PNew(code, state));
+]).map(([ span, code ]) => new PNew(code, span));
 
 const atom = $.alt(
   constant,
@@ -142,8 +141,8 @@ const atom = $.alt(
   xarray,
   () => func,
   struct,
-  () => codeBlock
-  // newObject
+  () => codeBlock,
+  newObject
 ).named("atom");
 
 const unary = $.alt(
@@ -205,12 +204,3 @@ const baseExpression = $.alt(condition, logical);
 newObject;
 
 export const expression = baseExpression.named("expression");
-// $([
-//   baseExpression,
-//   // pr([ linespace, pr.alt(postfixUnless, postfixUntil) ]).optional([]) ]).describe("expression").onMatch (m, state) ->
-// ]).map((match, state) => {
-//   // pass thru raw expression if there were no postfixes
-//   if (m[1].length == 0 then return m[0]
-//   // m[1][0].nested = m[0]
-//   // m[1][0]
-// });
