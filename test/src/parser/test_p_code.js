@@ -5,7 +5,7 @@ import { parser } from "../../../lib/wibble";
 import "should";
 import "source-map-support/register";
 
-const parse = (s, options) => parser.func.run(s, options).inspect();
+const parseFunc = (s, options) => parser.func.run(s, options).inspect();
 const parseExpr = (s, options) => parser.expression.run(s, options).inspect();
 const parseCode = (s, options) => parser.code.run(s, options).inspect();
 const parseBlock = (s, options) => parser.codeBlock.run(s, options).inspect();
@@ -14,11 +14,11 @@ const parseBlock = (s, options) => parser.codeBlock.run(s, options).inspect();
 describe("Parse code", () => {
   describe("function", () => {
     it("empty", () => {
-      parse("-> ()").should.eql("function(none -> none)(const(NOTHING)[3:5])[0:2]");
+      parseFunc("-> ()").should.eql("function(none -> none)(const(NOTHING)[3:5])[0:2]");
     });
 
     it("simple expression", () => {
-      parse("(x: Int) -> x * 2").should.eql(
+      parseFunc("(x: Int) -> x * 2").should.eql(
         "function(compoundType(field(x: type(Int)[4:7])[1:2])[0:8] -> none)(" +
           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
         ")[9:11]"
@@ -26,7 +26,7 @@ describe("Parse code", () => {
     });
 
     it("with no arg type", () => {
-      parse("(x) -> x * 2").should.eql(
+      parseFunc("(x) -> x * 2").should.eql(
         "function(compoundType(field(x)[1:2])[0:3] -> none)(" +
           "binary(*)(x[7:8], const(NUMBER_BASE10, 2)[11:12])[7:12]" +
         ")[4:6]"
@@ -34,7 +34,7 @@ describe("Parse code", () => {
     });
 
     it("with return type", () => {
-      parse("(x: Int): Int -> x").should.eql(
+      parseFunc("(x: Int): Int -> x").should.eql(
         "function(compoundType(field(x: type(Int)[4:7])[1:2])[0:8] -> type(Int)[10:13])(" +
           "x[17:18]" +
         ")[14:16]"
@@ -42,7 +42,7 @@ describe("Parse code", () => {
     });
 
     it("complex parameters", () => {
-      parse("(a: Map(String, Int), b: String -> Int) -> false").should.eql(
+      parseFunc("(a: Map(String, Int), b: String -> Int) -> false").should.eql(
         "function(compoundType(" +
           "field(a: templateType(Map)(" +
             "type(String)[8:14], type(Int)[16:19]" +
@@ -55,7 +55,7 @@ describe("Parse code", () => {
     });
 
     it("default values", () => {
-      parse("(x: Int = 4, y: Int = 5) -> x + y").should.eql(
+      parseFunc("(x: Int = 4, y: Int = 5) -> x + y").should.eql(
         "function(compoundType(" +
           "field(x: type(Int)[4:7] = const(NUMBER_BASE10, 4)[10:11])[1:2], " +
           "field(y: type(Int)[16:19] = const(NUMBER_BASE10, 5)[22:23])[13:14]" +
@@ -66,7 +66,7 @@ describe("Parse code", () => {
     });
 
     it("nested", () => {
-      parse("-> -> 69").should.eql(
+      parseFunc("-> -> 69").should.eql(
         "function(none -> none)(function(none -> none)(const(NUMBER_BASE10, 69)[6:8])[3:5])[0:2]"
       );
     });
