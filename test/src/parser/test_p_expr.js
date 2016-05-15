@@ -207,16 +207,6 @@ describe("Parse expressions", () => {
         "const(NUMBER_BASE10, 2)[27:28]" +
       ")[0:2]");
     });
-      //   condition:
-      //     code: [
-      //       { number: "base10", value: "3", pos: [ 5, 6 ] }
-      //       { boolean: true, pos: [ 8, 12 ] }
-      //     ]
-      //     pos: [ 3, 14 ]
-      //   ifThen: { number: "base10", value: "1", pos: [ 20, 21 ] }
-      //   ifElse: { number: "base10", value: "2", pos: [ 27, 28 ] }
-      //   pos: [ 0, 2 ]
-      // )
 
     it("nested", () => {
       parse("if a then (if b then 3) else 9").should.eql("if(" +
