@@ -161,6 +161,18 @@ describe("Parse expressions", () => {
       ")[0:16]");
     });
 
+    it("and, or", () => {
+      parse("true or 3 == 1 and false").should.eql(
+        "binary(or)(" +
+          "const(BOOLEAN, true)[0:4], " +
+          "binary(and)(" +
+            "binary(==)(const(NUMBER_BASE10, 3)[8:9], const(NUMBER_BASE10, 1)[13:14])[8:14], " +
+            "const(BOOLEAN, false)[19:24]" +
+          ")[8:24]" +
+        ")[0:24]"
+      );
+    });
+
     it("can span multiple lines", () => {
       parse("3 + \n  4").should.eql("binary(+)(" +
         "const(NUMBER_BASE10, 3)[0:1], " +

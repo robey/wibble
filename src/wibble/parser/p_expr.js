@@ -190,7 +190,8 @@ const power = binary(call, "**");
 const factor = binary(power, $.alt("*", "/", "%"));
 const term = binary(factor, $.alt("+", "-"));
 const comparison = binary(term, $.alt("==", ">=", "<=", "!=", "<", ">"));
-const logical = binary(comparison, $.alt("and", "or"));
+const logicalAnd = binary(comparison, "and");
+const logical = binary(logicalAnd, "or");
 
 const condition = $([
   toSpan("if"),
