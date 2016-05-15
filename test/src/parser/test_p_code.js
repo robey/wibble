@@ -96,13 +96,6 @@ describe("Parse code", () => {
       (() => parseCode("make return = 1")).should.throw(/Reserved/);
     });
 
-    it("assignment", () => {
-      parseCode("count := 9").should.eql("assign(count[0:5], const(NUMBER_BASE10, 9)[9:10])[6:8]");
-      parseCode("count := count + 1").should.eql(
-        "assign(count[0:5], binary(+)(count[9:14], const(NUMBER_BASE10, 1)[17:18])[9:18])[6:8]"
-      );
-    });
-
     it("handler", () => {
       parseCode("on .peek -> 3").should.eql(
         "on(const(SYMBOL, peek)[3:8], const(NUMBER_BASE10, 3)[12:13])[0:2]"
@@ -117,17 +110,6 @@ describe("Parse code", () => {
         ")[0:2]"
       );
       (() => parseCode("on 3 -> 3")).should.match(/symbol or parameters/);
-    });
-
-    it("return", () => {
-      parseCode("return 3").should.eql(
-        "return(const(NUMBER_BASE10, 3)[7:8])[0:6]"
-      );
-    });
-
-    // really simple. :)
-    it("break", () => {
-      parseCode("break").should.eql("break[0:5]");
     });
   });
 

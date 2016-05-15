@@ -28,27 +28,9 @@ class PLocals extends PExpr {
   }
 }
 
-class PAssignment extends PExpr {
-  constructor(name, expr, span) {
-    super("assign", span, [ name, expr ]);
-  }
-}
-
 class POn extends PExpr {
   constructor(receiver, expr, span) {
     super("on", span, [ receiver, expr ]);
-  }
-}
-
-class PReturn extends PExpr {
-  constructor(expr, span) {
-    super("return", span, [ expr ]);
-  }
-}
-
-class PBreak extends PExpr {
-  constructor(span) {
-    super("break", span);
   }
 }
 
@@ -101,16 +83,6 @@ const localMake = $([
   return new PLocals(match[0], match[1]);
 });
 
-const assignment = $([
-  reference,
-  $.drop(linespace),
-  toSpan(":="),
-  $.drop(linespace),
-  () => expression
-]).map(match => {
-  return new PAssignment(match[0], match[2], match[1]);
-});
-
 const handlerReceiver = $.alt(() => symbolRef, () => compoundType).named("symbol or parameters");
 const handler = $([
   toSpan("on"),
@@ -124,19 +96,10 @@ const handler = $([
   return new POn(match[1], match[2], match[0]);
 });
 
-const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).map(match => {
-  return new PReturn(match[1], match[0]);
-});
-
-const breakEarly = toSpan("break").map(span => new PBreak(span));
-
 export const code = $.alt(
   localLet,
   localMake,
-  assignment,
   handler,
-  returnEarly,
-  breakEarly,
   () => expression
 ).named("declaration or expression");
 

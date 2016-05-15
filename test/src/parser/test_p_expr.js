@@ -81,6 +81,23 @@ describe("Parse expressions", () => {
     });
   });
 
+  describe("new", () => {
+    it("simple", () => {
+      parse("new { true }").should.eql(
+        "new(block(const(BOOLEAN, true)[6:10])[4:12])[0:3]"
+      );
+    });
+
+    it("part of a call", () => {
+      parse("new { on .foo -> 3 } .foo").should.eql(
+        "call(" +
+          "new(block(on(const(SYMBOL, foo)[9:13], const(NUMBER_BASE10, 3)[17:18])[6:8])[4:20])[0:3], " +
+          "const(SYMBOL, foo)[21:25]" +
+        ")[0:25]"
+      );
+    });
+  });
+
   it("unary", () => {
     parse("not true").should.eql("unary(not)(const(BOOLEAN, true)[4:8])[0:8]");
     parse("-  5").should.eql("unary(-)(const(NUMBER_BASE10, 5)[3:4])[0:4]");
@@ -193,6 +210,13 @@ describe("Parse expressions", () => {
     });
   });
 
+  it("assignment", () => {
+    parse("count := 9").should.eql("assign(count[0:5], const(NUMBER_BASE10, 9)[9:10])[6:8]");
+    parse("count := count + 1").should.eql(
+      "assign(count[0:5], binary(+)(count[9:14], const(NUMBER_BASE10, 1)[17:18])[9:18])[6:8]"
+    );
+  });
+
   describe("if", () => {
     it("if _ then _", () => {
       parse("if x < 0 then x").should.eql("if(" +
@@ -237,13 +261,8 @@ describe("Parse expressions", () => {
 
   it("repeat", () => {
     parse("repeat 3").should.eql("repeat(const(NUMBER_BASE10, 3)[7:8])[0:6]");
-    try {
-      parse("repeat { if true then break }");
-    } catch (error) {
-      console.log(error.span.toSquiggles().join("\n"));
-    }
     parse("repeat { if true then break }").should.eql(
-      "repeat(block(if(const(BOOLEAN, true)[13:17], break[23:28])[10:12])[8:])[0:6]"
+      "repeat(block(if(const(BOOLEAN, true)[12:16], break[22:27])[9:11])[7:29])[0:6]"
     );
   });
 
@@ -251,20 +270,14 @@ describe("Parse expressions", () => {
     parse("while true do false").should.eql("while(const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19])[0:5]");
   });
 
-  describe("new", () => {
-    it("simple", () => {
-      parse("new { true }").should.eql(
-        "new(block(const(BOOLEAN, true)[6:10])[4:12])[0:3]"
-      );
-    });
+  it("return", () => {
+    parse("return 3").should.eql(
+      "return(const(NUMBER_BASE10, 3)[7:8])[0:6]"
+    );
+  });
 
-    it("part of a call", () => {
-      parse("new { on .foo -> 3 } .foo").should.eql(
-        "call(" +
-          "new(block(on(const(SYMBOL, foo)[9:13], const(NUMBER_BASE10, 3)[17:18])[6:8])[4:20])[0:3], " +
-          "const(SYMBOL, foo)[21:25]" +
-        ")[0:25]"
-      );
-    });
+  it("break", () => {
+    parse("break").should.eql("break[0:5]");
+    parse("break 0xff").should.eql("break(const(NUMBER_BASE16, ff)[6:10])[0:5]");
   });
 });

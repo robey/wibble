@@ -23,7 +23,7 @@
 
 ## expressions
 
-    expression := condition | loop | logical
+    expression := condition | loop | return | break | assignment | logical
 
     condition := "if" expression "then" expression ("else" expression)?
 
@@ -33,7 +33,15 @@
 
     whileLoop := "while" expression "do" expression
 
-    logical := comparison (("and" | "or") comparison)*
+    return := "return" expression
+
+    break := "break" expression?
+
+    assignment := SYMBOL_NAME ":=" expression
+
+    logical := logicalAnd ("or" logicalAnd)*
+
+    logicalAnd := comparison ("and" comparison)*
 
     comparison := term (("==" | ">=" | "<=" | "!=" | "<" | ">") term)*
 
@@ -90,11 +98,5 @@
     localLet := "let" SYMBOL_NAME "=" expression ("," SYMBOL_NAME "=" expression)*
 
     localMake := "make" SYMBOL_NAME ":=" expression ("," SYMBOL_NAME "=" expression)*
-
-    assignment := SYMBOL_NAME ":=" expression
-
-    return := "return" expression
-
-    break := "break"
 
     handler := "on" (symbol | parameterList) "->" expression

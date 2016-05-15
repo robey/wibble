@@ -84,6 +84,12 @@ class PBinary extends PExpr {
   }
 }
 
+class PAssignment extends PExpr {
+  constructor(name, expr, span) {
+    super("assign", span, [ name, expr ]);
+  }
+}
+
 class PIf extends PExpr {
   constructor(condition, onTrue, onFalse, span) {
     super("if", span, (onFalse != null) ? [ condition, onTrue, onFalse ] : [ condition, onTrue ]);
@@ -99,6 +105,18 @@ class PRepeat extends PExpr {
 class PWhile extends PExpr {
   constructor(condition, expr, span) {
     super("while", span, [ condition, expr ]);
+  }
+}
+
+class PReturn extends PExpr {
+  constructor(expr, span) {
+    super("return", span, [ expr ]);
+  }
+}
+
+class PBreak extends PExpr {
+  constructor(expr, span) {
+    super("break", span, expr ? [ expr ] : null);
   }
 }
 
@@ -227,6 +245,24 @@ const whileLoop = $([
   () => expression
 ]).map(match => new PWhile(match[1], match[2], match[0]));
 
-const baseExpression = $.alt(condition, repeatLoop, whileLoop, logical);
+const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).map(match => {
+  return new PReturn(match[1], match[0]);
+});
+
+const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => expression) ]).map(match => {
+  return new PBreak(match[1], match[0]);
+});
+
+const assignment = $([
+  reference,
+  $.drop(linespace),
+  toSpan(":="),
+  $.drop(linespace),
+  () => expression
+]).map(match => {
+  return new PAssignment(match[0], match[2], match[1]);
+});
+
+const baseExpression = $.alt(condition, repeatLoop, whileLoop, returnEarly, breakEarly, assignment, logical);
 
 export const expression = baseExpression.named("expression");
