@@ -223,6 +223,22 @@ describe("Parse expressions", () => {
     });
   });
 
+  it("repeat", () => {
+    parse("repeat 3").should.eql("repeat(const(NUMBER_BASE10, 3)[7:8])[0:6]");
+    try {
+      parse("repeat { if true then break }");
+    } catch (error) {
+      console.log(error.span.toSquiggles().join("\n"));
+    }
+    parse("repeat { if true then break }").should.eql(
+      "repeat(block(if(const(BOOLEAN, true)[13:17], break[23:28])[10:12])[8:])[0:6]"
+    );
+  });
+
+  it("while", () => {
+    parse("while true do false").should.eql("while(const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19])[0:5]");
+  });
+
   describe("new", () => {
     it("simple", () => {
       parse("new { true }").should.eql(

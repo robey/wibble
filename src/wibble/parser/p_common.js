@@ -15,13 +15,14 @@ export const RESERVED = [
   "match",
   "and",
   "or",
-  "forever",
+  "repeat",
   "while",
   "do",
   "not",
   "let",
   "make",
   "return",
+  "break",
   "on",
   "new"
 ];

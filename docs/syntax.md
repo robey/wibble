@@ -27,9 +27,9 @@
 
     condition := "if" expression "then" expression ("else" expression)?
 
-    loop := rawLoop | whileLoop
+    loop := repeatLoop | whileLoop
 
-    rawLoop := "forever" expression
+    repeatLoop := "repeat" expression
 
     whileLoop := "while" expression "do" expression
 
@@ -85,7 +85,7 @@
 
 ## code
 
-    code := localLet | localMake | assignment | return | handler | expression
+    code := localLet | localMake | assignment | return | break | handler | expression
 
     localLet := "let" SYMBOL_NAME "=" expression ("," SYMBOL_NAME "=" expression)*
 
@@ -94,5 +94,7 @@
     assignment := SYMBOL_NAME ":=" expression
 
     return := "return" expression
+
+    break := "break"
 
     handler := "on" (symbol | parameterList) "->" expression

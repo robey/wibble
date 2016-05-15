@@ -124,6 +124,11 @@ describe("Parse code", () => {
         "return(const(NUMBER_BASE10, 3)[7:8])[0:6]"
       );
     });
+
+    // really simple. :)
+    it("break", () => {
+      parseCode("break").should.eql("break[0:5]");
+    });
   });
 
   describe("block of code", () => {

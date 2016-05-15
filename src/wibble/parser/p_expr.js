@@ -90,6 +90,18 @@ class PIf extends PExpr {
   }
 }
 
+class PRepeat extends PExpr {
+  constructor(expr, span) {
+    super("repeat", span, [ expr ]);
+  }
+}
+
+class PWhile extends PExpr {
+  constructor(condition, expr, span) {
+    super("while", span, [ condition, expr ]);
+  }
+}
+
 
 // ----- parsers
 
@@ -198,9 +210,22 @@ const condition = $([
   return new PIf(match[1], match[3], (match[4].length > 0) ? match[4][1] : null, match[0]);
 });
 
-const baseExpression = $.alt(condition, logical);
+const repeatLoop = $([
+  toSpan("repeat"),
+  $.drop(linespace),
+  () => expression
+]).map(match => new PRepeat(match[1], match[0]));
 
-// FIXME
-newObject;
+const whileLoop = $([
+  toSpan("while"),
+  $.drop(linespace),
+  () => expression,
+  $.drop(linespace),
+  $.commit("do").drop(),
+  $.drop(linespace),
+  () => expression
+]).map(match => new PWhile(match[1], match[2], match[0]));
+
+const baseExpression = $.alt(condition, repeatLoop, whileLoop, logical);
 
 export const expression = baseExpression.named("expression");

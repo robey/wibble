@@ -46,6 +46,12 @@ class PReturn extends PExpr {
   }
 }
 
+class PBreak extends PExpr {
+  constructor(span) {
+    super("break", span);
+  }
+}
+
 class PBlock extends PExpr {
   constructor(codes, trailingComment, span) {
     super("block", span, codes);
@@ -122,12 +128,15 @@ const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ])
   return new PReturn(match[1], match[0]);
 });
 
+const breakEarly = toSpan("break").map(span => new PBreak(span));
+
 export const code = $.alt(
   localLet,
   localMake,
   assignment,
   handler,
   returnEarly,
+  breakEarly,
   () => expression
 ).named("declaration or expression");
 
