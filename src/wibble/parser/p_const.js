@@ -82,8 +82,8 @@ export const constant = $.alt(
   nothing,
   boolean,
   symbolRef,
-  numberBase10,
   numberBase16,
   numberBase2,
+  numberBase10,
   string
 ).named("constant");
