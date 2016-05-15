@@ -146,13 +146,10 @@ describe("Parse code", () => {
       ")[0:18]");
     });
 
-//     it "comments", ->
-//       parse("{  # code\n# 3\n  true\n  # ok!\n}").should.eql(
-//         code: [
-//           { boolean: true, comment: "# code\n# 3", pos: [ 16, 20 ] }
-//         ]
-//         trailingComment: "# ok!"
-//         pos: [ 0, 30 ]
-//       )
+    it("comments", () => {
+      parseBlock("{  # code\n# 3\n  true\n  # ok!\n}").should.eql("block(" +
+        "const(BOOLEAN, true)#\"# code\\n# 3\"[16:20]" +
+      ")##\"# ok!\"[0:30]");
+    });
   });
 });
