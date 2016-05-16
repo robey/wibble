@@ -4,27 +4,22 @@ import $ from "packrattle";
 import { commentspace, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
 import { symbolRef } from "./p_const";
 import { expression, PExpr, reference } from "./p_expr";
-import { compoundType, typedecl } from "./p_type";
+import { compoundType } from "./p_type";
 
 /*
  * parse code
  */
 
-class PFunction extends PExpr {
-  constructor(inType, outType, body, span) {
-    super(`function(${inType ? inType.inspect() : "none"} -> ${outType ? outType.inspect() : "none"})`, span, [ body ]);
-  }
-}
-
 class PLocal extends PExpr {
-  constructor(name, expr, mutable) {
-    super(mutable ? "make" : "let", name.span, [ name, expr ]);
+  constructor(name, expr) {
+    super("local", name.span, [ name, expr ]);
   }
 }
 
 class PLocals extends PExpr {
-  constructor(span, locals) {
-    super("locals", span, locals);
+  constructor(span, locals, mutable) {
+    super(mutable ? "make" : "let", span, locals);
+    this.mutable = mutable;
   }
 }
 
@@ -44,20 +39,7 @@ class PBlock extends PExpr {
 
 // ----- parsers
 
-export const func = $([
-  $.optional(compoundType, ""),
-  $.drop(linespace),
-  $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ], ""),
-  toSpan("->"),
-  $.drop(linespace),
-  () => expression
-]).map(match => {
-  if (match[0] == "") match[0] = null;
-  if (match[1] == "") match[1] = null;
-  return new PFunction(match[0], match[1] ? match[1][0] : null, match[3], match[2]);
-});
-
-function localDeclaration(operator, mutable) {
+function localDeclaration(operator) {
   return $([
     reference.named("identifier"),
     $.drop(linespace),
@@ -65,25 +47,25 @@ function localDeclaration(operator, mutable) {
     $.drop(linespace),
     () => expression
   ]).map(match => {
-    return new PLocal(match[0], match[1], mutable);
+    return new PLocal(match[0], match[1]);
   });
 }
 
 const localLet = $([
   toSpan("let"),
-  repeatSeparated(localDeclaration("=", false), ",", $.drop(linespace))
+  repeatSeparated(localDeclaration("="), ",", $.drop(linespace))
 ]).map(match => {
-  return new PLocals(match[0], match[1]);
+  return new PLocals(match[0], match[1], false);
 });
 
 const localMake = $([
   toSpan("make"),
-  repeatSeparated(localDeclaration(":=", true), ",", $.drop(linespace))
+  repeatSeparated(localDeclaration(":="), ",", $.drop(linespace))
 ]).map(match => {
-  return new PLocals(match[0], match[1]);
+  return new PLocals(match[0], match[1], true);
 });
 
-const handlerReceiver = $.alt(() => symbolRef, () => compoundType).named("symbol or parameters");
+const handlerReceiver = $.alt(symbolRef, compoundType).named("symbol or parameters");
 const handler = $([
   toSpan("on"),
   $.drop(linespace),

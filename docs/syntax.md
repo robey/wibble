@@ -23,7 +23,7 @@
 
 ## expressions
 
-    expression := condition | loop | return | break | assignment | logical
+    expression := condition | loop | return | break | assignment | function | logical
 
     condition := "if" expression "then" expression ("else" expression)?
 
@@ -55,7 +55,7 @@
 
     unary := ("-" | "not") atom
 
-    atom := constant | reference | array | struct | function | codeBlock | new
+    atom := constant | reference | array | struct | codeBlock | new
 
     reference := SYMBOL_NAME
 

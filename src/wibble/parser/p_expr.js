@@ -2,9 +2,10 @@
 
 import $ from "packrattle";
 import { cstring } from "../common/strings";
-import { codeBlock, func } from "./p_code";
+import { codeBlock } from "./p_code";
 import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan } from "./p_common";
 import { constant } from "./p_const";
+import { compoundType, typedecl } from "./p_type";
 
 /*
  * parse expressions
@@ -41,13 +42,23 @@ class PArray extends PExpr {
   constructor(children, trailingComment, span) {
     super("array", span, children);
     this.trailingComment = trailingComment;
+    this.precedence = 100;
+  }
+}
+
+class PFunction extends PExpr {
+  constructor(inType, outType, body, span) {
+    super(`function(${inType ? inType.inspect() : "none"} -> ${outType ? outType.inspect() : "none"})`, span, [ body ]);
+    this.inType = inType;
+    this.outType = outType;
+    this.precedence = 100;
   }
 }
 
 class PStructField extends PExpr {
-  constructor(fieldName, value, span) {
-    super("field" + (fieldName ? `(${fieldName})` : ""), span, [ value ]);
-    this.fieldName = fieldName;
+  constructor(name, value, span) {
+    super("field" + (name ? `(${name})` : ""), span, [ value ]);
+    this.name = name;
   }
 }
 
@@ -55,12 +66,14 @@ class PStruct extends PExpr {
   constructor(children, trailingComment, span) {
     super("struct", span, children);
     this.trailingComment = trailingComment;
+    this.precedence = 100;
   }
 }
 
 class PNew extends PExpr {
   constructor(code, span) {
     super("new", span, [ code ]);
+    this.precedence = 100;
   }
 }
 
@@ -68,12 +81,14 @@ class PUnary extends PExpr {
   constructor(op, expr, span) {
     super("unary(" + op + ")", span, [ expr ]);
     this.op = op;
+    this.precedence = 1;
   }
 }
 
 class PCall extends PExpr {
   constructor(left, right, span) {
     super("call", span, [ left, right ]);
+    this.precedence = 2;
   }
 }
 
@@ -81,30 +96,64 @@ class PBinary extends PExpr {
   constructor(left, op, right, span) {
     super("binary(" + op + ")", span, [ left, right ]);
     this.op = op;
-  }
-}
-
-class PAssignment extends PExpr {
-  constructor(name, expr, span) {
-    super("assign", span, [ name, expr ]);
+    switch(op) {
+      case "**":
+        this.precedence = 3;
+        break;
+      case "*":
+      case "/":
+      case "%":
+        this.precedence = 4;
+        break;
+      case "+":
+      case "-":
+        this.precedence = 5;
+        break;
+      case "<":
+      case ">":
+      case "==":
+      case "!=":
+      case "<=":
+      case ">=":
+        this.precedence = 6;
+        break;
+      case "and":
+        this.precedence = 7;
+        break;
+      case "or":
+        this.precedence = 8;
+        break;
+      default:
+        throw new Error("No precedence for " + op);
+    }
   }
 }
 
 class PIf extends PExpr {
   constructor(condition, onTrue, onFalse, span) {
     super("if", span, (onFalse != null) ? [ condition, onTrue, onFalse ] : [ condition, onTrue ]);
+    this.precedence = 9;
   }
 }
 
 class PRepeat extends PExpr {
   constructor(expr, span) {
     super("repeat", span, [ expr ]);
+    this.precedence = 9;
   }
 }
 
 class PWhile extends PExpr {
   constructor(condition, expr, span) {
     super("while", span, [ condition, expr ]);
+    this.precedence = 9;
+  }
+}
+
+class PAssignment extends PExpr {
+  constructor(name, expr, span) {
+    super("assign", span, [ name, expr ]);
+    this.precedence = 10;
   }
 }
 
@@ -139,6 +188,19 @@ const xarray = repeatSurrounded(
   return new PArray(items, comment, span);
 }).named("array");
 
+export const func = $([
+  $.optional(compoundType, ""),
+  $.drop(linespace),
+  $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ], ""),
+  toSpan("->"),
+  $.drop(linespace),
+  () => expression
+]).map(match => {
+  if (match[0] == "") match[0] = null;
+  if (match[1] == "") match[1] = null;
+  return new PFunction(match[0], match[1] ? match[1][0] : null, match[3], match[2]);
+});
+
 const structMember = $([
   $.optional([ SYMBOL_NAME, linespace, "=", linespace ], []),
   () => expression
@@ -169,7 +231,6 @@ const atom = $.alt(
   constant,
   reference,
   xarray,
-  () => func,
   struct,
   () => codeBlock,
   newObject
@@ -245,14 +306,6 @@ const whileLoop = $([
   () => expression
 ]).map(match => new PWhile(match[1], match[2], match[0]));
 
-const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).map(match => {
-  return new PReturn(match[1], match[0]);
-});
-
-const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => expression) ]).map(match => {
-  return new PBreak(match[1], match[0]);
-});
-
 const assignment = $([
   reference,
   $.drop(linespace),
@@ -263,6 +316,14 @@ const assignment = $([
   return new PAssignment(match[0], match[2], match[1]);
 });
 
-const baseExpression = $.alt(condition, repeatLoop, whileLoop, returnEarly, breakEarly, assignment, logical);
+const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).map(match => {
+  return new PReturn(match[1], match[0]);
+});
+
+const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => expression) ]).map(match => {
+  return new PBreak(match[1], match[0]);
+});
+
+const baseExpression = $.alt(condition, repeatLoop, whileLoop, assignment, returnEarly, breakEarly, func, logical);
 
 export const expression = baseExpression.named("expression");
