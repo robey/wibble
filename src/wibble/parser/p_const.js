@@ -9,7 +9,7 @@ import { OPERATORS, SYMBOL_NAME } from "./p_common";
  * parse constants
  */
 
-const PConstantType = new Enum([
+export const PConstantType = new Enum([
   "NOTHING",
   "BOOLEAN",
   "SYMBOL",

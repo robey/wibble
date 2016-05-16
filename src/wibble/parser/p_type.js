@@ -13,6 +13,7 @@ class PType {
     this.description = description;
     this.span = span;
     this.children = children || [];
+    this.precedence = 1;
   }
 
   inspect() {
@@ -28,6 +29,7 @@ class PType {
 class PSimpleType extends PType {
   constructor(name, span) {
     super(`type(${name})`, span);
+    this.name = name;
   }
 }
 
@@ -58,12 +60,14 @@ class PCompoundType extends PType {
 class PTemplateType extends PType {
   constructor(name, params, span) {
     super(`templateType(${name})`, span, params);
+    this.name = name;
   }
 }
 
 class PParameterType extends PType {
   constructor(name, span) {
     super(`parameterType(${name})`, span);
+    this.name = name;
   }
 }
 
@@ -72,12 +76,14 @@ class PFunctionType extends PType {
     super("functionType", span, [ argType, resultType ]);
     this.argType = argType;
     this.resultType = resultType;
+    this.precedence = 2;
   }
 }
 
 class PDisjointType extends PType {
   constructor(types, span) {
     super("disjointType", span, types);
+    this.precedence = 3;
   }
 }
 
@@ -89,7 +95,7 @@ const simpleType = $.alt("@", $(TYPE_NAME).map(match => match[0])).map((match, s
 });
 
 const typedField = $([
-  reference,
+  () => reference,
   $.optional([ $.drop(linespace), $.drop(":"), $.drop(linespace), () => typedecl ], ""),
   $.optional([ $.drop(linespace), $.drop("="), $.drop(linespace), () => expression ], "")
 ]).map(match => {
