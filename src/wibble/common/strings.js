@@ -5,10 +5,11 @@
  */
 
 export function uncstring(s) {
-  return s.replace(/\\(u(.{0,4})|.)/g, (match, c, hex) => {
+  return s.replace(/\\(u\{(.*?)\}|u(.{0,4})|.)/g, (match, c, hex1, hex2) => {
+    const hex = hex1 || hex2;
     if (hex) {
       // uHHHH
-      if (!hex.match(/[0-9a-fA-F]{4}/)) throw new Error("Illegal \\uHHHH code");
+      if (!hex.match(/[0-9a-fA-F]+/)) throw new Error("Illegal \\uHHHH code");
       return String.fromCharCode(parseInt(hex, 16));
     }
     switch (c) {

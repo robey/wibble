@@ -81,6 +81,7 @@ describe("Parse constants", () => {
       (() => parse("\"\\ucats\"")).should.match(/Illegal/);
       parse("\"what\\u2022?\"").should.eql("const(STRING, what\u2022?)[0:13]");
       parse("\"what\\nup\\rup\"").should.eql("const(STRING, what\nup\rup)[0:14]");
+      parse("\"what\\u{21}?\"").should.eql("const(STRING, what!?)[0:13]");
     });
 
     it("unterminated", () => {
