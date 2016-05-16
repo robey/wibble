@@ -1,43 +1,15 @@
 "use strict";
 
 import $ from "packrattle";
+import { PBlock, PLocal, PLocals, POn } from "../common/ast";
 import { commentspace, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
 import { symbolRef } from "./p_const";
-import { expression, PExpr, reference } from "./p_expr";
+import { expression, reference } from "./p_expr";
 import { compoundType } from "./p_type";
 
 /*
  * parse code
  */
-
-class PLocal extends PExpr {
-  constructor(name, expr) {
-    super("local", name.span, [ name, expr ]);
-  }
-}
-
-class PLocals extends PExpr {
-  constructor(span, locals, mutable) {
-    super(mutable ? "make" : "let", span, locals);
-    this.mutable = mutable;
-  }
-}
-
-class POn extends PExpr {
-  constructor(receiver, expr, span) {
-    super("on", span, [ receiver, expr ]);
-  }
-}
-
-class PBlock extends PExpr {
-  constructor(codes, trailingComment, span) {
-    super("block", span, codes);
-    this.trailingComment = trailingComment;
-  }
-}
-
-
-// ----- parsers
 
 function localDeclaration(operator) {
   return $([
