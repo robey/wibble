@@ -1,43 +1,13 @@
 "use strict";
 
 import $ from "packrattle";
-import Enum from "../common/enum";
-import { cstring, uncstring } from "../common/strings";
+import { PConstant, PConstantType } from "../common/ast";
+import { uncstring } from "../common/strings";
 import { OPERATORS, SYMBOL_NAME } from "./p_common";
 
 /*
  * parse constants
  */
-
-export const PConstantType = new Enum([
-  "NOTHING",
-  "BOOLEAN",
-  "SYMBOL",
-  "NUMBER_BASE10",
-  "NUMBER_BASE16",
-  "NUMBER_BASE2",
-  "STRING"
-]);
-
-class PConstant {
-  constructor(type, value, span) {
-    this.type = type;
-    this.value = value;
-    this.span = span;
-  }
-
-  inspect() {
-    let rv = this.type == PConstantType.NOTHING ?
-      "const(NOTHING)" :
-      `const(${PConstantType.name(this.type)}, ${this.value})`;
-    if (this.comment) rv += "#\"" + cstring(this.comment) + "\"";
-    rv += `[${this.span.start}:${this.span.end}]`;
-    return rv;
-  }
-}
-
-
-// ----- parsers
 
 const nothing = $("()").map((value, span) => new PConstant(PConstantType.NOTHING, null, span));
 

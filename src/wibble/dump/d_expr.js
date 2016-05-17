@@ -1,7 +1,7 @@
 "use strict";
 
+import { PConstantType } from "../common/ast";
 import { cstring } from "../common/strings";
-import { PConstantType } from "../parser";
 import { dumpType } from "./d_type";
 
 /*

@@ -48,8 +48,6 @@ export const OPERATORS = [
   "<"
 ];
 
-// const comment = $(/\#[^\n]*/).drop();
-
 // line may be continued with "\"
 export const linespace = $.optional(/([ ]+|\\[ ]*\n)+/, null);
 
