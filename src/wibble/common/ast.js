@@ -30,8 +30,9 @@ export class PNode {
   constructor(description, span, children) {
     this.description = description;
     this.span = span;
-    this.children = children || [];
-    // other common fields: comment, trailingComment, precedence
+    this.children = (children || []).filter(c => c != null);
+    this.precedence = 1;
+    // other common fields: comment, trailingComment
   }
 
   inspect() {
@@ -213,6 +214,69 @@ export class PBlock extends PNode {
     this.trailingComment = trailingComment;
   }
 }
+
+
+// ----- types
+
+export class PType extends PNode {
+  constructor(description, span, children) {
+    super(description, span, children);
+  }
+}
+
+export class PSimpleType extends PType {
+  constructor(name, span) {
+    super(`type(${name})`, span);
+    this.name = name;
+  }
+}
+
+// used only in compound types: a field name with an optional type and optional default value.
+export class PTypedField extends PNode {
+  constructor(name, type, defaultValue, span) {
+    super(`field(${name})`, span, [ type, defaultValue ]);
+    this.name = name;
+    this.type = type;
+    this.defaultValue = defaultValue;
+  }
+}
+
+export class PCompoundType extends PType {
+  constructor(fields, span) {
+    super("compoundType", span, fields);
+  }
+}
+
+export class PTemplateType extends PType {
+  constructor(name, params, span) {
+    super(`templateType(${name})`, span, params);
+    this.name = name;
+  }
+}
+
+export class PParameterType extends PType {
+  constructor(name, span) {
+    super(`parameterType(${name})`, span);
+    this.name = name;
+  }
+}
+
+export class PFunctionType extends PType {
+  constructor(argType, resultType, span) {
+    super("functionType", span, [ argType, resultType ]);
+    this.argType = argType;
+    this.resultType = resultType;
+    this.precedence = 2;
+  }
+}
+
+export class PDisjointType extends PType {
+  constructor(types, span) {
+    super("disjointType", span, types);
+    this.precedence = 3;
+  }
+}
+
 
 // export function transformAst(node) {
 //

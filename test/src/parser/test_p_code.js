@@ -34,7 +34,7 @@ describe("Parse code", () => {
       );
       parseCode("on (x: Int) -> x * 2").should.eql(
         "on(" +
-          "compoundType(field(x: type(Int)[7:10])[4:5])[3:11], " +
+          "compoundType(field(x)(type(Int)[7:10])[4:5])[3:11], " +
           "binary(*)(x[15:16], const(NUMBER_BASE10, 2)[19:20])[15:20]" +
         ")[0:2]"
       );

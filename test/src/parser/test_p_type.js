@@ -16,16 +16,16 @@ describe("Parse types", () => {
 
   it("compound", () => {
     parse("(n:Int,s:String)").should.eql(
-      "compoundType(field(n: type(Int)[3:6])[1:2], field(s: type(String)[9:15])[7:8])[0:16]"
+      "compoundType(field(n)(type(Int)[3:6])[1:2], field(s)(type(String)[9:15])[7:8])[0:16]"
     );
     parse("( n: Int, s: String )").should.eql(
-      "compoundType(field(n: type(Int)[5:8])[2:3], field(s: type(String)[13:19])[10:11])[0:21]"
+      "compoundType(field(n)(type(Int)[5:8])[2:3], field(s)(type(String)[13:19])[10:11])[0:21]"
     );
     parse("(x: Int, y:String)").should.eql(
-      "compoundType(field(x: type(Int)[4:7])[1:2], field(y: type(String)[11:17])[9:10])[0:18]"
+      "compoundType(field(x)(type(Int)[4:7])[1:2], field(y)(type(String)[11:17])[9:10])[0:18]"
     );
     parse("(x: Int = 4)").should.eql(
-      "compoundType(field(x: type(Int)[4:7] = const(NUMBER_BASE10, 4)[10:11])[1:2])[0:12]"
+      "compoundType(field(x)(type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11])[1:2])[0:12]"
     );
     parse("()").should.eql(
       "compoundType[0:2]"
@@ -60,8 +60,8 @@ describe("Parse types", () => {
           "functionType(" +
             "type(Int)[17:20], " +
             "compoundType(" +
-              "field(real: type(Float)[31:36])[25:29], " +
-              "field(imaginary: type(Float)[49:54])[38:47]" +
+              "field(real)(type(Float)[31:36])[25:29], " +
+              "field(imaginary)(type(Float)[49:54])[38:47]" +
             ")[24:55]" +
           ")[17:55]" +
         ")[12:56]" +

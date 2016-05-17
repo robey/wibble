@@ -67,7 +67,7 @@ describe("Parse expressions", () => {
 
     it("simple expression", () => {
       parseFunc("(x: Int) -> x * 2").should.eql(
-        "function(compoundType(field(x: type(Int)[4:7])[1:2])[0:8] -> none)(" +
+        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> none)(" +
           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
         ")[9:11]"
       );
@@ -83,7 +83,7 @@ describe("Parse expressions", () => {
 
     it("with return type", () => {
       parseFunc("(x: Int): Int -> x").should.eql(
-        "function(compoundType(field(x: type(Int)[4:7])[1:2])[0:8] -> type(Int)[10:13])(" +
+        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> type(Int)[10:13])(" +
           "x[17:18]" +
         ")[14:16]"
       );
@@ -92,10 +92,10 @@ describe("Parse expressions", () => {
     it("complex parameters", () => {
       parseFunc("(a: Map(String, Int), b: String -> Int) -> false").should.eql(
         "function(compoundType(" +
-          "field(a: templateType(Map)(" +
+          "field(a)(templateType(Map)(" +
             "type(String)[8:14], type(Int)[16:19]" +
           ")[4:20])[1:2], " +
-          "field(b: functionType(type(String)[25:31], type(Int)[35:38])[25:38])[22:23]" +
+          "field(b)(functionType(type(String)[25:31], type(Int)[35:38])[25:38])[22:23]" +
         ")[0:39] -> none)(" +
           "const(BOOLEAN, false)[43:48]" +
         ")[40:42]"
@@ -105,8 +105,8 @@ describe("Parse expressions", () => {
     it("default values", () => {
       parseFunc("(x: Int = 4, y: Int = 5) -> x + y").should.eql(
         "function(compoundType(" +
-          "field(x: type(Int)[4:7] = const(NUMBER_BASE10, 4)[10:11])[1:2], " +
-          "field(y: type(Int)[16:19] = const(NUMBER_BASE10, 5)[22:23])[13:14]" +
+          "field(x)(type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11])[1:2], " +
+          "field(y)(type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23])[13:14]" +
         ")[0:24] -> none)(" +
           "binary(+)(x[28:29], y[32:33])[28:33]" +
         ")[25:27]"
@@ -124,10 +124,10 @@ describe("Parse expressions", () => {
         "function(none -> none)(const(NUMBER_BASE10, 3)[3:4])[0:2]"
       );
       parse("(x: Int) -> 3").should.eql(
-        "function(compoundType(field(x: type(Int)[4:7])[1:2])[0:8] -> none)(const(NUMBER_BASE10, 3)[12:13])[9:11]"
+        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> none)(const(NUMBER_BASE10, 3)[12:13])[9:11]"
       );
       parse("(x: Int) -> x * 2").should.eql(
-        "function(compoundType(field(x: type(Int)[4:7])[1:2])[0:8] -> none)(" +
+        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> none)(" +
           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
         ")[9:11]"
       );
