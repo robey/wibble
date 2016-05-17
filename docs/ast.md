@@ -1,9 +1,16 @@
 
 # things that can be in the AST
 
+- all nodes have:
+  - description (for debugging)
+  - span (from packrattle)
+  - children[]
+- optionally:
+  - comment
+  - trailingComment
+
 X = eliminated by transformations
 
-- everything has a "span" field.
 - a few nodes have a "scope" field, meaning they open a new lexical scope.
   scope is (name -> type).
 - a few nodes will grow a "type" field to hold the descriptor of the object
@@ -11,12 +18,29 @@ X = eliminated by transformations
 
 ## constants
 
-- PConstant(type, value, span)
-  - PConstantType: NOTHING, BOOLEAN, SYMBOL
-    { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
-    { string: "" }
+  - PConstant(type, value)
+    - PConstantType: NOTHING, BOOLEAN, SYMBOL, NUMBER_BASE10, NUMBER_BASE16, NUMBER_BASE2, STRING
 
 ## expressions
+
+  - PExpr(description, span, children, comment, trailingComment)
+    - PReference(name)
+    - PArray
+    - PFunction(inType, outType)
+    - PStruct
+      - PStructField(name)
+    - PNew
+    - PUnary(op)
+    - PCall
+    - PBinary(op)
+    - PAssignment
+    - PIf
+    - PRepeat
+    - PWhile
+    - PReturn
+    - PBreak
+
+
 
     { reference: "" }
     { array: [ expr* ] }
@@ -32,6 +56,11 @@ X = eliminated by transformations
 
 ## code
 
+  - PLocal
+  - PLocals(mutable)
+  - POn
+  - PBlock
+
     { local: { name: string }, value: expr, mutable: bool }
     { assignment: string, value: expr }
     { on: { symbol | compoundType }, handler: expr, type?, [scope] }
@@ -39,6 +68,16 @@ X = eliminated by transformations
     { code: [ expr* ], [scope] }
 
 ## types
+
+  - PType(description, span, children)
+    - PSimpleType(name)
+    - PCompoundType
+      - PTypedField(name, type, defaultValue, span)
+    - PTemplateType(name)
+    - PParameterType(name)
+    - PFunctionType(argType, resultType)
+    - PDisjointType
+
 
     { typename: string }
     { compoundType: { name: string, type: type, value: expr }* }
