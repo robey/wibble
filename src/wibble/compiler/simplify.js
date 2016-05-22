@@ -6,6 +6,11 @@ import {
 } from "../common/ast";
 import { State, transformAst } from "../common/transform";
 
+
+/*
+ * perform some basic simplifications and error checks on the parse tree,
+ * before type-checking.
+ */
 export function simplify(ast, state) {
   if (!state) state = new State();
 
