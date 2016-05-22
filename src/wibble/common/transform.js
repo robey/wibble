@@ -6,15 +6,34 @@ import { Errors } from "../common/errors";
  * functions for transforming the AST
  */
 
+/*
+ * Track state as we walk through the AST, like errors, and the current path
+ * to the root of the tree.
+ */
 export class PState {
   constructor() {
     // errors are cumulative.
     this.errors = new Errors();
 
+    // keep breadcrumbs of the path we took to get to this node.
+    this.path = [];
+
     // fields set with set/get are collected down the tree from parent to child.
+    // FIXME: i think the existence of "path" makes this unnecessary.
     this.layer = 0;
     this.stack = [];
     this.state = {};
+  }
+
+  // return the Nth parent, where parent(0) is our direct parent.
+  parent(n = 0) {
+    if (n >= this.path.length) return null;
+    return this.path[this.path.length - n - 1];
+  }
+
+  parentType(n = 0) {
+    const parent = this.parent(n);
+    return parent ? parent.constructor.name : "";
   }
 
   set(key, value) {
@@ -53,8 +72,14 @@ export class PState {
  */
 export function transformAst(node, state, transform) {
   state.push();
-  const newNode = transform(node, state) || node;
-  newNode.children = newNode.children.map(n => transformAst(n, state, transform));
+  let newNode = node;
+  do {
+    node = newNode;
+    newNode = transform(node, state);
+  } while (newNode != null);
+  state.path.push(node);
+  node.children = node.children.map(n => transformAst(n, state, transform));
+  state.path.pop();
   state.pop();
-  return newNode;
+  return node;
 }

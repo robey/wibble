@@ -1,6 +1,9 @@
 "use strict";
 
-import { PCall, PConstant, PConstantType, PLogic, PNew, POn } from "../common/ast";
+import {
+  PBlock, PBreak, PCall, PConstant, PConstantType, PIf, PLocal, PLocals,
+  PLogic, PNew, POn, PReference, PRepeat, PUnary
+} from "../common/ast";
 import { State, transformAst } from "../common/transform";
 
 export function simplify(ast, state) {
@@ -8,10 +11,6 @@ export function simplify(ast, state) {
 
   return transformAst(ast, state, node => {
     const nodeType = node.constructor.name;
-
-    // if (nodeType == "PNew") {
-    //   state.set("object", true);
-    // } else if ()
 
     switch (nodeType) {
       case "PUnary": {
@@ -37,6 +36,15 @@ export function simplify(ast, state) {
         return null;
       }
 
+      case "PWhile": {
+        // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
+        const newVar = new PReference("?0");
+        const breakOut = new PIf(new PUnary("not", node.children[0]), new PBreak(newVar));
+        const newLocal = new PLocal(newVar, node.children[1]);
+        const block = new PBlock([ new PLocals(null, [ newLocal ], false), breakOut ]);
+        return new PIf(node.children[0], new PRepeat(block, node.span));
+      }
+
       case "PStruct": {
         // convert positional fields into named fields. (adds a name in-place)
         let positional = true;
@@ -59,20 +67,48 @@ export function simplify(ast, state) {
         // convert function(inType, a, outType) into new(on(inType, a, outType)).
         return new PNew(new POn(node.children[0], node.children[1], node.children[2], node.span));
       }
+
+      case "POn": {
+        // must be inside a "new" block.
+        if (state.parentType(0) == "PNew" || (state.parentType(0) == "PBlock" && state.parentType(1) == "PNew")) {
+          return null;
+        } else {
+          state.errors.add("'on' handlers must be inside a 'new' expression", node.span);
+          return null;
+        }
+      }
+
+      case "PNew": {
+        // "new" must contain either an "on", or a block that contains at least one "on".
+        const inner = node.children[0].constructor.name;
+        if (inner != "PBlock" && inner != "POn") {
+          state.errors.add("'new' expression must contain at least one 'on' handler", node.span);
+        }
+        if (inner == "PBlock") {
+          const handlers = node.children[0].children.filter(n => n.constructor.name == "POn");
+          if (handlers.length == 0) {
+            state.errors.add("'new' expression must contain at least one 'on' handler", node.span);
+          }
+        }
+        return null;
+      }
+
+      case "PBlock": {
+        // convert one-expression block into that expression.
+        if (node.children.length == 1 && node.children[0].constructor.name != "PLocals") return node.children[0];
+        return null;
+      }
+
+      case "PBreak": {
+        // "break" must be inside a loop.
+        if (state.path.filter(n => n.constructor.name == "PRepeat").length == 0) {
+          state.errors.add("'break' must be inside a loop", node.span);
+        }
+        return null;
+      }
+
+      default:
+        return null;
     }
   });
 }
-
-
-
-
-// # "on" handlers must be in a "new" block, and a "new" block must contain at least one "on" handler.
-// checkHandlers = (expr) ->
-//   t_expr.digExpr expr, false, (expr, inNew) ->
-//     if expr.on? and not inNew
-//       error("'on' handlers must be inside a type definition or 'new' expression", expr.on.state)
-//     if expr.newObject?
-//       handlers = expr.newObject.code.filter (x) -> x.on?
-//       if handlers.length == 0
-//         error("'new' expression must contain at least one 'on' handler", expr.newObject.state)
-//     [ expr, expr.newObject? or (inNew and expr.code?) ]

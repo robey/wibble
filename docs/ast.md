@@ -38,7 +38,7 @@ X = eliminated by transformations
     - PAssignment
     - PIf
     - PRepeat
-    - PWhile
+    - X: PWhile
     - PReturn
     - PBreak
 

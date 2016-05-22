@@ -8,7 +8,7 @@ import { expression, reference } from "./p_expr";
 import { compoundType, typedecl } from "./p_type";
 
 /*
- * parse code
+ * parse expressions which can only be in a code block.
  */
 
 function localDeclaration(operator) {

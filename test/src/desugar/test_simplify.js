@@ -61,26 +61,37 @@ describe("Desugar expressions", () => {
     simplify("(n: Int) -> n * 2").should.eql("new on (n: Int) -> n .* 2");
   });
 
+  it("block", () => {
+    simplify("{ 4; 5 }").should.eql("{ 4; 5 }");
+    simplify("{ 4 }").should.eql("4");
+    simplify("{ let x = 3 }").should.eql("{ let x = 3 }");
+  });
+
+  it("new/on", () => {
+    simplify("new { on .x -> 3 }").should.eql("new on .x -> 3");
+  });
+
+  it("while", () => {
+    simplify("while true do 13").should.eql(
+      "if true then repeat { let ?0 = 13; if true .not then break ?0 else () } else ()"
+    );
+    simplify("while x > 5 do { x := x - 1 }").should.eql(
+      "if x .> 5 then repeat { let ?0 = x := x .- 1; if x .> 5 .not then break ?0 else () } else ()"
+    );
+  });
+
+  it("break", () => {
+    simplify("repeat { break 10 }").should.eql("repeat break 10");
+    should.throws(() => simplify("if true then { 10; break 11 }"), error => {
+      error.dump.should.eql("if true then { 10; break 11 } else ()");
+      error.errors.inspect().should.match(/\[19:24\] 'break'/);
+      return true;
+    });
+  });
+
   it("nested", () => {
     simplify("45 * -9").should.eql("45 .* (9 .negative)");
     simplify("if 3 + 5 < 12 then ok").should.eql("if 3 .+ 5 .< 12 then ok else ()");
     simplify("3 + 5 and 9 - 2").should.eql("3 .+ 5 and 9 .- 2");
   });
 });
-
-
-//
-// describe "Transform objects", ->
-//   parse = (line, options) -> parser.code.run(line, options)
-//   checkHandlers = (line, options) -> t_object.checkHandlers(parse(line, options))
-//   crushFunctions = (line, options) -> t_object.crushFunctions(parse(line, options))
-//
-//   it "requires an 'on' inside a 'new'", ->
-//     (-> checkHandlers("new { 3 }")).should.throw /'new' expression must contain/
-//     checkHandlers("new { on .x -> 3 }")
-//     (-> checkHandlers("new { if true then { on .x -> 3 } }")).should.throw /'new' expression must contain/
-//
-//   it "requires a 'new' around an 'on'", ->
-//     (-> checkHandlers("{ on .x -> 3 }")).should.throw /'on' handlers must be inside/
-//     (-> checkHandlers("{ if true then { on .x -> 3 } }")).should.throw /'on' handlers must be inside/
-//     checkHandlers("{ if true then { new { on .x -> 3 } } }")
