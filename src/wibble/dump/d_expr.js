@@ -9,9 +9,12 @@ import { dumpType } from "./d_type";
  */
 
 export function dumpExpr(expr) {
-  function nested(expr2) {
+  function nested(expr2, left = false) {
     const rv = dumpExpr(expr2);
-    return (expr2.children || []).length > 0 && expr2.precedence > expr.precedence ? "(" + rv + ")" : rv;
+    const childCount = (expr2.children || []).length;
+    const lower = left ? (expr2.precedence > expr.precedence) : (expr2.precedence >= expr.precedence);
+    if (childCount > 1 && lower) return "(" + rv + ")";
+    return rv;
   }
 
   switch (expr.constructor.name) {
@@ -25,7 +28,7 @@ export function dumpExpr(expr) {
     case "PFunction":
       return (expr.inType ? dumpType(expr.inType) : "") +
         (expr.outType ? ": " + dumpType(expr.outType) : "") +
-        (expr.inType ? " " : "") + "-> " + nested(expr.children[0]);
+        (expr.inType ? " " : "") + "-> " + nested(expr.children[1]);
     case "PStruct":
       return "(" + expr.children.map(dumpExpr).join(", ") + ")";
     case "PStructField":
@@ -35,9 +38,11 @@ export function dumpExpr(expr) {
     case "PUnary":
       return (expr.op == "-" ? expr.op : (expr.op + " ")) + nested(expr.children[0]);
     case "PCall":
-      return nested(expr.children[0]) + " " + nested(expr.children[1]);
+      return nested(expr.children[0], true) + " " + nested(expr.children[1]);
     case "PBinary":
-      return nested(expr.children[0]) + " " + expr.op + " " + nested(expr.children[1]);
+      return nested(expr.children[0], true) + " " + expr.op + " " + nested(expr.children[1]);
+    case "PLogic":
+      return nested(expr.children[0], true) + " " + expr.op + " " + nested(expr.children[1]);
     case "PAssignment":
       return nested(expr.children[0]) + " := " + nested(expr.children[1]);
     case "PIf":
@@ -58,6 +63,7 @@ export function dumpExpr(expr) {
         }).join(", ");
     case "POn":
       return "on " + (expr.children[0].constructor.name == "PConstant" ? dumpExpr : dumpType)(expr.children[0]) +
+        (expr.children.length > 2 ? `: ${dumpType(expr.children[2])}` : "") +
         " -> " + dumpExpr(expr.children[1]);
     case "PBlock":
       return "{ " + expr.children.map(dumpExpr).join("; ") + " }";

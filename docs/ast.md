@@ -5,16 +5,17 @@
   - description (for debugging)
   - span (from packrattle)
   - children[]
+  - precedence (lower is higher)
 - optionally:
   - comment
   - trailingComment
-
-X = eliminated by transformations
 
 - a few nodes have a "scope" field, meaning they open a new lexical scope.
   scope is (name -> type).
 - a few nodes will grow a "type" field to hold the descriptor of the object
   being created.
+
+X = eliminated by transformations
 
 ## constants
 
@@ -26,13 +27,14 @@ X = eliminated by transformations
   - PExpr(description, span, children, comment, trailingComment)
     - PReference(name)
     - PArray
-    - PFunction(inType, outType)
+    - X: PFunction(inType, outType)
     - PStruct
       - PStructField(name)
     - PNew
-    - PUnary(op)
+    - X: PUnary(op)
     - PCall
-    - PBinary(op)
+    - X: PBinary(op)
+    - PLogic(op)
     - PAssignment
     - PIf
     - PRepeat
@@ -40,32 +42,12 @@ X = eliminated by transformations
     - PReturn
     - PBreak
 
-
-
-    { reference: "" }
-    { array: [ expr* ] }
-    { struct: [ { name: string?, [type], value: expr }* ], [type] }
-    X: { unary: "+"/"-"/"not", right: expr }
-    { call: expr, arg: expr }
-    X: { binary: (op), left: expr, right: expr }
-    { logic: "and"/"or", left: expr, right: expr }
-    { condition: expr, ifThen: expr, ifElse: expr }
-    X: { functionx: expr, parameters: compoundType, type? }
-    { newObject: code, stateless: bool }
-    X: { unless: expr, nested: expr }
-
 ## code
 
   - PLocal
   - PLocals(mutable)
   - POn
   - PBlock
-
-    { local: { name: string }, value: expr, mutable: bool }
-    { assignment: string, value: expr }
-    { on: { symbol | compoundType }, handler: expr, type?, [scope] }
-    { returnEarly: expr }
-    { code: [ expr* ], [scope] }
 
 ## types
 
@@ -79,12 +61,8 @@ X = eliminated by transformations
     - PDisjointType
 
 
-    { typename: string }
-    { compoundType: { name: string, type: type, value: expr }* }
-    { functionType: type, argType: type }
-    { parameterType: string }
-    { templateType: string, parameters: type* }
-    { disjointType: type* }
+
+
 
 # AST type objects
 

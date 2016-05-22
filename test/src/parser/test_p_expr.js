@@ -62,12 +62,13 @@ describe("Parse expressions", () => {
 
   describe("function", () => {
     it("empty", () => {
-      parseFunc("-> ()").should.eql("function(none -> none)(const(NOTHING)[3:5])[0:2]");
+      parseFunc("-> ()").should.eql("function(compoundType, const(NOTHING)[3:5])[0:2]");
     });
 
     it("simple expression", () => {
       parseFunc("(x: Int) -> x * 2").should.eql(
-        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> none)(" +
+        "function(" +
+          "compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
         ")[9:11]"
       );
@@ -75,7 +76,8 @@ describe("Parse expressions", () => {
 
     it("with no arg type", () => {
       parseFunc("(x) -> x * 2").should.eql(
-        "function(compoundType(field(x)[1:2])[0:3] -> none)(" +
+        "function(" +
+          "compoundType(field(x)[1:2])[0:3], " +
           "binary(*)(x[7:8], const(NUMBER_BASE10, 2)[11:12])[7:12]" +
         ")[4:6]"
       );
@@ -83,20 +85,23 @@ describe("Parse expressions", () => {
 
     it("with return type", () => {
       parseFunc("(x: Int): Int -> x").should.eql(
-        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> type(Int)[10:13])(" +
-          "x[17:18]" +
+        "function(" +
+          "compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
+          "x[17:18], " +
+          "type(Int)[10:13]" +
         ")[14:16]"
       );
     });
 
     it("complex parameters", () => {
       parseFunc("(a: Map(String, Int), b: String -> Int) -> false").should.eql(
-        "function(compoundType(" +
-          "field(a)(templateType(Map)(" +
-            "type(String)[8:14], type(Int)[16:19]" +
-          ")[4:20])[1:2], " +
-          "field(b)(functionType(type(String)[25:31], type(Int)[35:38])[25:38])[22:23]" +
-        ")[0:39] -> none)(" +
+        "function(" +
+          "compoundType(" +
+            "field(a)(templateType(Map)(" +
+              "type(String)[8:14], type(Int)[16:19]" +
+            ")[4:20])[1:2], " +
+            "field(b)(functionType(type(String)[25:31], type(Int)[35:38])[25:38])[22:23]" +
+          ")[0:39], " +
           "const(BOOLEAN, false)[43:48]" +
         ")[40:42]"
       );
@@ -104,10 +109,11 @@ describe("Parse expressions", () => {
 
     it("default values", () => {
       parseFunc("(x: Int = 4, y: Int = 5) -> x + y").should.eql(
-        "function(compoundType(" +
-          "field(x)(type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11])[1:2], " +
-          "field(y)(type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23])[13:14]" +
-        ")[0:24] -> none)(" +
+        "function(" +
+          "compoundType(" +
+            "field(x)(type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11])[1:2], " +
+            "field(y)(type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23])[13:14]" +
+          ")[0:24], " +
           "binary(+)(x[28:29], y[32:33])[28:33]" +
         ")[25:27]"
       );
@@ -115,19 +121,19 @@ describe("Parse expressions", () => {
 
     it("nested", () => {
       parseFunc("-> -> 69").should.eql(
-        "function(none -> none)(function(none -> none)(const(NUMBER_BASE10, 69)[6:8])[3:5])[0:2]"
+        "function(compoundType, function(compoundType, const(NUMBER_BASE10, 69)[6:8])[3:5])[0:2]"
       );
     });
 
     it("via expression", () => {
       parse("-> 3").should.eql(
-        "function(none -> none)(const(NUMBER_BASE10, 3)[3:4])[0:2]"
+        "function(compoundType, const(NUMBER_BASE10, 3)[3:4])[0:2]"
       );
       parse("(x: Int) -> 3").should.eql(
-        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> none)(const(NUMBER_BASE10, 3)[12:13])[9:11]"
+        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], const(NUMBER_BASE10, 3)[12:13])[9:11]"
       );
       parse("(x: Int) -> x * 2").should.eql(
-        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8] -> none)(" +
+        "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
         ")[9:11]"
       );

@@ -5,7 +5,7 @@ import { PBlock, PLocal, PLocals, POn } from "../common/ast";
 import { commentspace, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
-import { compoundType } from "./p_type";
+import { compoundType, typedecl } from "./p_type";
 
 /*
  * parse code
@@ -43,11 +43,13 @@ const handler = $([
   $.drop(linespace),
   handlerReceiver,
   $.drop(linespace),
+  $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ], ""),
   $.drop("->"),
   $.drop(linespace),
   () => expression
 ]).map(match => {
-  return new POn(match[1], match[2], match[0]);
+  if (match[2] == "") match[2] = [ null ];
+  return new POn(match[1], match[3], match[2][0], match[0]);
 });
 
 export const code = $.alt(

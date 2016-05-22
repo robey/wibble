@@ -123,21 +123,13 @@ describe("Dump expressions", () => {
   it("block", () => {
     dump.dumpExpr(parseCode("{ true; 8; .ok }")).should.eql("{ true; 8; .ok }");
   });
+
+  it("complex", () => {
+    dump.dumpExpr(parseCode("let fib = (n: Int) -> if n < 2 then n else fib(n-1) + fib(n-2)")).should.eql(
+      "let fib = (n: Int) -> if n < 2 then n else fib (n - 1) + fib (n - 2)"
+    );
+  });
 });
 
 
 // describe "Dump expressions", ->
-
-//   it "dump locals", ->
-//     dump.dumpExpr(parse("{ x = 9 + a }")).should.eql("{ x = 9 + a }")
-//     dump.dumpExpr(parse("{ mutable count = x }")).should.eql("{ mutable count = x }")
-//
-//   it "dump assignments", ->
-//     dump.dumpExpr(parse("{ count := x + 1 }")).should.eql("{ count := x + 1 }")
-//
-//   it "dump handlers", ->
-//     dump.dumpExpr(parse("{ on .start -> true }")).should.eql("{ on .start -> true }")
-//     dump.dumpExpr(parse("{ on (x: Int) -> { 16 } }")).should.eql("{ on (x: Int) -> { 16 } }")
-//
-//   it "dump return", ->
-//     dump.dumpExpr(parse("{ return if true then 3 else 4 }")).should.eql("{ return if true then 3 else 4 }")

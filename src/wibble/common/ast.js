@@ -42,7 +42,8 @@ export class PNode {
     }
     if (this.comment) rv += "#\"" + cstring(this.comment) + "\"";
     if (this.trailingComment) rv += "##\"" + cstring(this.trailingComment) + "\"";
-    rv += "[" + this.span.start + ":" + this.span.end + "]";
+    // generated nodes may have no span.
+    if (this.span) rv += "[" + this.span.start + ":" + this.span.end + "]";
     return rv;
   }
 }
@@ -84,9 +85,10 @@ export class PArray extends PNode {
   }
 }
 
+// inType, body, [outType]
 export class PFunction extends PNode {
   constructor(inType, outType, body, span) {
-    super(`function(${inType ? inType.inspect() : "none"} -> ${outType ? outType.inspect() : "none"})`, span, [ body ]);
+    super("function", span, [ inType || NO_IN_TYPE, body, outType ]);
     this.inType = inType;
     this.outType = outType;
     this.precedence = 100;
@@ -203,8 +205,8 @@ export class PLocals extends PNode {
 }
 
 export class POn extends PNode {
-  constructor(receiver, expr, span) {
-    super("on", span, [ receiver, expr ]);
+  constructor(receiver, expr, outType, span) {
+    super("on", span, [ receiver, expr, outType ]);
   }
 }
 
@@ -277,13 +279,4 @@ export class PDisjointType extends PType {
   }
 }
 
-
-// export function transformAst(node) {
-//
-// }
-
-// # traverse an expression tree, sending each expression object through the
-// # 'transform' function before diving deeper.
-// # transform(expr, state) -> [ newExpr, newState ]
-// digExpr = (expr, state, transform) ->
-//   dig = (e) -> digExpr(e, state, transform)
+const NO_IN_TYPE = new PCompoundType([]);

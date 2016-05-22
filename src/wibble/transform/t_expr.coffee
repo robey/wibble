@@ -41,50 +41,7 @@ digType = (t, state, transform) ->
     return copy(t, compoundType: parameters)
   t
 
-# turn all binary/unary expressions into calls.
-flattenInfix = (expr) ->
-  digExpr expr, {}, (expr, state) ->
-    if not (expr.binary? or expr.unary?) then return expr
-    if expr.binary?
-      if expr.binary in [ "and", "or" ] then return copy(expr, binary: null, logic: expr.binary)
-      copy(expr, binary: null, call: { call: expr.left, arg: { symbol: expr.binary } }, arg: expr.right)
-    else if expr.unary?
-      op = switch expr.unary
-        when "+" then "positive"
-        when "-" then "negative"
-        else expr.unary
-      copy(expr, unary: null, call: expr.right, arg: { symbol: op })
 
-normalizeIf = (expr) ->
-  digExpr expr, {}, (expr, state) ->
-    if expr.condition? and not expr.ifElse?
-      return copy(expr, ifElse: { nothing: true })
-    return expr
-
-# turn "unless" into "if"
-normalizePostfix = (expr) ->
-  digExpr expr, {}, (expr, state) ->
-    if expr.unless?
-      return copy(expr, unless: null, nested: null, condition: { call: expr.unless, arg: { symbol: "not" } }, ifThen: expr.nested, ifElse: { nothing: true })
-    return expr
-
-# turn all positional fields into named fields
-normalizeStruct = (expr) ->
-  digExpr expr, {}, (expr, state) ->
-    if not expr.struct? then return expr
-    fields = []
-    positional = true
-    seen = {}
-    for arg, i in expr.struct
-      if not arg.name
-        if not positional then error("Positional fields can't come after named fields", arg.state)
-        fields.push { name: "?#{i}", value: arg.value }
-      else
-        positional = false
-        if seen[arg.name] then error("Field name #{arg.name} is repeated", arg.state)
-        seen[arg.name] = true
-        fields.push { name: arg.name, value: arg.value }
-    return copy(expr, struct: fields)
 
 
 exports.digExpr = digExpr

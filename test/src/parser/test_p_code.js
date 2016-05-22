@@ -38,6 +38,13 @@ describe("Parse code", () => {
           "binary(*)(x[15:16], const(NUMBER_BASE10, 2)[19:20])[15:20]" +
         ")[0:2]"
       );
+      parseCode("on .inspect: String -> false").should.eql(
+        "on(" +
+          "const(SYMBOL, inspect)[3:11], " +
+          "const(BOOLEAN, false)[23:28], " +
+          "type(String)[13:19]" +
+        ")[0:2]"
+      );
       (() => parseCode("on 3 -> 3")).should.match(/symbol or parameters/);
     });
   });
