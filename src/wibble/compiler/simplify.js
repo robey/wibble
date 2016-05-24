@@ -14,6 +14,15 @@ import { State, transformAst } from "../common/transform";
 export function simplify(ast, state) {
   if (!state) state = new State();
 
+  /*
+   * assign new variable names starting with '_' (which is not allowed by
+   * user-written code).
+   */
+  let generateIndex = 0;
+  function nextLocal() {
+    return new PReference(`_${generateIndex++}`);
+  }
+
   return transformAst(ast, state, node => {
     const nodeType = node.constructor.name;
 
@@ -43,7 +52,7 @@ export function simplify(ast, state) {
 
       case "PWhile": {
         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
-        const newVar = new PReference("?0");
+        const newVar = nextLocal();
         const breakOut = new PIf(new PUnary("not", node.children[0]), new PBreak(newVar));
         const newLocal = new PLocal(newVar, node.children[1]);
         const block = new PBlock([ new PLocals(null, [ newLocal ], false), breakOut ]);

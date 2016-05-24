@@ -59,6 +59,9 @@ describe("Simplify expressions", () => {
 
   it("function", () => {
     simplify("(n: Int) -> n * 2").should.eql("new on (n: Int) -> n .* 2");
+    simplify("(a: Int, b: Int): Int -> a + b + calc(b)").should.eql(
+      "new on (a: Int, b: Int): Int -> a .+ b .+ (calc b)"
+    );
   });
 
   it("block", () => {
@@ -73,10 +76,10 @@ describe("Simplify expressions", () => {
 
   it("while", () => {
     simplify("while true do 13").should.eql(
-      "if true then repeat { let ?0 = 13; if true .not then break ?0 else () } else ()"
+      "if true then repeat { let _0 = 13; if true .not then break _0 else () } else ()"
     );
     simplify("while x > 5 do { x := x - 1 }").should.eql(
-      "if x .> 5 then repeat { let ?0 = x := x .- 1; if x .> 5 .not then break ?0 else () } else ()"
+      "if x .> 5 then repeat { let _0 = x := x .- 1; if x .> 5 .not then break _0 else () } else ()"
     );
   });
 
