@@ -1,17 +1,17 @@
 "use strict";
 
-import { compiler, dump, parser, PState } from "../../../lib/wibble";
+import { compiler, dump, Errors, parser } from "../../../lib/wibble";
 
 import should from "should";
 import "source-map-support/register";
 
 const parse = (s, options) => parser.expression.run(s, options);
 const simplify = (s, options) => {
-  const state = new PState();
-  const rv = dump.dumpExpr(compiler.simplify(parse(s, options), state));
-  if (state.errors.length > 0) {
-    const error = new Error(state.errors.inspect());
-    error.errors = state.errors;
+  const errors = new Errors();
+  const rv = dump.dumpExpr(compiler.simplify(parse(s, options), errors));
+  if (errors.length > 0) {
+    const error = new Error(errors.inspect());
+    error.errors = errors;
     error.dump = rv;
     throw error;
   } else {
