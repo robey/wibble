@@ -11,7 +11,7 @@ import { compoundType, typedecl } from "./p_type";
  * parse expressions which can only be in a code block.
  */
 
-function localDeclaration(operator) {
+function localDeclaration(operator, mutable) {
   return $([
     reference.named("identifier"),
     $.drop(linespace),
@@ -19,20 +19,20 @@ function localDeclaration(operator) {
     $.drop(linespace),
     () => expression
   ]).map(match => {
-    return new PLocal(match[0], match[1]);
+    return new PLocal(match[0], match[1], mutable);
   });
 }
 
 const localLet = $([
   toSpan("let"),
-  repeatSeparated(localDeclaration("="), ",", $.drop(linespace))
+  repeatSeparated(localDeclaration("=", false), ",", $.drop(linespace))
 ]).map(match => {
   return new PLocals(match[0], match[1], false);
 });
 
 const localMake = $([
   toSpan("make"),
-  repeatSeparated(localDeclaration(":="), ",", $.drop(linespace))
+  repeatSeparated(localDeclaration(":=", true), ",", $.drop(linespace))
 ]).map(match => {
   return new PLocals(match[0], match[1], true);
 });
