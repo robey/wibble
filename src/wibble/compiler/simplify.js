@@ -33,7 +33,7 @@ export function simplify(ast, errors) {
     exit: () => path.pop()
   }, node => {
     const nodeType = node.constructor.name;
-
+    
     switch (nodeType) {
       case "PUnary": {
         // convert unary(op)(a) into call(a, op)

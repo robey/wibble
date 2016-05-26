@@ -159,24 +159,24 @@ sniffType = (expr, tstate) ->
   if expr.type? then return expr.type
   if expr.scope? then tstate = tstate.enterScope(expr.scope, expr.typemap)
 
-  # constants
-  if expr.nothing? then return descriptors.DNothing
-  if expr.boolean? then return descriptors.DBoolean
-  if expr.number?
-    # { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
-    if expr.number in [ "base2", "base10", "base16" ] then return descriptors.DInt
-    error("Not implemented yet", expr.state)
-  if expr.symbol? then return descriptors.DSymbol
-  if expr.string? then return descriptors.DString
+  # # constants
+  # if expr.nothing? then return descriptors.DNothing
+  # if expr.boolean? then return descriptors.DBoolean
+  # if expr.number?
+  #   # { number: base2/base10/base16/long-base2/long-base10/long-base16/float/long-float, value: "" }
+  #   if expr.number in [ "base2", "base10", "base16" ] then return descriptors.DInt
+  #   error("Not implemented yet", expr.state)
+  # if expr.symbol? then return descriptors.DSymbol
+  # if expr.string? then return descriptors.DString
 
-  if expr.reference? then return tstate.scope.get(expr.reference).type
-
-  # { array: [ expr* ] }
-
-  if expr.struct?
-    fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value, tstate), value: f.value }
-    return new t_type.CompoundType(fields)
-
+  # if expr.reference? then return tstate.scope.get(expr.reference).type
+  #
+  # # { array: [ expr* ] }
+  #
+  # if expr.struct?
+  #   fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value, tstate), value: f.value }
+  #   return new t_type.CompoundType(fields)
+  #
   if expr.call?
     ltype = sniffType(expr.call, tstate)
     rtype = sniffType(expr.arg, tstate)

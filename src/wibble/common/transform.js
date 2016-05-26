@@ -8,6 +8,8 @@
  *     - enter(node): called right before children of this node are
  *         traversed
  *     - exit(node): called right after children are traversed
+ *     - postpone: list of node types; when traversing children, nodes of
+ *         these types will be done after the other children have finished
  * - transform(node): returns null to leave the node as-is; otherwise,
  *     returns a new node. the new node will replace this node, and will be
  *     sent back to transform until the transforms are all complete (null is
@@ -27,7 +29,16 @@ export function transformAst(node, options = {}, transform) {
 
   if (node.children.length > 0) {
     if (options.enter) options.enter(node);
-    node.children = node.children.map(n => transformAst(n, options, transform));
+    node.children = node.children.map(n => {
+      const nodeType = node.constructor.name;
+      return options.postpone && options.postpone.indexOf(nodeType) >= 0 ? n : transformAst(n, options, transform);
+    });
+    if (options.postpone) {
+      node.children = node.children.map(n => {
+        const nodeType = node.constructor.name;
+        return options.postpone.indexOf(nodeType) >= 0 ? transformAst(n, options, transform) : n;
+      });
+    }
     if (options.exit) options.exit(node);
   }
 
