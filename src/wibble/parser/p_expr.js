@@ -59,7 +59,7 @@ const struct = repeatSurrounded(
   "struct member"
 ).map(([ items, comment ], span) => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
-  if (items.length == 1 && !items[0].fieldname) return items[0].children[0];
+  if (items.length == 1 && items[0].name == null) return items[0].children[0];
   return new PStruct(items, comment, span);
 }).named("struct");
 
