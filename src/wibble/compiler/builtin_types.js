@@ -4,11 +4,13 @@ import { Scope } from "./scope";
 import { newType } from "./type_descriptor";
 
 const TAnything = newType("Anything");
-// DAny.canCoerceFrom = (other) -> true
+TAnything.canAssignFrom = () => true;
+
+const TNothing = newType("Nothing");
+TNothing.nothing = true;
 
 const TBoolean = newType("Boolean");
 const TInt = newType("Int");
-const TNothing = newType("Nothing");
 const TString = newType("String");
 const TSymbol = newType("Symbol");
 
@@ -19,3 +21,33 @@ builtinTypes.add(TInt.name, TInt);
 builtinTypes.add(TNothing.name, TNothing);
 builtinTypes.add(TString.name, TString);
 builtinTypes.add(TSymbol.name, TSymbol);
+
+
+
+// # types are often self-referential, so do them after all the names are set.
+//
+// t_type.addHandlers DBoolean, typemap,
+//   ".not": "Boolean"
+//
+// t_type.addHandlers DInt, typemap,
+//   ".+": "Int -> Int"
+//   ".-": "Int -> Int"
+//   ".*": "Int -> Int"
+//   "./": "Int -> Int"
+//   ".%": "Int -> Int"
+//   ".<<": "Int -> Int"
+//   ".>>": "Int -> Int"
+//   ".positive": "() -> Int"
+//   ".negative": "() -> Int"
+//   ".==": "Int -> Boolean"
+//   ".!=": "Int -> Boolean"
+//   ".<": "Int -> Boolean"
+//   ".>": "Int -> Boolean"
+//   ".<=": "Int -> Boolean"
+//   ".>=": "Int -> Boolean"
+//   ".**": "Int -> Int"
+//
+// t_type.addHandlers DString, typemap,
+//   ".size": "Int"
+//   ".==": "String -> Boolean"
+//   ".!=": "String -> Boolean"

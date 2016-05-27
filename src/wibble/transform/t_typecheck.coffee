@@ -177,20 +177,20 @@ sniffType = (expr, tstate) ->
   #   fields = expr.struct.map (f) -> { name: f.name, type: sniffType(f.value, tstate), value: f.value }
   #   return new t_type.CompoundType(fields)
   #
-  if expr.call?
-    ltype = sniffType(expr.call, tstate)
-    rtype = sniffType(expr.arg, tstate)
-    if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.inspect()} \u2661 #{dump.dumpExpr(expr.arg)}: #{rtype.inspect()}"
-    type = ltype.handlerTypeForMessage(rtype, expr.arg)
-    if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.inspect()}"
-    return type
+  # if expr.call?
+  #   ltype = sniffType(expr.call, tstate)
+  #   rtype = sniffType(expr.arg, tstate)
+  #   if tstate.options.logger? then tstate.options.logger "typecheck call: #{ltype.inspect()} \u2661 #{dump.dumpExpr(expr.arg)}: #{rtype.inspect()}"
+  #   type = ltype.handlerTypeForMessage(rtype, expr.arg)
+  #   if tstate.options.logger? then tstate.options.logger "typecheck call:   \u21b3 #{type.inspect()}"
+  #   return type
 
-  if expr.logic?
-    ltype = sniffType(expr.left, tstate)
-    rtype = sniffType(expr.right, tstate)
-    if not ltype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.left.state)
-    if not rtype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.right.state)
-    return descriptors.DBoolean
+  # if expr.logic?
+  #   ltype = sniffType(expr.left, tstate)
+  #   rtype = sniffType(expr.right, tstate)
+  #   if not ltype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.left.state)
+  #   if not rtype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.right.state)
+  #   return descriptors.DBoolean
 
   if expr.condition?
     ctype = sniffType(expr.condition, tstate)

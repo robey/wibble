@@ -14,6 +14,8 @@
   scope is (name -> type).
 - a few nodes will grow a "type" field to hold the descriptor of the object
   being created.
+- a node may grow a "coerceType" field to hold the type an expression should
+  be coerced into.
 
 X = eliminated by transformations
 

@@ -2,6 +2,7 @@
 
 import { PConstantType, PTypedField } from "../common/ast";
 import { transformAst } from "../common/transform";
+import { dumpExpr } from "../dump";
 import { CompoundType } from "./type_descriptor";
 import { Scope } from "./scope";
 
@@ -127,7 +128,7 @@ export function buildScopes(expr, errors, scope) {
  * the scope is required to have the built-in types (Nothing, Int, ...)
  * defined so that constants can be type-checked.
  */
-export function computeType(expr, scope, logger) {
+export function computeType(expr, errors, scope, logger) {
   logger;
 
   switch (expr.constructor.name) {
@@ -152,14 +153,47 @@ export function computeType(expr, scope, logger) {
 
     case "PStruct": {
       const fields = expr.children.map(field => {
-        return new PTypedField(field.name, computeType(field.children[0], scope, logger));
+        return new PTypedField(field.name, computeType(field.children[0], errors, scope, logger));
       });
       return new CompoundType(fields);
     }
 
     // - PNew
-    // - PCall
-    // - PLogic(op)
+
+    case "PCall": {
+      const types = expr.children.map(node => computeType(node, errors, scope, logger));
+      const message = expr.children[1];
+      const isSymbol = message.constructor.name == "PConstant" && message.type == PConstantType.SYMBOL;
+      if (logger) logger(`call: ${types[0].inspect()} \u7528 ${dumpExpr(expr.children[1])}: ${types[1].inspect}`);
+
+      let rtype = null;
+      // let symbol resolution try first.
+      if (isSymbol) rtype = types[0].handlerTypeForSymbol(message.name);
+      if (rtype == null) {
+        const { coerceType, type } = types[0].handlerTypeForMessage(message);
+        if (coerceType != null) {
+          expr.coerceType = coerceType;
+          if (logger) logger(`call:   \u21b3 coerce to: ${type.inspect}`);
+        }
+        rtype = type;
+      }
+      if (rtype == null) {
+        errors.add("No matching handler found", expr.span);
+        rtype = scope.get("Anything");
+      }
+      if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
+      return rtype;
+    }
+
+    case "PLogic": {
+      expr.children.forEach(node => {
+        if (!computeType(node, errors, scope, logger).isType(scope.get("Boolean"))) {
+          errors.add("Logical operations require a boolean", node.span);
+        }
+      });
+      return scope.get("Boolean");
+    }
+
     // - PAssignment
     // - PIf
     // - PRepeat
@@ -173,5 +207,5 @@ export function computeType(expr, scope, logger) {
 
 export function typecheck(expr, errors, scope, logger) {
   buildScopes(expr, errors, scope);
-  return computeType(expr, scope, logger);
+  return computeType(expr, errors, scope, logger);
 }

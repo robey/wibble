@@ -45,6 +45,20 @@ describe("Typecheck expressions", () => {
     typecheck("(true, count = 10)").type.inspect().should.eql("(?0: Boolean, count: Int)");
     (() => typecheck("(a = 1, b = 2, a = 1)")).should.throw(/repeated/);
   });
+
+  // PNew
+
+  it("calls", () => {
+    typecheck("3 .+", { logger: console.log }).type.inspect().should.eql("Int -> Int");
+    typecheck("(3 .+) 3").type.inspect().should.eql("Int");
+  });
+
+  it("logic", () => {
+    (() => typecheck("3 and true")).should.throw(/boolean/);
+    (() => typecheck("false or 9")).should.throw(/boolean/);
+    typecheck("true and true").type.inspect().should.eql("Boolean");
+  });
+
 });
 
     // parse = (line, options) -> parser.code.run(line, options)
@@ -56,14 +70,6 @@ describe("Typecheck expressions", () => {
     //   [ expr, type ] = transform.typecheck(scope, expr, options)
     //   { type, expr, scope }
     //
-    // it "calls", ->
-    //   typecheck("3 .+").type.inspect().should.eql "Int -> Int"
-    //   typecheck("(3 .+) 3").type.inspect().should.eql "Int"
-    //
-    // it "logic", ->
-    //   (-> typecheck("3 and true")).should.throw /boolean/
-    //   (-> typecheck("false or 9")).should.throw /boolean/
-    //   typecheck("true and true").type.inspect().should.eql "Boolean"
     //
     // it "condition", ->
     //   typecheck("if true then 3 else 4").type.inspect().should.eql "Int"
