@@ -244,15 +244,6 @@ newType = (handlers) ->
       type.addTypeHandler h[0], h[1]
   type
 
-# convenience for "native" types
-addHandlers = (type, typemap, table) ->
-  handlers = []
-  for k, v of table
-    resultType = findType(parser.typedecl.run(v), typemap)
-    if k[0] == "."
-      type.addValueHandler k[1...], resultType
-    else
-      type.addTypeHandler findType(parser.typedecl.run(k), typemap), resultType
 
 
 exports.addHandlers = addHandlers
