@@ -6,6 +6,8 @@ import { dumpExpr } from "../dump";
 import { CompoundType, CTypedField } from "./type_descriptor";
 import { Scope } from "./scope";
 
+const APPLY_SYMBOL = "\u2053";
+
 class MysteryType {
   constructor(name, mutable) {
     this.name = name;
@@ -163,19 +165,19 @@ export function computeType(expr, errors, scope, logger) {
     // - PNew
 
     case "PCall": {
-      const types = expr.children.map(node => computeType(node, errors, scope, logger));
+      const [ targetType, argType ] = expr.children.map(node => computeType(node, errors, scope, logger));
       const message = expr.children[1];
       const isSymbol = message.constructor.name == "PConstant" && message.type == PConstantType.SYMBOL;
-      if (logger) logger(`call: ${types[0].inspect()} \u7528 ${dumpExpr(expr.children[1])}: ${types[1].inspect}`);
+      if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
 
       let rtype = null;
       // let symbol resolution try first.
-      if (isSymbol) rtype = types[0].handlerTypeForSymbol(message.name);
+      if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
       if (rtype == null) {
-        const { coerceType, type } = types[0].handlerTypeForMessage(message);
+        const { coerceType, type } = targetType.handlerTypeForMessage(argType);
         if (coerceType != null) {
           expr.coerceType = coerceType;
-          if (logger) logger(`call:   \u21b3 coerce to: ${type.inspect}`);
+          if (logger) logger(`call:   \u21b3 coerce to: ${type.inspect()}`);
         }
         rtype = type;
       }

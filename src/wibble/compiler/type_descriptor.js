@@ -88,7 +88,7 @@ export class TypeDescriptor {
 
   handlerTypeForMessage(inType) {
     const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType));
-    return matches.length == 0 ? { } : { coerceType: matches[0][0], type: matches[0][1] };
+    return matches.length == 0 ? { } : { coerceType: matches[0].guard, type: matches[0].type };
   }
 }
 

@@ -10,10 +10,16 @@ const typecheck = (s, options = {}) => {
   const errors = new Errors();
   const scope = options.scope || compiler.builtinTypes;
   const expr = compiler.simplify(parse(s, options), errors);
-  const type = compiler.typecheck(expr, errors, scope);
+  const type = compiler.typecheck(expr, errors, scope, options.logger);
   if (errors.length > 0) {
     const error = new Error(errors.inspect());
     error.errors = errors;
+    if (options.logger) {
+      errors.list.forEach(error => {
+        options.logger(">> " + error.message);
+        error.span.toSquiggles().forEach(s => options.logger(s));
+      });
+    }
     throw error;
   } else {
     return { type, expr, scope };
@@ -49,7 +55,7 @@ describe("Typecheck expressions", () => {
   // PNew
 
   it("calls", () => {
-    typecheck("3 .+", { logger: console.log }).type.inspect().should.eql("Int -> Int");
+    typecheck("3 .+").type.inspect().should.eql("Int -> Int");
     typecheck("(3 .+) 3").type.inspect().should.eql("Int");
   });
 
