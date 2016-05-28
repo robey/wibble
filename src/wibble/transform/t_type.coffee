@@ -69,37 +69,8 @@ class TypeDescriptor
     for h in @typeHandlers then if (not h.type.isDefined()) and h.type.id == id then h.type = type
 
 
-class NamedType extends TypeDescriptor
-  constructor: (@name) ->
-    super()
-
-  isDefined: -> true
-
-  equals: (other) ->
-    other = other.flatten()
-    (other instanceof NamedType) and @name == other.name
-
-  inspect: (precedence = true) -> @name
 
 
-class ParameterType extends TypeDescriptor
-  constructor: (@name) ->
-    super()
-
-  isDefined: -> true
-
-  resolveParameters: (parameterMap) -> parameterMap[@name]
-
-  equals: (other) ->
-    other = other.flatten()
-    (other instanceof ParameterType) and @name == other.name
-
-  canCoerceFrom: (other, parameterMap = {}) ->
-    # i'm a wildcard! i can coerce anything! tag, you're it!
-    parameterMap[@name] = other
-    true
-
-  inspect: (precedence = true) -> @name
 
 
 class SelfType extends TypeDescriptor
@@ -259,77 +230,9 @@ functionType = (argType, functionType) ->
 # FIXME template type
 
 
-class DisjointType extends TypeDescriptor
-  constructor: (@options) ->
-    super()
-
-  isDefined: ->
-    for t in @options then if not t.isDefined() then return false
-    true
-
-  resolveParameters: (parameterMap) ->
-    new DisjointType(@options.map (t) -> t.resolveParameters(parameterMap)).mergeIfPossible()
-
-  equals: (other) ->
-    other = other.flatten()
-    if not (other instanceof DisjointType) then return false
-    if @options.length != other.options.length then return false
-    for i in [0 ... @options.length] then if not (@options[i].equals(other.options[i])) then return false
-    true
-
-  inspect: (precedence = true) ->
-    rv = @options.map((t) -> t.inspect(true)).join(" | ")
-    if precedence then rv else "(#{rv})"
-
-  # try to unify.
-  mergeIfPossible: ->
-    for i in [0 ... @options.length]
-      for j in [i + 1 ... @options.length]
-        continue unless @options[i]? and @options[j]?
-        if @options[i].equals(@options[j])
-          @options[j] = null
-          continue
-        continue if @options[i] instanceof ParameterType
-        if @options[i].canCoerceFrom(@options[j])
-          @options[j] = null
-        else if @options[j].canCoerceFrom(@options[i])
-          @options[i] = null
-    types = @options.filter (x) -> x?
-    if types.length == 1 then types[0] else new DisjointType(types)
 
 
-# # convert an AST type into a type descriptor
-# findType = (type, typemap) ->
-#   if type.typename?
-#     if not typemap.get(type.typename)? then error("Unknown type '#{type.typename}'", type.state)
-#     return typemap.get(type.typename).type
-#   if type.compoundType?
-#     descriptors = require './descriptors'
-#     checkCompoundType(type)
-#     fields = type.compoundType.map (f) ->
-#       # FIXME warning: not type checked
-#       type = if f.type? then findType(f.type, typemap) else descriptors.DAny
-#       { name: f.name, type, value: f.value }
-#     return new CompoundType(fields)
-#   if type.functionType? then return functionType(findType(type.argType, typemap), findType(type.functionType, typemap))
-#   if type.disjointType?
-#     options = type.disjointType.map (t) -> findType(t, typemap)
-#     return new DisjointType(options)
-#   if type.parameterType?
-#     name = "$" + type.parameterType
-#     t = typemap.get(name)?.type
-#     if t? then return t
-#     t = new ParameterType(name)
-#     typemap.add(name, t)
-#     return t
-#   error "Not implemented yet: template type"
-#
-# # check for repeated fields before it's too late
-# checkCompoundType = (type) ->
-#   seen = {}
-#   for f in type.compoundType
-#     if seen[f.name] then error("Field name #{f.name} is repeated", f.state)
-#     seen[f.name] = true
+
 
 # new anonymous type
 newType = (handlers) ->

@@ -1,9 +1,9 @@
 "use strict";
 
-import { PConstantType, PTypedField } from "../common/ast";
+import { PConstantType } from "../common/ast";
 import { transformAst } from "../common/transform";
 import { dumpExpr } from "../dump";
-import { CompoundType } from "./type_descriptor";
+import { CompoundType, CTypedField } from "./type_descriptor";
 import { Scope } from "./scope";
 
 class MysteryType {
@@ -17,6 +17,8 @@ class MysteryType {
  * 1. Attach a new (locals) scope to each block and handler.
  * 2. Attach an unknown-type reference to each local and handler.
  * 3. Catch unresolved references and duplicate names.
+ *
+ * FIXME: ensure types in PCompoundType are checked.
  */
 export function buildScopes(expr, errors, scope) {
   let type = null;
@@ -153,7 +155,7 @@ export function computeType(expr, errors, scope, logger) {
 
     case "PStruct": {
       const fields = expr.children.map(field => {
-        return new PTypedField(field.name, computeType(field.children[0], errors, scope, logger));
+        return new CTypedField(field.name, computeType(field.children[0], errors, scope, logger));
       });
       return new CompoundType(fields);
     }

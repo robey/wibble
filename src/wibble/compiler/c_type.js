@@ -1,10 +1,14 @@
 "use strict";
 
+import { PType } from "../common/ast";
+import { CompoundType, CTypedField, MergedType, newType } from "./type_descriptor";
+
 /*
  * compile an AST type into a type descriptor.
  */
 export function compileType(node, errors, scope) {
   if (!(node instanceof PType)) throw new Error("Internal error: compileType on non-PType");
+  
   switch(node.constructor.name) {
     case "PSimpleType": {
       if (scope.get(node.name) == null) {
@@ -13,45 +17,36 @@ export function compileType(node, errors, scope) {
       }
       return scope.get(node.name);
     }
-    case "PCompoundType": {
 
+    case "PCompoundType": {
+      // check for repeated fields.
+      const seen = {};
+      node.children.forEach(f => {
+        if (seen[f.name]) errors.add(`Field name ${f.name} is repeated`, f.span);
+        seen[f.name] = true;
+      });
+      return new CompoundType(node.children.map(f => {
+        return new CTypedField(f.name, compileType(f.type, errors, scope), f.defaultValue);
+      }));
+    }
+
+    // - PTemplateType(name)
+
+    case "PParameterType": {
+      const name = "$" + node.name;
+      if (scope.get(name) != null) return scope.get(name);
+      return newType(name);
+    }
+
+    case "PFunctionType": {
+      const type = newType();
+      type.addTypeHandler(compileType(node.argType, errors, scope), compileType(node.resultType, errors, scope));
+      return type;
+    }
+
+    // - PMergedType
+    case "PMergedType": {
+      return new MergedType(node.children.map(t => compileType(t, errors, scope)));
     }
   }
-
-  // - PSimpleType(name)
-  // - PCompoundType
-  //   - PTypedField(name, type, defaultValue, span)
-  // - PTemplateType(name)
-  // - PParameterType(name)
-  // - PFunctionType(argType, resultType)
-  // - PDisjointType
-
-
-//     if type.compoundType?
-//       descriptors = require './descriptors'
-//       checkCompoundType(type)
-//       fields = type.compoundType.map (f) ->
-//         # FIXME warning: not type checked
-//         type = if f.type? then findType(f.type, typemap) else descriptors.DAny
-//         { name: f.name, type, value: f.value }
-//       return new CompoundType(fields)
-//     if type.functionType? then return functionType(findType(type.argType, typemap), findType(type.functionType, typemap))
-//     if type.disjointType?
-//       options = type.disjointType.map (t) -> findType(t, typemap)
-//       return new DisjointType(options)
-//     if type.parameterType?
-//       name = "$" + type.parameterType
-//       t = typemap.get(name)?.type
-//       if t? then return t
-//       t = new ParameterType(name)
-//       typemap.add(name, t)
-//       return t
-//     error "Not implemented yet: template type"
-//
-//   # check for repeated fields before it's too late
-//   checkCompoundType = (type) ->
-//     seen = {}
-//     for f in type.compoundType
-//       if seen[f.name] then error("Field name #{f.name} is repeated", f.state)
-//       seen[f.name] = true
-// }
+}
