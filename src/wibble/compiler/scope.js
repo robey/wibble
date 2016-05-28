@@ -13,6 +13,14 @@ export class Scope {
   constructor(parent) {
     this.parent = parent;
     this.symtab = {};
+    this.init = null;
+    this.finishedInit = false;
+  }
+
+  // allow a lazy init function to be called before any get()/add() is done.
+  setInit(f) {
+    this.init = f;
+    this.finishedInit = false;
   }
 
   push() {
@@ -20,12 +28,20 @@ export class Scope {
   }
 
   get(name) {
+    if (!this.finishedInit) {
+      this.finishedInit = true;
+      if (this.init) this.init();
+    }
     if (this.symtab[name] != null) return this.symtab[name];
     if (this.parent != null) return this.parent.get(name);
     return null;
   }
 
   add(name, obj) {
+    if (!this.finishedInit) {
+      this.finishedInit = true;
+      if (this.init) this.init();
+    }
     this.symtab[name] = obj;
   }
 
