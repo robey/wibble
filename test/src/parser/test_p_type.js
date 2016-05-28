@@ -69,10 +69,10 @@ describe("Parse types", () => {
     );
   });
 
-  it("disjoint", () => {
-    parse("Int | Symbol").should.eql("disjointType(type(Int)[0:3], type(Symbol)[6:12])[0:12]");
+  it("merged", () => {
+    parse("Int | Symbol").should.eql("mergedType(type(Int)[0:3], type(Symbol)[6:12])[0:12]");
     parse("(Int -> Int) | (Symbol -> Int)").should.eql(
-      "disjointType(" +
+      "mergedType(" +
         "functionType(type(Int)[1:4], type(Int)[8:11])[1:11], " +
         "functionType(type(Symbol)[16:22], type(Int)[26:29])[16:29]" +
       ")[0:30]"

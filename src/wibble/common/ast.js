@@ -274,9 +274,9 @@ export class PFunctionType extends PType {
   }
 }
 
-export class PDisjointType extends PType {
+export class PMergedType extends PType {
   constructor(types, span) {
-    super("disjointType", span, types);
+    super("mergedType", span, types);
     this.precedence = 3;
   }
 }

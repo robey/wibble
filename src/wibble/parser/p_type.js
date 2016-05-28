@@ -2,7 +2,7 @@
 
 import $ from "packrattle";
 import {
-  PCompoundType, PDisjointType, PFunctionType, PParameterType, PSimpleType, PTemplateType, PTypedField
+  PCompoundType, PMergedType, PFunctionType, PParameterType, PSimpleType, PTemplateType, PTypedField
 } from "../common/ast";
 import { linespace, repeatSeparated, repeatSurrounded, TYPE_NAME } from "./p_common";
 import { expression, reference } from "./p_expr";
@@ -63,13 +63,13 @@ const functionType = $([
   return new PFunctionType(match[0], match[1], span);
 }).or(componentType);
 
-const disjointType  = repeatSeparated(
+const mergedType  = repeatSeparated(
   functionType,
   $.drop("|"),
   $.drop(linespace)
 ).map((match, span) => {
   if (match.length == 1) return match[0];
-  return new PDisjointType(match, span);
+  return new PMergedType(match, span);
 });
 
-export const typedecl = disjointType.named("type");
+export const typedecl = mergedType.named("type");

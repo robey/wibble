@@ -60,7 +60,14 @@ X = eliminated by transformations
     - PTemplateType(name)
     - PParameterType(name)
     - PFunctionType(argType, resultType)
-    - PDisjointType
+    - PMergedType
+
+
+# Type descriptors
+
+  - TypeDescriptor
+    - CompoundType
+      - CTypedField(name, type, defaultValue)
 
 
 

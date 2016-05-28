@@ -23,7 +23,7 @@ export function dumpType(t) {
       return "$" + t.name;
     case "PFunctionType":
       return nested(t.argType) + " -> " + nested(t.resultType);
-    case "PDisjointType":
+    case "PMergedType":
       return t.children.map(nested).join(" | ");
     default:
       return `???(${t.constructor.name})`;
