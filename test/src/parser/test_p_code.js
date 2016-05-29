@@ -16,12 +16,12 @@ describe("Parse code", () => {
     });
 
     it("let", () => {
-      parseCode("let x = 100").should.eql("let(local(x[4:5], const(NUMBER_BASE10, 100)[8:11])[4:5])[0:3]");
+      parseCode("let x = 100").should.eql("let(local(x)(const(NUMBER_BASE10, 100)[8:11])[4:5])[0:3]");
       (() => parseCode("let return = 1")).should.throw(/Reserved/);
     });
 
     it("make", () => {
-      parseCode("make x := 100").should.eql("make(local(x[5:6], const(NUMBER_BASE10, 100)[10:13])[5:6])[0:4]");
+      parseCode("make x := 100").should.eql("make(local(x)(const(NUMBER_BASE10, 100)[10:13])[5:6])[0:4]");
       (() => parseCode("make return = 1")).should.throw(/Reserved/);
     });
 

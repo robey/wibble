@@ -192,8 +192,9 @@ export class PBreak extends PNode {
 }
 
 export class PLocal extends PNode {
-  constructor(name, expr, mutable) {
-    super("local", name.span, [ name, expr ]);
+  constructor(name, expr, span, mutable) {
+    super(`local(${name})`, span, [ expr ]);
+    this.name = name;
     // redundant but handy to have nearby:
     this.mutable = mutable;
   }

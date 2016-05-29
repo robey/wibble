@@ -19,7 +19,7 @@ function localDeclaration(operator, mutable) {
     $.drop(linespace),
     () => expression
   ]).map(match => {
-    return new PLocal(match[0], match[1], mutable);
+    return new PLocal(match[0].name, match[1], match[0].span, mutable);
   });
 }
 

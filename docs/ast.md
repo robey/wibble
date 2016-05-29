@@ -30,7 +30,7 @@ X = eliminated by transformations
     - X: PFunction(inType, outType)
     - PStruct
       - PStructField(name)
-    - PNew
+    - PNew [scope, newType]
     - X: PUnary(op)
     - PCall [coerceType]
     - X: PBinary(op)
@@ -44,7 +44,7 @@ X = eliminated by transformations
 
 ## code
 
-  - PLocal(mutable)
+  - PLocal(name, mutable)
   - PLocals(mutable)
   - POn
   - PBlock [scope]

@@ -33,7 +33,7 @@ export function simplify(ast, errors) {
     exit: () => path.pop()
   }, node => {
     const nodeType = node.constructor.name;
-    
+
     switch (nodeType) {
       case "PUnary": {
         // convert unary(op)(a) into call(a, op)
@@ -62,7 +62,7 @@ export function simplify(ast, errors) {
         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
         const newVar = nextLocal();
         const breakOut = new PIf(new PUnary("not", node.children[0]), new PBreak(newVar));
-        const newLocal = new PLocal(newVar, node.children[1]);
+        const newLocal = new PLocal(newVar.name, node.children[1]);
         const block = new PBlock([ new PLocals(null, [ newLocal ], false), breakOut ]);
         return new PIf(node.children[0], new PRepeat(block, node.span));
       }

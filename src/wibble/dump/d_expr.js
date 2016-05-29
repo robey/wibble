@@ -59,7 +59,7 @@ export function dumpExpr(expr) {
     case "PLocals":
       return (expr.mutable ? "make " : "let ") +
         expr.children.map(local => {
-          return dumpExpr(local.children[0]) + (expr.mutable ? " := " : " = ") + dumpExpr(local.children[1]);
+          return local.name + (expr.mutable ? " := " : " = ") + dumpExpr(local.children[0]);
         }).join(", ");
     case "POn":
       return "on " + (expr.children[0].constructor.name == "PConstant" ? dumpExpr : dumpType)(expr.children[0]) +
