@@ -192,30 +192,30 @@ sniffType = (expr, tstate) ->
   #   if not rtype.equals(descriptors.DBoolean) then error("Logical operations require a boolean", expr.right.state)
   #   return descriptors.DBoolean
 
-  if expr.condition?
-    ctype = sniffType(expr.condition, tstate)
-    if not ctype.equals(descriptors.DBoolean) then error("Conditional expression must be true or false", expr.condition.state)
-    ttype = sniffType(expr.ifThen, tstate)
-    etype = sniffType(expr.ifElse, tstate)
-    return branch([ ttype, etype ], tstate)
+  # if expr.condition?
+  #   ctype = sniffType(expr.condition, tstate)
+  #   if not ctype.equals(descriptors.DBoolean) then error("Conditional expression must be true or false", expr.condition.state)
+  #   ttype = sniffType(expr.ifThen, tstate)
+  #   etype = sniffType(expr.ifElse, tstate)
+  #   return branch([ ttype, etype ], tstate)
+  #
+  # if expr.newObject? then return expr.newType
+  #
+  # if expr.local? then return tstate.scope.get(expr.local.name).type
 
-  if expr.newObject? then return expr.newType
-
-  if expr.local? then return tstate.scope.get(expr.local.name).type
-
-  if expr.assignment?
-    vtype = sniffType(expr.value, tstate)
-    ltype = tstate.scope.get(expr.assignment).type
-    if not ltype.canCoerceFrom(vtype) then error("Incompatible types in assignment: #{vtype.inspect()} assigned to #{ltype.inspect()}", expr.state)
-    return ltype
+  # if expr.assignment?
+  #   vtype = sniffType(expr.value, tstate)
+  #   ltype = tstate.scope.get(expr.assignment).type
+  #   if not ltype.canCoerceFrom(vtype) then error("Incompatible types in assignment: #{vtype.inspect()} assigned to #{ltype.inspect()}", expr.state)
+  #   return ltype
 
   if expr.on? then return descriptors.DNothing
 
-  if expr.code?
-    type = descriptors.DNothing
-    for x in expr.code
-      type = sniffType(x, tstate)
-    return type
+  # if expr.code?
+  #   type = descriptors.DNothing
+  #   for x in expr.code
+  #     type = sniffType(x, tstate)
+  #   return type
 
   error("Not implemented yet: #{dump.dumpExpr(expr)}", expr.state)
 
@@ -273,16 +273,16 @@ walk = (expr, tstate, f) ->
     f(expr, tstate)
     [ expr, tstate ]
 
-branch = (types, tstate) ->
-  options = []
-  for t in types
-    if t instanceof t_type.DisjointType
-      options = options.concat(t.options)
-    else
-      options.push t
-  rv = new t_type.DisjointType(options).mergeIfPossible()
-  if tstate?.options?.logger? then tstate.options.logger "unify types: #{types.map((t) -> t.inspect()).join(' | ')} -> #{rv.inspect()}"
-  rv
+# branch = (types, tstate) ->
+#   options = []
+#   for t in types
+#     if t instanceof t_type.DisjointType
+#       options = options.concat(t.options)
+#     else
+#       options.push t
+#   rv = new t_type.DisjointType(options).mergeIfPossible()
+#   if tstate?.options?.logger? then tstate.options.logger "unify types: #{types.map((t) -> t.inspect()).join(' | ')} -> #{rv.inspect()}"
+#   rv
 
 
 exports.buildScopes = buildScopes

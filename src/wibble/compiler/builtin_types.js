@@ -8,6 +8,7 @@ TAnything.canAssignFrom = () => true;
 
 const TNothing = newType("Nothing");
 TNothing.nothing = true;
+TNothing.canAssignFrom = () => false;
 
 const TBoolean = newType("Boolean");
 const TInt = newType("Int");

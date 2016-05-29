@@ -8,7 +8,7 @@ import { CompoundType, CTypedField, MergedType, newType } from "./type_descripto
  */
 export function compileType(node, errors, scope) {
   if (!(node instanceof PType)) throw new Error("Internal error: compileType on non-PType");
-  
+
   switch(node.constructor.name) {
     case "PSimpleType": {
       if (scope.get(node.name) == null) {
@@ -30,7 +30,7 @@ export function compileType(node, errors, scope) {
       }));
     }
 
-    // - PTemplateType(name)
+    // FIXME: PTemplateType(name)
 
     case "PParameterType": {
       const name = "$" + node.name;

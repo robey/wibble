@@ -3,26 +3,29 @@
 import { PConstantType } from "../common/ast";
 import { transformAst } from "../common/transform";
 import { dumpExpr } from "../dump";
-import { CompoundType, CTypedField } from "./type_descriptor";
+import { CompoundType, CTypedField, mergeTypes } from "./type_descriptor";
 import { Scope } from "./scope";
 
 const APPLY_SYMBOL = "\u2053";
 
-class MysteryType {
-  constructor(name, mutable) {
+export class CReference {
+  constructor(name, type, mutable) {
     this.name = name;
+    this.type = type;
     this.mutable = mutable;
   }
 }
 
 /*
  * 1. Attach a new (locals) scope to each block and handler.
- * 2. Attach an unknown-type reference to each local and handler.
+ * xxx2. Attach an unknown-type reference to each local and handler.
  * 3. Catch unresolved references and duplicate names.
  *
  * FIXME: ensure types in PCompoundType are checked.
+ *
+ * - scope: name -> CReference
  */
-export function buildScopes(expr, errors, scope) {
+export function buildScopes(expr, errors, scope, typeScope, logger) {
   let type = null;
 
   // keep breadcrumbs of the path we took to get to this node.
@@ -49,7 +52,11 @@ export function buildScopes(expr, errors, scope) {
 
     switch (nodeType) {
       case "PReference": {
-        if (scope.get(node.name) == null) errors.add(`Undefined reference '${node.name}'`, node.span);
+        if (scope.get(node.name) == null) {
+          errors.add(`Undefined reference '${node.name}'`, node.span);
+          // stub in an "Anything" immutable so we can plug onward.
+          scope.add(new CReference(node.name, typeScope.get("Anything"), false));
+        }
         return null;
       }
 
@@ -69,7 +76,13 @@ export function buildScopes(expr, errors, scope) {
         if (scope.get(name) != null) {
           errors.add(`Redefined local '${name}'`, node.children[0].span);
         }
-        scope.add(name, new MysteryType(name, node.mutable));
+        const type = computeType(node.children[1], errors, scope, typeScope, logger);
+        scope.add(name, new CReference(name, type, node.mutable));
+        return null;
+      }
+
+      case "PBlock": {
+        expr.scope = scope = new Scope(scope);
         return null;
       }
 
@@ -129,35 +142,38 @@ export function buildScopes(expr, errors, scope) {
  * compute the type of an expression by recursively computing the types of
  * its children and combining them.
  *
- * the scope is required to have the built-in types (Nothing, Int, ...)
+ * the typeScope is required to have the built-in types (Nothing, Int, ...)
  * defined so that constants can be type-checked.
+ *
+ * - scope: name -> CReference
+ * - typeScope: name -> TypeDescriptor
  */
-export function computeType(expr, errors, scope, logger) {
-  logger;
-
+export function computeType(expr, errors, scope, typeScope, logger) {
   switch (expr.constructor.name) {
     case "PConstant": {
       switch (expr.type) {
-        case PConstantType.NOTHING: return scope.get("Nothing");
-        case PConstantType.BOOLEAN: return scope.get("Boolean");
-        case PConstantType.SYMBOL: return scope.get("Symbol");
-        case PConstantType.NUMBER_BASE10: return scope.get("Int");
-        case PConstantType.NUMBER_BASE16: return scope.get("Int");
-        case PConstantType.NUMBER_BASE2: return scope.get("Int");
-        case PConstantType.STRING: return scope.get("String");
+        case PConstantType.NOTHING: return typeScope.get("Nothing");
+        case PConstantType.BOOLEAN: return typeScope.get("Boolean");
+        case PConstantType.SYMBOL: return typeScope.get("Symbol");
+        case PConstantType.NUMBER_BASE10: return typeScope.get("Int");
+        case PConstantType.NUMBER_BASE16: return typeScope.get("Int");
+        case PConstantType.NUMBER_BASE2: return typeScope.get("Int");
+        case PConstantType.STRING: return typeScope.get("String");
         default: throw new Error("Internal error: No such constant type " + expr.type);
       }
     }
 
     case "PReference": {
-      return scope.get(expr.name);
+      if (scope.get(expr.name)) return scope.get(expr.name).type;
+      // buildScopes will catch the undefined reference.
+      return typeScope.get("Anything");
     }
 
     // FIXME: PArray
 
     case "PStruct": {
       const fields = expr.children.map(field => {
-        return new CTypedField(field.name, computeType(field.children[0], errors, scope, logger));
+        return new CTypedField(field.name, computeType(field.children[0], errors, scope, typeScope, logger));
       });
       return new CompoundType(fields);
     }
@@ -165,7 +181,7 @@ export function computeType(expr, errors, scope, logger) {
     // - PNew
 
     case "PCall": {
-      const [ targetType, argType ] = expr.children.map(node => computeType(node, errors, scope, logger));
+      const [ targetType, argType ] = expr.children.map(node => computeType(node, errors, scope, typeScope, logger));
       const message = expr.children[1];
       const isSymbol = message.constructor.name == "PConstant" && message.type == PConstantType.SYMBOL;
       if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
@@ -191,25 +207,60 @@ export function computeType(expr, errors, scope, logger) {
 
     case "PLogic": {
       expr.children.forEach(node => {
-        if (!computeType(node, errors, scope, logger).isType(scope.get("Boolean"))) {
+        if (!computeType(node, errors, scope, typeScope, logger).isType(typeScope.get("Boolean"))) {
           errors.add("Logical operations require a boolean", node.span);
         }
       });
-      return scope.get("Boolean");
+      return typeScope.get("Boolean");
     }
 
-    // - PAssignment
-    // - PIf
+    case "PAssignment": {
+      const types = expr.children.map(n => computeType(n, errors, scope, typeScope, logger));
+      if (!types[0].canAssignFrom(types[1])) {
+        errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, expr.span);
+      }
+      return types[0];
+    }
+
+    case "PIf": {
+      const condType = computeType(expr.children[0], errors, scope, typeScope, logger);
+      if (!condType.isType(typeScope.get("Boolean"))) {
+        errors.add("Conditional expression must be true or false", expr.children[0].span);
+      }
+      return mergeTypes(expr.children.slice(1).map(n => computeType(n, errors, scope, typeScope, logger)), logger);
+    }
+
+    // if expr.newObject? then return expr.newType
+    //
+    // if expr.local? then return tstate.scope.get(expr.local.name).type
+
+
     // - PRepeat
     // - PReturn
     // - PBreak
+
+    case "PLocals": {
+      return typeScope.get("Nothing");
+    }
+
+    // - POn
+    // - PBlock
+
+    case "PBlock": {
+      let rtype = typeScope.get("Nothing");
+      expr.children.forEach(n => {
+        // hit every node so we collect errors.
+        rtype = computeType(n, errors, expr.scope, typeScope, logger);
+      });
+      return rtype;
+    }
 
     default:
       throw new Error("Unimplemented expression type: " + expr.constructor.name);
   }
 }
 
-export function typecheck(expr, errors, scope, logger) {
-  buildScopes(expr, errors, scope);
-  return computeType(expr, errors, scope, logger);
+export function typecheck(expr, errors, scope, typeScope, logger) {
+  buildScopes(expr, errors, scope, typeScope, logger);
+  return computeType(expr, errors, scope, typeScope, logger);
 }

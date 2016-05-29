@@ -2,6 +2,8 @@
 
 import { dumpExpr } from "../dump";
 
+const ARROW_RIGHT = "\u2192";
+
 let _nextId = 1;
 
 /*
@@ -90,10 +92,6 @@ export class TypeDescriptor {
     const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType));
     return matches.length == 0 ? { } : { coerceType: matches[0].guard, type: matches[0].type };
   }
-}
-
-export function newType(name) {
-  return new TypeDescriptor(name);
 }
 
 
@@ -196,47 +194,38 @@ export class MergedType extends TypeDescriptor {
 }
 
 
-// # try to unify.
-// mergeIfPossible: ->
-//   for i in [0 ... @options.length]
-//     for j in [i + 1 ... @options.length]
-//       continue unless @options[i]? and @options[j]?
-//       if @options[i].equals(@options[j])
-//         @options[j] = null
-//         continue
-//       continue if @options[i] instanceof ParameterType
-//       if @options[i].canCoerceFrom(@options[j])
-//         @options[j] = null
-//       else if @options[j].canCoerceFrom(@options[i])
-//         @options[i] = null
-//   types = @options.filter (x) -> x?
-//   if types.length == 1 then types[0] else new DisjointType(types)
+export function mergeTypes(types, logger) {
+  // flatten list of types.
+  const list = [].concat.apply([], types.map(type => {
+    return (type.constructor.name == "MergedType") ? type.types : [ type ];
+  }));
 
+  // perform N**2 unification: reduce to the minimum set of types.
+  for (let i = 0; i < list.length; i++) {
+    if (!list[i]) continue;
+    for (let j = i + 1; j < list.length; j++) {
+      if (!list[i] || !list[j]) continue;
+      if (list[i].isType(list[j])) {
+        list[j] = null;
+        continue;
+      }
+      // FIXME ParameterType
+      if (list[i].canAssignFrom(list[j])) {
+        if (logger) logger(`${list[i].inspect()} can assign from ${list[j].inspect()}`);
+        list[j] = null;
+      } else if (list[j].canAssignFrom(list[i])) {
+        if (logger) logger(`${list[j].inspect()} can assign from ${list[i].inspect()}`);
+        list[i] = null;
+      }
+    }
+  }
 
+  const uniques = list.filter(t => t != null);
+  const rv = uniques.length == 1 ? uniques[0] : new MergedType(uniques);
+  if (logger) logger(`merge types: ${types.map(t => t.inspect()).join(" | ")} ${ARROW_RIGHT} ${rv.inspect()}`);
+  return rv;
+}
 
-
-
-// canCoerceFrom: (other, parameterMap = {}) ->
-//   @coercionKind(other, parameterMap)?
-//
-// # (only for structs) figure out what kind of coercion will work, and return it
-// coercionKind: (other, parameterMap = {}) ->
-//   other = other.flatten()
-//   kind = null
-//   # allow zero-arg to be equivalent to an empty struct, and one-arg to be a single-element struct
-//   if other instanceof CompoundType
-//     kind = "compound"
-//   else
-//     if other.equals(new NamedType("Nothing"))
-//       kind = "nothing"
-//       other = new CompoundType([])
-//     else
-//       kind = "single"
-//       other = new CompoundType([ name: "?0", type: other ])
-//   # check loose equality of compound types
-//   if @equals(other) then return kind
-//   if @looselyMatches(other.fields, parameterMap) then return kind
-//   # special case: if we're a one-field struct that is itself a struct, we have to go deeper.
-//   if @fields.length == 1 and (@fields[0].type instanceof CompoundType) and @fields[0].type.looselyMatches(other.fields, parameterMap) then return "nested"
-//   null
-//
+export function newType(name) {
+  return new TypeDescriptor(name);
+}

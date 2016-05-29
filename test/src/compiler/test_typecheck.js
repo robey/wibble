@@ -5,12 +5,13 @@ import { compiler, Errors, parser } from "../../../lib/wibble";
 import "should";
 import "source-map-support/register";
 
-const parse = (s, options = {}) => parser.expression.run(s, options);
 const typecheck = (s, options = {}) => {
   const errors = new Errors();
-  const scope = options.scope || compiler.builtinTypes;
-  const expr = compiler.simplify(parse(s, options), errors);
-  const type = compiler.typecheck(expr, errors, scope, options.logger);
+  const scope = options.scope || new compiler.Scope();
+  const typeScope = options.typeScope || compiler.builtinTypes;
+  const expr = (options.parser || parser.expression).run(s, options);
+  const simplified = compiler.simplify(expr, errors);
+  const type = compiler.typecheck(simplified, errors, scope, typeScope, options.logger);
   if (errors.length > 0) {
     const error = new Error(errors.inspect());
     error.errors = errors;
@@ -38,8 +39,8 @@ describe("Typecheck expressions", () => {
   });
 
   it("references", () => {
-    const scope = new compiler.Scope(compiler.builtinTypes);
-    scope.add("point", compiler.newType("Point"));
+    const scope = new compiler.Scope();
+    scope.add("point", new compiler.CReference("point", compiler.newType("Point"), false));
     typecheck("point", { scope }).type.inspect().should.eql("Point");
   });
 
@@ -65,6 +66,68 @@ describe("Typecheck expressions", () => {
     typecheck("true and true").type.inspect().should.eql("Boolean");
   });
 
+  describe("assignment", () => {
+    it("must target mutables", () => {
+      (() => typecheck("{ let count = 3; count := 4 }")).should.throw(/immutable/);
+      typecheck("{ make count := 3; count := 4 }").type.inspect().should.eql("Int");
+    });
+
+    it("must be typesafe", () => {
+      (() => typecheck("{ make count := 3; count := false }")).should.throw(/Incompatible types/);
+    });
+  });
+
+  it("if", () => {
+    typecheck("if true then 3 else 4").type.inspect().should.eql("Int");
+    typecheck("if true then 3 else true").type.inspect().should.eql("Int | Boolean");
+    typecheck("if true then 3").type.inspect().should.eql("Int | Nothing");
+    (() => typecheck("if 3 then 3 else 4")).should.throw(/true or false/);
+
+    // check type merging too.
+    typecheck("if true then 3 else (if true then false else 4)").type.inspect().should.eql("Int | Boolean");
+    typecheck("if true then 9 else (if true then 12 else 13)").type.inspect().should.eql("Int");
+  });
+
+  // - PRepeat
+  // - PReturn
+  // - PBreak
+
+  it("locals", () => {
+    typecheck("let x = 3", { parser: parser.code }).type.inspect().should.eql("Nothing");
+  });
+
+  // - POn
+
+  describe("block", () => {
+    it("empty", () => {
+      typecheck("{ }").type.inspect().should.eql("Nothing");
+    });
+
+    it("finds a local", () => {
+      const { expr, type } = typecheck("{ let x = 9 }");
+      type.inspect().should.eql("Nothing");
+      expr.scope.get("x").type.inspect().should.eql("Int");
+    });
+
+    it("resolves inner references", () => {
+      const { expr, type } = typecheck("{ let x = true; x }");
+      type.inspect().should.eql("Boolean");
+      expr.scope.get("x").type.inspect().should.eql("Boolean");
+    });
+
+    it("gets unhappy about duped vars", () => {
+      (() => typecheck("{ let x = 9; let x = 3 }")).should.throw(/Redefined/);
+    });
+
+    it("gets unhappy about forward references", () => {
+      (() => typecheck("{ let y = 3 + x; let x = 9 }")).should.throw(/reference/);
+      (() => typecheck("{ q := 9 }")).should.throw(/reference/);
+    });
+
+    it("does not allow nested duped vars", () => {
+      (() => typecheck("{ let x = 9; { let x = 3 } }")).should.throw(/Redefined local/);
+    });
+  });
 });
 
     // parse = (line, options) -> parser.code.run(line, options)
@@ -77,11 +140,6 @@ describe("Typecheck expressions", () => {
     //   { type, expr, scope }
     //
     //
-    // it "condition", ->
-    //   typecheck("if true then 3 else 4").type.inspect().should.eql "Int"
-    //   typecheck("if true then 3 else true").type.inspect().should.eql "Int | Boolean"
-    //   typecheck("if true then 3").type.inspect().should.eql "Int | Nothing"
-    //   (-> typecheck("if 3 then 3 else 4")).should.throw /true or false/
     //
     // describe "new", ->
     //   it "symbol", ->
@@ -116,42 +174,6 @@ describe("Typecheck expressions", () => {
     //     (-> typecheck("new { on (x: Int) -> { y := 3 } }")).should.throw /reference/
     //     (-> typecheck("new { on (x: Int) -> { y := 3 }; y = 10 }")).should.throw /immutable/
     //
-    // it "locals", ->
-    //   x = typecheck("x = 3")
-    //   x.type.inspect().should.eql "Int"
-    //
-    // describe "code", ->
-    //   it "empty", ->
-    //     x = typecheck("{ }")
-    //     x.type.inspect().should.eql "Nothing"
-    //
-    //   it "finds a local", ->
-    //     x = typecheck("{ x = 9 }")
-    //     x.expr.scope.get("x").type.inspect().should.eql "Int"
-    //
-    //   it "resolves inner references", ->
-    //     x = typecheck("{ x = true; x }")
-    //     x.type.inspect().should.eql "Boolean"
-    //     x.expr.scope.get("x").type.inspect().should.eql "Boolean"
-    //
-    //   it "gets unhappy about duped vars", ->
-    //     (-> typecheck("{ x = 9; x = 3 }")).should.throw /Redefined/
-    //
-    //   it "gets unhappy about forward references", ->
-    //     (-> typecheck("{ y = 3 + x; x = 9 }")).should.throw /reference/
-    //     (-> typecheck("{ q := 9 }")).should.throw /reference/
-    //
-    //   it "insists that assignments target mutables", ->
-    //     (-> typecheck("{ count = 3; count := 4 }")).should.throw /immutable/
-    //     typecheck("{ mutable count = 3; count := 4 }").type.inspect().should.eql "Int"
-    //
-    //   it "insists that assignments are typesafe", ->
-    //     (-> typecheck("{ mutable count = 3; count := false }")).should.throw /Incompatible types/
-    //
-    //   it "allows nested duped vars", ->
-    //     x = typecheck("{ x = 9; { x = 3 } }")
-    //     x.expr.scope.exists("x").should.eql true
-    //     x.expr.code[1].scope.exists("x").should.eql true
     //
     // describe "functions", ->
     //   it "simple", ->
@@ -186,10 +208,6 @@ describe("Typecheck expressions", () => {
     //   it "unifies struct return types", ->
     //     func = "(n: Int): (x: Int, y: Int) -> (4, 8)"
     //     typecheck(func).type.inspect().should.eql "(n: Int) -> (x: Int, y: Int)"
-    //
-    // it "merges sub-branches", ->
-    //   x = typecheck("if true then 0 else if false then 1 else 2")
-    //   x.type.inspect().should.eql "Int"
     //
     // it "handles single recursion", ->
     //   (-> typecheck("{ sum = (n: Int) -> sum(n - 1) }")).should.throw /Recursive/
