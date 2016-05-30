@@ -71,7 +71,7 @@ describe("Simplify expressions", () => {
   });
 
   it("new/on", () => {
-    simplify("new { on .x -> 3 }").should.eql("new on .x -> 3");
+    simplify("new { on .x -> 3 }").should.eql("new { on .x -> 3 }");
   });
 
   it("while", () => {

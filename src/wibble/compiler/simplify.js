@@ -117,7 +117,11 @@ export function simplify(ast, errors) {
 
       case "PBlock": {
         // convert one-expression block into that expression.
-        if (node.children.length == 1 && node.children[0].constructor.name != "PLocals") return node.children[0];
+        if (
+          node.children.length == 1 &&
+          node.children[0].constructor.name != "PLocals" &&
+          node.children[0].constructor.name != "POn"
+        ) return node.children[0];
         return null;
       }
 
