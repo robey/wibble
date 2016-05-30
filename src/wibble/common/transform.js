@@ -14,8 +14,10 @@
  *     returns a new node. the new node will replace this node, and will be
  *     sent back to transform until the transforms are all complete (null is
  *     returned).
+ * - lateTransform(node): (optional) transform a node _after_ all of the
+ *     child nodes have been traversed
  */
-export function transformAst(node, options = {}, transform) {
+export function transformAst(node, options = {}, transform, lateTransform) {
   if (transform == null) {
     transform = options;
     options = {};
@@ -31,15 +33,24 @@ export function transformAst(node, options = {}, transform) {
     if (options.enter) options.enter(node);
     node.children = node.children.map(n => {
       const nodeType = node.constructor.name;
-      return options.postpone && options.postpone.indexOf(nodeType) >= 0 ? n : transformAst(n, options, transform);
+      const shouldPostpone = options.postpone && options.postpone.indexOf(nodeType) >= 0;
+      return shouldPostpone ? n : transformAst(n, options, transform, lateTransform);
     });
     if (options.postpone) {
       node.children = node.children.map(n => {
         const nodeType = node.constructor.name;
-        return options.postpone.indexOf(nodeType) >= 0 ? transformAst(n, options, transform) : n;
+        return options.postpone.indexOf(nodeType) >= 0 ? transformAst(n, options, transform, lateTransform) : n;
       });
     }
     if (options.exit) options.exit(node);
+  }
+
+  if (lateTransform) {
+    let newNode = node;
+    do {
+      node = newNode;
+      newNode = lateTransform(node);
+    } while (newNode != null);
   }
 
   return node;
