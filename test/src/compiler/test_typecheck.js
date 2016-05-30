@@ -1,6 +1,6 @@
 "use strict";
 
-import { compiler, Errors, parser } from "../../../lib/wibble";
+import { compiler, dump, Errors, parser } from "../../../lib/wibble";
 
 import "should";
 import "source-map-support/register";
@@ -11,6 +11,7 @@ const typecheck = (s, options = {}) => {
   const typeScope = options.typeScope || compiler.builtinTypes;
   const expr = (options.parser || parser.expression).run(s, options);
   const simplified = compiler.simplify(expr, errors);
+  if (options.logger) options.logger("expr: " + dump.dumpExpr(simplified));
   const type = compiler.typecheck(simplified, errors, scope, typeScope, options.logger);
   if (errors.length > 0) {
     const error = new Error(errors.inspect());
@@ -53,7 +54,46 @@ describe("Typecheck expressions", () => {
     (() => typecheck("(a = 1, b = 2, a = 1)")).should.throw(/repeated/);
   });
 
-  // PNew
+  describe("new", () => {
+    it("symbol", () => {
+      const { type, expr } = typecheck("new { on .foo -> 3 }");
+      type.inspect().should.eql("{ .foo -> Int }");
+      dump.dumpExpr(expr).should.eql("new { on .foo -> 3 }");
+      expr.newType.inspect().should.eql("{ .foo -> Int }");
+    });
+
+    it("nothing", () => {
+      const { type, expr } = typecheck("new { let hidden = .ok; on () -> true }");
+      type.inspect().should.eql("() -> Boolean");
+      dump.dumpExpr(expr).should.eql("new { let hidden = .ok; on () -> true }");
+      expr.newType.inspect().should.eql("() -> Boolean");
+      // verify that inner locals were type-checked
+      expr.children[0].scope.get("hidden").type.inspect().should.eql("Symbol");
+    });
+
+    it("inner reference", () => {
+      const { type, expr } = typecheck("new { on (x: Int) -> x }");
+      type.inspect().should.eql("(x: Int) -> Int");
+      dump.dumpExpr(expr).should.eql("new { on (x: Int) -> x }");
+      expr.newType.inspect().should.eql("(x: Int) -> Int");
+    });
+
+    it("generates a scope for 'on' handlers", () => {
+      const { expr } = typecheck("new { on (x: Int) -> x + 2 }");
+      expr.children[0].children[0].scope.get("x").type.inspect().should.eql("Int");
+    });
+
+    it("can do forward references from inside the closure", () => {
+      typecheck("new { on (x: Int) -> { y + 3 }; let y = 10 }").type.inspect().should.eql("(x: Int) -> Int");
+      typecheck("new { on (x: Int) -> { y := 3 }; make y := 10 }").type.inspect().should.eql("(x: Int) -> Int");
+    });
+
+    it("can still trap unknown references inside the closure", () => {
+      (() => typecheck("new { on (x: Int) -> { y + 3 } }")).should.throw(/reference/);
+      (() => typecheck("new { on (x: Int) -> { y := 3 } }")).should.throw(/reference/);
+      (() => typecheck("new { on (x: Int) -> { y := 3 }; let y = 10 }")).should.throw(/immutable/);
+    });
+  });
 
   it("calls", () => {
     typecheck("3 .+").type.inspect().should.eql("Int -> Int");
@@ -128,6 +168,12 @@ describe("Typecheck expressions", () => {
       (() => typecheck("{ let x = 9; { let x = 3 } }")).should.throw(/Redefined local/);
     });
   });
+
+  // -----
+
+  describe("functions", () => {
+
+  });
 });
 
     // parse = (line, options) -> parser.code.run(line, options)
@@ -139,40 +185,6 @@ describe("Typecheck expressions", () => {
     //   [ expr, type ] = transform.typecheck(scope, expr, options)
     //   { type, expr, scope }
     //
-    //
-    //
-    // describe "new", ->
-    //   it "symbol", ->
-    //     x = typecheck("new { on .foo -> 3 }")
-    //     x.type.inspect().should.eql "[.foo -> Int]"
-    //     d_expr.dumpExpr(x.expr).should.eql "new [.foo -> Int] { on .foo -> 3 }"
-    //
-    //   it "nothing", ->
-    //     x = typecheck("new { hidden = .ok; on () -> true }")
-    //     x.type.inspect().should.eql "() -> Boolean"
-    //     d_expr.dumpExpr(x.expr).should.eql "new () -> Boolean { hidden = .ok; on () -> true }"
-    //     # verify that inner locals were type-checked
-    //     x.expr.newObject.scope.get("hidden").type.inspect().should.eql "Symbol"
-    //
-    //   it "inner reference", ->
-    //     x = typecheck("new { on (x: Int) -> x }")
-    //     x.type.inspect().should.eql "(x: Int) -> Int"
-    //     d_expr.dumpExpr(x.expr).should.eql "new (x: Int) -> Int { on (x: Int) -> x }"
-    //
-    //   it "generates a scope for 'on' handlers", ->
-    //     x = typecheck("new { on (x: Int) -> x .+ 2 }")
-    //     x.expr.newObject.code[0].scope.get("x").type.inspect().should.eql "Int"
-    //
-    //   it "can do forward references from inside the closure", ->
-    //     x = typecheck("new { on (x: Int) -> { y + 3 }; y = 10 }")
-    //     x.type.inspect().should.eql "(x: Int) -> Int"
-    //     x = typecheck("new { on (x: Int) -> { y := 3 }; mutable y = 10 }")
-    //     x.type.inspect().should.eql "(x: Int) -> Int"
-    //
-    //   it "can still trap unknown references inside the closure", ->
-    //     (-> typecheck("new { on (x: Int) -> { y + 3 } }")).should.throw /reference/
-    //     (-> typecheck("new { on (x: Int) -> { y := 3 } }")).should.throw /reference/
-    //     (-> typecheck("new { on (x: Int) -> { y := 3 }; y = 10 }")).should.throw /immutable/
     //
     //
     // describe "functions", ->

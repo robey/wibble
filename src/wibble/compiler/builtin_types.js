@@ -4,6 +4,7 @@ import { Scope } from "./scope";
 import { newType } from "./type_descriptor";
 
 const TAnything = newType("Anything");
+TAnything.anything = true;
 TAnything.canAssignFrom = () => true;
 
 const TNothing = newType("Nothing");

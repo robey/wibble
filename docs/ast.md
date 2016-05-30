@@ -46,7 +46,7 @@ X = eliminated by transformations
 
   - PLocal(name, mutable)
   - PLocals(mutable)
-  - POn
+  - POn [scope]
   - PBlock [scope]
 
 ## types

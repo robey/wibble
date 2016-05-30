@@ -3,8 +3,9 @@
 import { PConstantType } from "../common/ast";
 import { transformAst } from "../common/transform";
 import { dumpExpr } from "../dump";
-import { CompoundType, CTypedField, mergeTypes } from "./type_descriptor";
+import { compileType } from "./c_type";
 import { Scope } from "./scope";
+import { CompoundType, CTypedField, mergeTypes, newType } from "./type_descriptor";
 
 const APPLY_SYMBOL = "\u2053";
 
@@ -30,19 +31,22 @@ export function buildScopes(expr, errors, scope, typeScope, logger) {
 
   // keep breadcrumbs of the path we took to get to this node.
   const path = [];
-  // stacks of the "current" scope and type.
+  // stacks of the "current" scope, typeScope, and any type being defined.
   const scopeStack = [];
+  const typeScopeStack = [];
   const typeStack = [];
 
   transformAst(expr, {
     enter: node => {
       path.push(node);
       scopeStack.push(scope);
+      typeScopeStack.push(typeScope);
       typeStack.push(type);
     },
     exit: () => {
       path.pop();
       scope = scopeStack.pop();
+      typeScope = typeScopeStack.pop();
       type = typeStack.pop();
     },
     // allow expressions inside a handler to make forward references.
@@ -55,34 +59,82 @@ export function buildScopes(expr, errors, scope, typeScope, logger) {
         if (scope.get(node.name) == null) {
           errors.add(`Undefined reference '${node.name}'`, node.span);
           // stub in an "Anything" immutable so we can plug onward.
-          scope.add(new CReference(node.name, typeScope.get("Anything"), false));
+          scope.add(node.name, new CReference(node.name, typeScope.get("Anything"), false));
+        }
+        return null;
+      }
+
+      case "PNew": {
+        // attach a new (blank) type that we'll fill with handlers.
+        node.newType = type = newType();
+        if (node.children[0].constructor.name == "PBlock") {
+          // new -> block: push a new scope & typeScope with "@" defined.
+          node.scope = scope = new Scope(scope);
+          scope.add("@", new CReference("@", type, false));
+          typeScope = new Scope(typeScope);
+          typeScope.add("@", type);
         }
         return null;
       }
 
       case "PAssignment": {
         const name = node.children[0].name;
-        const type = scope.get(name);
-        if (type == null) {
+        const rtype = scope.get(name);
+        if (rtype == null) {
           errors.add(`Undefined reference '${name}'`, node.children[0].span);
           return null;
         }
-        if (!type.mutable) errors.add(`Assignment to immutable (let) '${name}'`, node.children[0].span);
+        if (!rtype.mutable) errors.add(`Assignment to immutable (let) '${name}'`, node.children[0].span);
         return null;
       }
 
       case "PLocal": {
-        const name = node.children[0].name;
-        if (scope.get(name) != null) {
-          errors.add(`Redefined local '${name}'`, node.children[0].span);
+        if (scope.get(node.name) != null) {
+          errors.add(`Redefined local '${node.name}'`, node.span);
         }
-        const type = computeType(node.children[1], errors, scope, typeScope, logger);
-        scope.add(name, new CReference(name, type, node.mutable));
+        return null;
+      }
+
+      case "POn": {
+        if (node.children[0].constructor.name == "PCompoundType") {
+          // open up a new scope for the parameters.
+          node.scope = scope = new Scope(scope);
+          node.children[0].children.forEach(field => {
+            const ftype = compileType(field.type, errors, typeScope);
+            scope.add(field.name, new CReference(field.name, ftype, false));
+          });
+        }
         return null;
       }
 
       case "PBlock": {
-        expr.scope = scope = new Scope(scope);
+        node.scope = scope = new Scope(scope);
+        return null;
+      }
+
+      default:
+        return null;
+    }
+  }, node => {
+    // late transform: after child nodes have been traversed.
+    const nodeType = node.constructor.name;
+
+    switch (nodeType) {
+      case "PLocal": {
+        // don't add a local to scope until we've traversed the value expression & it's ready for 'computeType'.
+        const rtype = computeType(node.children[0], errors, scope, typeScope, logger);
+        scope.add(node.name, new CReference(node.name, rtype, node.mutable));
+        return null;
+      }
+
+      case "POn": {
+        const rtype = computeType(node.children[1], errors, scope, typeScope, logger);
+        if (node.children[0].constructor.name == "PCompoundType") {
+          const guardType = compileType(node.children[0], errors, typeScope);
+          type.addTypeHandler(guardType, rtype);
+        } else {
+          type.addSymbolHandler(node.children[0].value, rtype);
+        }
         return null;
       }
 
@@ -90,53 +142,17 @@ export function buildScopes(expr, errors, scope, typeScope, logger) {
         return null;
     }
   });
-
-
-
-
-  Scope;
-
 }
+
 
 /*
  * unresolved:
  *   - alias type "@" to the nearest outer "new"
  *   - when a type is explicitly given, verify that it matches our inferred type.
+ *   - recursion? (nail-biter)
  */
 
 
- // t_expr.digExpr expr, tstate, (expr, tstate) ->
- //   findType = (type) -> t_type.findType(type, tstate.typemap)
-
- // if expr.newObject?
- //   # attach a new (blank) type that we'll fill in with handlers
- //   tstate = tstate.newType()
- //   if not expr.stateless
- //     # open a new scope too
- //     tstate = tstate.newScope()
- //     tstate.scope.add("@", tstate.type)
- //     tstate.typemap.add("@", new t_type.SelfType(tstate.type))
- //   return [ copy(expr, newType: tstate.type, scope: tstate.scope, typemap: tstate.typemap), tstate ]
- //
- //   if expr.on?
- //     # code inside a handler is allowed to make forward references, so stop
- //     # checking for now. (we'll do another pass for these later.)
- //     tstate = tstate.stopCheckingReferences()
- //     type = if expr.type? then findType(expr.type) else new UnknownType("handler")
- //     if expr.on.compoundType?
- //       # open up a new (chained) scope, with references for the parameters
- //       tstate = tstate.newScope()
- //       for p in expr.on.compoundType
- //         tstate.scope.add(p.name, if p.type? then findType(p.type) else descriptors.DAny)
- //       tstate.type.addTypeHandler findType(expr.on), type
- //       return [ copy(expr, scope: tstate.scope, typemap: tstate.typemap, unresolved: type, type: null), tstate ]
- //     else
- //       tstate.type.addValueHandler expr.on.symbol, type
- //       return [ copy(expr, unresolved: type, type: null), tstate ]
- //
- //   if expr.code?
- //     tstate = tstate.newScope()
- //     return [ copy(expr, scope: tstate.scope, typemap: tstate.typemap), tstate ]
 
 /*
  * compute the type of an expression by recursively computing the types of
@@ -163,11 +179,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
       }
     }
 
-    case "PReference": {
-      if (scope.get(expr.name)) return scope.get(expr.name).type;
-      // buildScopes will catch the undefined reference.
-      return typeScope.get("Anything");
-    }
+    case "PReference": return scope.get(expr.name).type;
 
     // FIXME: PArray
 
@@ -178,7 +190,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
       return new CompoundType(fields);
     }
 
-    // - PNew
+    case "PNew": return expr.newType;
 
     case "PCall": {
       const [ targetType, argType ] = expr.children.map(node => computeType(node, errors, scope, typeScope, logger));
@@ -198,8 +210,9 @@ export function computeType(expr, errors, scope, typeScope, logger) {
         rtype = type;
       }
       if (rtype == null) {
-        errors.add("No matching handler found", expr.span);
-        rtype = scope.get("Anything");
+        // special-case "Anything", which bails out of type-checking.
+        if (!targetType.anything) errors.add("No matching handler found", expr.span);
+        rtype = typeScope.get("Anything");
       }
       if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
       return rtype;
@@ -230,21 +243,12 @@ export function computeType(expr, errors, scope, typeScope, logger) {
       return mergeTypes(expr.children.slice(1).map(n => computeType(n, errors, scope, typeScope, logger)), logger);
     }
 
-    // if expr.newObject? then return expr.newType
-    //
-    // if expr.local? then return tstate.scope.get(expr.local.name).type
-
-
     // - PRepeat
     // - PReturn
     // - PBreak
 
-    case "PLocals": {
-      return typeScope.get("Nothing");
-    }
-
-    // - POn
-    // - PBlock
+    case "PLocals": return typeScope.get("Nothing");
+    case "POn": return typeScope.get("Nothing");
 
     case "PBlock": {
       let rtype = typeScope.get("Nothing");

@@ -23,59 +23,6 @@ class UnknownType
     "<Unknown #{@id}: #{@name}>"
 
 
-# transform the expression tree, checking locals and references.
-# - attach a new "scope", "typemap" object to each place we enter a new scope.
-# - mark locals and handlers with an unresolved type.
-# - complain about references that don't appear to resolve to anything (and can't be forward references)
-buildScopes = (expr, tstate) ->
-  t_expr.digExpr expr, tstate, (expr, tstate) ->
-    findType = (type) -> t_type.findType(type, tstate.typemap)
-
-    if expr.reference? and tstate.checkReferences
-      tdef = tstate.scope.get(expr.reference)
-      if not tdef? then error("Unknown reference '#{expr.reference}'", expr.state)
-
-    if expr.assignment? and tstate.checkReferences
-      tdef = tstate.scope.get(expr.assignment)
-      if not tdef? then error("Unknown reference '#{expr.assignment}'", expr.state)
-      if not tdef.mutable then error("Assignment to immutable '#{expr.assignment}'", expr.state)
-
-    if expr.newObject?
-      # attach a new (blank) type that we'll fill in with handlers
-      tstate = tstate.newType()
-      if not expr.stateless
-        # open a new scope too
-        tstate = tstate.newScope()
-        tstate.scope.add("@", tstate.type)
-        tstate.typemap.add("@", new t_type.SelfType(tstate.type))
-      return [ copy(expr, newType: tstate.type, scope: tstate.scope, typemap: tstate.typemap), tstate ]
-
-    if expr.local?
-      if tstate.scope.exists(expr.local.name) and not tstate.options.allowOverride
-        error("Redefined local '#{expr.local.name}'", expr.local.state)
-      tstate.scope.add(expr.local.name, new UnknownType(expr.local.name), expr.mutable)
-
-    if expr.on?
-      # code inside a handler is allowed to make forward references, so stop
-      # checking for now. (we'll do another pass for these later.)
-      tstate = tstate.stopCheckingReferences()
-      type = if expr.type? then findType(expr.type) else new UnknownType("handler")
-      if expr.on.compoundType?
-        # open up a new (chained) scope, with references for the parameters
-        tstate = tstate.newScope()
-        for p in expr.on.compoundType
-          tstate.scope.add(p.name, if p.type? then findType(p.type) else descriptors.DAny)
-        tstate.type.addTypeHandler findType(expr.on), type
-        return [ copy(expr, scope: tstate.scope, typemap: tstate.typemap, unresolved: type, type: null), tstate ]
-      else
-        tstate.type.addValueHandler expr.on.symbol, type
-        return [ copy(expr, unresolved: type, type: null), tstate ]
-
-    if expr.code?
-      tstate = tstate.newScope()
-      return [ copy(expr, scope: tstate.scope, typemap: tstate.typemap), tstate ]
-
-    [ expr, tstate ]
 
 # pass 2:
 # - check forward references for code inside handlers
