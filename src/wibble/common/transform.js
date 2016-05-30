@@ -32,13 +32,13 @@ export function transformAst(node, options = {}, transform, lateTransform) {
   if (node.children.length > 0) {
     if (options.enter) options.enter(node);
     node.children = node.children.map(n => {
-      const nodeType = node.constructor.name;
+      const nodeType = n.constructor.name;
       const shouldPostpone = options.postpone && options.postpone.indexOf(nodeType) >= 0;
       return shouldPostpone ? n : transformAst(n, options, transform, lateTransform);
     });
     if (options.postpone) {
       node.children = node.children.map(n => {
-        const nodeType = node.constructor.name;
+        const nodeType = n.constructor.name;
         return options.postpone.indexOf(nodeType) >= 0 ? transformAst(n, options, transform, lateTransform) : n;
       });
     }
