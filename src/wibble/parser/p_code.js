@@ -60,6 +60,13 @@ export const code = $.alt(
 ).named("declaration or expression");
 
 const lf = $(/[\n;]+/).named("linefeed or ;");
-export const codeBlock = repeatSurrounded($.commit("{"), code, lf, "}", commentspace).map((match, span) => {
+export const codeBlock = repeatSurrounded(
+  $.commit("{"),
+  code,
+  lf,
+  "}",
+  commentspace,
+  "expression or statement"
+).map((match, span) => {
   return new PBlock(match[0], match[1], span);
 });
