@@ -88,7 +88,6 @@ const unary = $.alt(
 
 const call = $([
   unary,
-  $.drop(linespace),
   $.repeatIgnore(atom, linespace)
 ]).map(([ first, rest ]) => {
   return [ first ].concat(rest).reduce((x, y) => new PCall(x, y, x.span.merge(y.span)));
