@@ -25,6 +25,7 @@ function localDeclaration(operator, mutable) {
 
 const localLet = $([
   toSpan("let"),
+  $.drop(linespace),
   repeatSeparated(localDeclaration("=", false), ",", $.drop(linespace))
 ]).map(match => {
   return new PLocals(match[0], match[1], false);
@@ -32,6 +33,7 @@ const localLet = $([
 
 const localMake = $([
   toSpan("make"),
+  $.drop(linespace),
   repeatSeparated(localDeclaration(":=", true), ",", $.drop(linespace))
 ]).map(match => {
   return new PLocals(match[0], match[1], true);
@@ -65,8 +67,7 @@ export const codeBlock = repeatSurrounded(
   code,
   lf,
   "}",
-  commentspace,
-  "expression or statement"
+  commentspace
 ).map((match, span) => {
   return new PBlock(match[0], match[1], span);
 });

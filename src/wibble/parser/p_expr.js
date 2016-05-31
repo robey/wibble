@@ -24,23 +24,22 @@ const xarray = repeatSurrounded(
   () => expression,
   /[\n,]+/,
   $.commit("]"),
-  commentspace,
-  "array items"
+  commentspace
 ).map(([ items, comment ], span) => {
   return new PArray(items, comment, span);
 }).named("array");
 
 export const func = $([
-  $.optional(compoundType, ""),
-  $.drop(linespace),
-  $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ], ""),
+  $.optional([
+    compoundType,
+    $.drop(linespace),
+    $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ])
+  ], []),
   toSpan("->"),
   $.drop(linespace),
   () => expression
 ]).map(match => {
-  if (match[0] == "") match[0] = null;
-  if (match[1] == "") match[1] = null;
-  return new PFunction(match[0], match[1] ? match[1][0] : null, match[3], match[2]);
+  return new PFunction(match[0][0], match[0][1] ? match[0][1][0] : null, match[2], match[1]);
 });
 
 const structMember = $([
@@ -52,11 +51,10 @@ const structMember = $([
 
 const struct = repeatSurrounded(
   $.commit("("),
-  structMember,
+  structMember.named("struct member"),
   /[\n,]+/,
-  ")",
-  commentspace,
-  "struct member"
+  $.commit(")"),
+  commentspace.named("struct member")
 ).map(([ items, comment ], span) => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
   if (items.length == 1 && items[0].name == null) return items[0].children[0];

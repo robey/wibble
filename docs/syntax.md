@@ -65,7 +65,7 @@
 
     structMember := (SYMBOL_NAME "=")? expression
 
-    function := compoundType? (":" typedecl)? "->" expression
+    function := (compoundType (":" typedecl)?)? "->" expression
 
     codeBlock := "{" (code ";"?)* "}"
 

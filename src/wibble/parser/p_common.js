@@ -63,37 +63,39 @@ export function toSpan(p) {
   return $.commit(p).map((match, span) => span);
 }
 
-// match: ws p (linespace separator ws p)* (linespace separator)?
+// match: p (linespace separator ws p)* (linespace separator)?
 // if ws isn't dropped, it's added to the result of p as a 'comment' field.
 export function repeatSeparated(p, separator, ws) {
-  const element = $([ ws, p ]).map(([ comment, x ]) => {
-    if (x == null) {
-      // comment was dropped.
-      x = comment;
-      comment = null;
-    }
-    if (comment && comment.length > 0) x.comment = comment;
-    return x;
+  const element = $([ $.drop(linespace), $.drop(separator), ws, p ]).map(list => {
+    if (list.length == 1) return list[0];
+    const item = list[1];
+    item.comment = list[0];
+    return item;
   });
 
   return $([
-    $.repeatSeparated(element, $([ linespace, separator ])),
+    p,
+    $.repeat(element),
     $.optional([ linespace, separator ])
-  ]).map(match => match[0]);
+  ]).map(match => [ match[0] ].concat(match[1]));
 }
 
-// same as repeatSeparated, but with a surrounding group syntax like [ ].
-// returns [ []:items, comment ] -- where comment is any non-dropped content
-// from 'ws' after the last item.
-// 'name' is what to name the items expected, for errors.
-// an empty list is allowed.
-export function repeatSurrounded(open, p, separator, close, ws, name) {
+// open (ws p (linespace separator ws p)* (linespace separator)?)? ws close
+// returns: [ []:items, comment ]
+export function repeatSurrounded(open, p, separator, close, ws) {
   return $([
     $.drop(open),
-    $([
-      repeatSeparated(p, separator, ws).optional([]),
+    $.optional([
       ws,
-      $.drop(close)
-    ]).named(name)
-  ]).map(match => match[0]);
+      repeatSeparated(p, separator, ws)
+    ], [ [] ]),
+    ws,
+    $.drop(close)
+  ]).map(match => {
+    // [ [ ws?, []:items ], ws? ]
+    const items = match[0].length == 1 ? match[0][0] : match[0][1];
+    // there will only be a leading comment if there were any items.
+    if (match[0].length > 1) items[0].comment = match[0][0];
+    return [ items, match[1] ];
+  });
 }

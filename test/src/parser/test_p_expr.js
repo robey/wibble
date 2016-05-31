@@ -56,7 +56,7 @@ describe("Parse expressions", () => {
     });
 
     it("failing", () => {
-      (() => parse("[ ??? ]")).should.throw(/Expected array/);
+      (() => parse("[ ??? ]")).should.throw(/Expected expression/);
     });
   });
 
