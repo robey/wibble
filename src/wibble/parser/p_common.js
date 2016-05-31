@@ -82,7 +82,7 @@ export function repeatSeparated(p, separator, ws) {
 
 // open (ws p (linespace separator ws p)* (linespace separator)?)? ws close
 // returns: [ []:items, comment ]
-export function repeatSurrounded(open, p, separator, close, ws) {
+export function repeatSurrounded(open, p, separator, close, ws, name) {
   return $([
     $.drop(open),
     $.optional([
@@ -90,7 +90,7 @@ export function repeatSurrounded(open, p, separator, close, ws) {
       repeatSeparated(p, separator, ws)
     ], [ [] ]),
     ws,
-    $.drop(close)
+    $.drop(close).named(name)
   ]).map(match => {
     // [ [ ws?, []:items ], ws? ]
     const items = match[0].length == 1 ? match[0][0] : match[0][1];

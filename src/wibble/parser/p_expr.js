@@ -24,7 +24,8 @@ const xarray = repeatSurrounded(
   () => expression,
   /[\n,]+/,
   $.commit("]"),
-  commentspace
+  commentspace,
+  "array element"
 ).map(([ items, comment ], span) => {
   return new PArray(items, comment, span);
 }).named("array");
@@ -38,7 +39,7 @@ export const func = $([
   toSpan("->"),
   $.drop(linespace),
   () => expression
-]).map(match => {
+]).named("function").map(match => {
   return new PFunction(match[0][0], match[0][1] ? match[0][1][0] : null, match[2], match[1]);
 });
 
@@ -51,10 +52,11 @@ const structMember = $([
 
 const struct = repeatSurrounded(
   $.commit("("),
-  structMember.named("struct member"),
+  structMember,
   /[\n,]+/,
   $.commit(")"),
-  commentspace.named("struct member")
+  commentspace,
+  "struct member"
 ).map(([ items, comment ], span) => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
   if (items.length == 1 && items[0].name == null) return items[0].children[0];
@@ -125,7 +127,7 @@ const condition = $([
     toSpan("else"),
     $.drop(linespace),
     () => expression
-  ], [])
+  ], []).named("else clause")
 ]).named("condition").map(match => {
   return new PIf(match[1], match[3], (match[4].length > 0) ? match[4][1] : null, match[0]);
 });
@@ -134,7 +136,7 @@ const repeatLoop = $([
   toSpan("repeat"),
   $.drop(linespace),
   () => expression
-]).map(match => new PRepeat(match[1], match[0]));
+]).named("repeat").map(match => new PRepeat(match[1], match[0]));
 
 const whileLoop = $([
   toSpan("while"),
@@ -144,7 +146,7 @@ const whileLoop = $([
   $.commit("do").drop(),
   $.drop(linespace),
   () => expression
-]).map(match => new PWhile(match[1], match[2], match[0]));
+]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
 
 const assignment = $([
   reference,
@@ -152,15 +154,15 @@ const assignment = $([
   toSpan(":="),
   $.drop(linespace),
   () => expression
-]).map(match => {
+]).named("assignment").map(match => {
   return new PAssignment(match[0], match[2], match[1]);
 });
 
-const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).map(match => {
+const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).named("return").map(match => {
   return new PReturn(match[1], match[0]);
 });
 
-const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => expression) ]).map(match => {
+const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => expression) ]).named("break").map(match => {
   return new PBreak(match[1], match[0]);
 });
 

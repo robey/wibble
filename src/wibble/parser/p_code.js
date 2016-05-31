@@ -67,7 +67,8 @@ export const codeBlock = repeatSurrounded(
   code,
   lf,
   "}",
-  commentspace
+  commentspace,
+  "declaration or expression"
 ).map((match, span) => {
   return new PBlock(match[0], match[1], span);
 });
