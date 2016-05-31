@@ -165,6 +165,13 @@ export function buildScopes(expr, errors, scope, typeScope, logger) {
  * - typeScope: name -> TypeDescriptor
  */
 export function computeType(expr, errors, scope, typeScope, logger) {
+  if (logger) logger(`computeType ->: ${dumpExpr(expr)}`);
+  const rv = _computeType(expr, errors, scope, typeScope, logger);
+  if (logger) logger(`computeType <-: ${dumpExpr(expr)} == ${rv.inspect()}`);
+  return rv;
+}
+
+function _computeType(expr, errors, scope, typeScope, logger) {
   switch (expr.constructor.name) {
     case "PConstant": {
       switch (expr.type) {
@@ -205,7 +212,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
         const { coerceType, type } = targetType.handlerTypeForMessage(argType);
         if (coerceType != null) {
           expr.coerceType = coerceType;
-          if (logger) logger(`call:   \u21b3 coerce to: ${type.inspect()}`);
+          if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
         }
         rtype = type;
       }
@@ -265,6 +272,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 }
 
 export function typecheck(expr, errors, scope, typeScope, logger) {
+  if (logger) logger(`typecheck: ${dumpExpr(expr)}`);
   buildScopes(expr, errors, scope, typeScope, logger);
   return computeType(expr, errors, scope, typeScope, logger);
 }
