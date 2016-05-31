@@ -34,7 +34,7 @@ export function dumpExpr(expr) {
     case "PStructField":
       return (expr.name ? expr.name + "=" : "") + dumpExpr(expr.children[0]);
     case "PNew":
-      return "new " + dumpExpr(expr.children[0]);
+      return "new " + nested(expr.children[0]);
     case "PUnary":
       return (expr.op == "-" ? expr.op : (expr.op + " ")) + nested(expr.children[0]);
     case "PCall":
