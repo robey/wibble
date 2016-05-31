@@ -136,8 +136,6 @@ describe("Typecheck expressions", () => {
     typecheck("let x = 3", { parser: parser.code }).type.inspect().should.eql("Nothing");
   });
 
-  // - POn
-
   describe("block", () => {
     it("empty", () => {
       typecheck("{ }").type.inspect().should.eql("Nothing");
@@ -172,32 +170,18 @@ describe("Typecheck expressions", () => {
   // -----
 
   describe("functions", () => {
+    it("simple", () => {
+      const func = "-> 3";
+      typecheck(func).type.inspect().should.eql("() -> Int");
+      typecheck(`(${func}) ()`).type.inspect().should.eql("Int");
+    });
 
-  });
-});
+    it("as function parameters", () => {
+      const func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }";
+      typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> (n: Int) -> Int");
+      typecheck(`(${func}) ((n: Int) -> n + 1)`).type.inspect().should.eql("(n: Int) -> Int");
+    });
 
-    // parse = (line, options) -> parser.code.run(line, options)
-    //
-    // typecheck = (line, options = {}) ->
-    //   scope = options.scope or new transform.Scope()
-    //   expr = parse(line, options)
-    //   expr = transform.transformExpr(expr)
-    //   [ expr, type ] = transform.typecheck(scope, expr, options)
-    //   { type, expr, scope }
-    //
-    //
-    //
-    // describe "functions", ->
-    //   it "simple", ->
-    //     func = "-> 3"
-    //     typecheck(func).type.inspect().should.eql "() -> Int"
-    //     typecheck("(#{func}) ()").type.inspect().should.eql "Int"
-    //
-    //   it "as function parameters", ->
-    //     func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
-    //     typecheck(func).type.inspect().should.eql "(f: Int -> Int) -> (n: Int) -> Int"
-    //     typecheck("(#{func}) ((n: Int) -> n + 1)").type.inspect().should.eql "(n: Int) -> Int"
-    //
     //   it "with parameters matched contravariantly", ->
     //     func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
     //     typecheck("(#{func}) ((n: Int, incr: Int = 1) -> n + incr)").type.inspect().should.eql "(n: Int) -> Int"
@@ -220,6 +204,14 @@ describe("Typecheck expressions", () => {
     //   it "unifies struct return types", ->
     //     func = "(n: Int): (x: Int, y: Int) -> (4, 8)"
     //     typecheck(func).type.inspect().should.eql "(n: Int) -> (x: Int, y: Int)"
+
+  });
+});
+
+    //
+    //
+    //
+    // describe "functions", ->
     //
     // it "handles single recursion", ->
     //   (-> typecheck("{ sum = (n: Int) -> sum(n - 1) }")).should.throw /Recursive/
