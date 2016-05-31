@@ -56,7 +56,7 @@ describe("Parse expressions", () => {
     });
 
     it("failing", () => {
-      (() => parse("[ ??? ]")).should.throw(/Expected expression/);
+      (() => parse("[ ??? ]")).should.throw(/Expected array/);
     });
   });
 
@@ -71,15 +71,6 @@ describe("Parse expressions", () => {
           "compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
         ")[9:11]"
-      );
-    });
-
-    it("with no arg type", () => {
-      parseFunc("(x) -> x * 2").should.eql(
-        "function(" +
-          "compoundType(field(x)[1:2])[0:3], " +
-          "binary(*)(x[7:8], const(NUMBER_BASE10, 2)[11:12])[7:12]" +
-        ")[4:6]"
       );
     });
 
