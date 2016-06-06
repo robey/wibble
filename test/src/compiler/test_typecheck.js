@@ -182,10 +182,11 @@ describe("Typecheck expressions", () => {
       typecheck(`(${func}) ((n: Int) -> n + 1)`).type.inspect().should.eql("(n: Int) -> Int");
     });
 
-    //   it "with parameters matched contravariantly", ->
-    //     func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }"
-    //     typecheck("(#{func}) ((n: Int, incr: Int = 1) -> n + incr)").type.inspect().should.eql "(n: Int) -> Int"
-    //
+    it("with parameters matched contravariantly", () => {
+      const func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }";
+      typecheck(`(${func}) ((n: Int, incr: Int = 1) -> n + incr)`).type.inspect().should.eql("(n: Int) -> Int");
+    });
+
     //   it "simple type parameters", ->
     //     func = "(x: $A) -> x"
     //     typecheck(func).type.inspect().should.eql "(x: $A) -> $A"
@@ -196,39 +197,42 @@ describe("Typecheck expressions", () => {
     //     typecheck(func).type.inspect().should.eql "(x: $A, y: Boolean) -> ($A | Int)"
     //     typecheck("(#{func}) (10, true)").type.inspect().should.eql "Int"
     //     typecheck("(#{func}) (10, false)").type.inspect().should.eql "Int"
-    //
-    //   it "insists that the returned type match the prototype", ->
-    //     func = "(n: Int): Int -> true"
-    //     (-> typecheck(func)).should.throw /Expected type Int; inferred type Boolean/
-    //
-    //   it "unifies struct return types", ->
-    //     func = "(n: Int): (x: Int, y: Int) -> (4, 8)"
-    //     typecheck(func).type.inspect().should.eql "(n: Int) -> (x: Int, y: Int)"
 
+    it("insists that the returned type match the prototype", () => {
+      const func = "(n: Int): Int -> true";
+      (() => typecheck(func)).should.throw(/Expected type Int; inferred type Boolean/);
+    });
+
+    it("unifies struct return types", () => {
+      const func = "(n: Int): (x: Int, y: Int) -> (4, 8)";
+      typecheck(func).type.inspect().should.eql("(n: Int) -> (x: Int, y: Int)");
+    });
+  });
+
+  describe("tricksy", () => {
+    it("handles single recursion", () => {
+      (() => typecheck("{ let sum = (n: Int) -> sum(n - 1) }")).should.throw(/Recursive/);
+      typecheck("{ let sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1) }").type.inspect().should.eql(
+        "(n: Int) -> Int"
+      );
+    });
+
+    it("checks single recursion", () => {
+      typecheck("{ sum = (n: Int) -> n * 2 }").type.inspect().should.eql("(n: Int) -> Int");
+      (() => typecheck("{ sum = (n: Int): Int -> .wut }")).should.throw("Expected type Int; inferred type Symbol");
+    });
+
+    it("handles double recursion", () => {
+      const even = "if n == 0 then 0 else odd(n - 1)";
+      const odd = "if n == 1 then 1 else even(n - 1)";
+      (() => typecheck(`{ even = (n: Int) -> ${even}; odd = (n: Int) -> ${odd} }`)).should.throw(/Recursive/);
+      typecheck(`{ even = (n: Int): Int -> ${even}; odd = (n: Int): Int -> ${odd} }`).type.inspect().should.eql(
+        "(n: Int) -> Int"
+      );
+    });
+
+    it("handles self-types", () => {
+      typecheck("new { on (x: @) -> true }").type.inspect().should.eql("(x: @) -> Boolean");
+    });
   });
 });
-
-    //
-    //
-    //
-    // describe "functions", ->
-    //
-    // it "handles single recursion", ->
-    //   (-> typecheck("{ sum = (n: Int) -> sum(n - 1) }")).should.throw /Recursive/
-    //   x = typecheck("{ sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1) }")
-    //   x.type.inspect().should.eql "(n: Int) -> Int"
-    //
-    // it "checks single recursion", ->
-    //   typecheck("{ sum = (n: Int) -> n * 2 }").type.inspect().should.eql "(n: Int) -> Int"
-    //   (-> typecheck("{ sum = (n: Int): Int -> .wut }")).should.throw "Expected type Int; inferred type Symbol"
-    //
-    // it "handles double recursion", ->
-    //   even = "if n == 0 then 0 else odd(n - 1)"
-    //   odd = "if n == 1 then 1 else even(n - 1)"
-    //   (-> typecheck("{ even = (n: Int) -> #{even}; odd = (n: Int) -> #{odd} }")).should.throw /Recursive/
-    //   x = typecheck("{ even = (n: Int): Int -> #{even}; odd = (n: Int): Int -> #{odd} }")
-    //   x.type.inspect().should.eql "(n: Int) -> Int"
-    //
-    // it "handles self-types", ->
-    //   x = typecheck("new { on (x: @) -> true }")
-    //   x.type.inspect().should.eql "(x: @) -> Boolean"
