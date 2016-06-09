@@ -327,7 +327,7 @@ describe("Parse expressions", () => {
     it("failing", () => {
       (() => parse("if ???")).should.throw(/Expected expression/);
       (() => parse("if 3 then ???")).should.throw(/Expected expression/);
-      (() => parse("if 3 then 3 else ???")).should.throw(/Expected expression/);
+      (() => parse("if 3 then 3 else ???")).should.throw(/Expected else/);
     });
   });
 
