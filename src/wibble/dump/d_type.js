@@ -12,7 +12,7 @@ export function dumpType(t) {
     return t2.children.length > 0 && t2.precedence > t.precedence ? "(" + rv + ")" : rv;
   }
 
-  switch (t.constructor.name) {
+  switch (t.nodeType) {
     case "PSimpleType":
       return t.name;
     case "PCompoundType":

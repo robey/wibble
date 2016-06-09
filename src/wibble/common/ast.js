@@ -35,6 +35,10 @@ export class PNode {
     // other common fields: comment, trailingComment
   }
 
+  get nodeType() {
+    return this.constructor.name;
+  }
+
   inspect() {
     let rv = this.description;
     if (this.children.length > 0) {

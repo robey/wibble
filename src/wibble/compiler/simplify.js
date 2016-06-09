@@ -25,16 +25,14 @@ export function simplify(ast, errors) {
   const path = [];
   function parentType(n = 0) {
     if (n >= path.length) return "";
-    return path[path.length - n - 1].constructor.name;
+    return path[path.length - n - 1].nodeType;
   }
 
   return transformAst(ast, {
     enter: node => path.push(node),
     exit: () => path.pop()
   }, node => {
-    const nodeType = node.constructor.name;
-
-    switch (nodeType) {
+    switch (node.nodeType) {
       case "PUnary": {
         // convert unary(op)(a) into call(a, op)
         const op = node.op == "-" ? "negative" : node.op;
