@@ -21,29 +21,27 @@ export class TypeDescriptor {
     this.symbolHandlers = {};
   }
 
-  inspect() {
-    return this._inspect({}, 100);
+  inspect(seen = {}, precedence = 100) {
+    if (this.name != null) return this.name;
+    if (seen[this.id]) return "(recursive)";
+    seen[this.id] = true;
+    const rv = this._inspect(seen, precedence);
+    seen[this.id] = false;
+    return rv;
   }
 
   _inspect(seen, precedence) {
-    if (this.name != null) return this.name;
-
-    if (seen[this.id]) return "[recursive]";
-    seen[this.id] = true;
-
     // default implementation: describe interface.
     const symbols = Object.keys(this.symbolHandlers).map(key => {
-      return `.${key} -> ${this.symbolHandlers[key]._inspect(seen, 2)}`;
+      return `.${key} -> ${this.symbolHandlers[key].inspect(seen, 2)}`;
     });
-    const types = this.typeHandlers.map(({ guard, type }) => `${guard._inspect(seen, 9)} -> ${type._inspect(seen, 2)}`);
+    const types = this.typeHandlers.map(({ guard, type }) => `${guard.inspect(seen, 9)} -> ${type.inspect(seen, 2)}`);
 
     // hack to make functions print out with nicer style.
     const isFunction = symbols.length == 0 && types.length == 1;
     const myPrecedence = isFunction ? this.precedence + 1 : this.precedence;
 
     const description = isFunction ? types[0] : ("{ " + symbols.concat(types).join(", ") + " }");
-
-    seen[this.id] = false;
     return myPrecedence > precedence ? "(" + description + ")" : description;
   }
 
@@ -110,8 +108,8 @@ export class CTypedField {
     this.defaultValue = defaultValue;
   }
 
-  _inspect(seen) {
-    return `${this.name}: ${this.type._inspect(seen, 9)}` +
+  inspect(seen) {
+    return `${this.name}: ${this.type.inspect(seen, 9)}` +
       (this.defaultValue == null ? "" : ` = ${dumpExpr(this.defaultValue)}`);
   }
 }
@@ -125,7 +123,7 @@ export class CompoundType extends TypeDescriptor {
   }
 
   _inspect(seen) {
-    return "(" + this.fields.map(f => f._inspect(seen, 9)).join(", ") + ")";
+    return "(" + this.fields.map(f => f.inspect(seen, 9)).join(", ") + ")";
   }
 
   canAssignFrom(other) {
@@ -194,7 +192,7 @@ export class MergedType extends TypeDescriptor {
   }
 
   _inspect(seen) {
-    return this.types.map(t => t._inspect(seen, this.precedence)).join(" | ");
+    return this.types.map(t => t.inspect(seen, this.precedence)).join(" | ");
   }
 }
 

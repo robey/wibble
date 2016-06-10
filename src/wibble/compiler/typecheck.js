@@ -34,9 +34,9 @@ class UnresolvedType extends TypeDescriptor {
   }
 
   _inspect(seen) {
-    if (this.type) return `[resolved ${this.id}: ${this.type._inspect(seen, 9)}]`;
+    if (this.type) return `[resolved ${this.id}: ${this.type.inspect(seen, 9)}]`;
     const dependencies = this.variables.length == 0 ? "none" : this.variables.map(t => t.id).join(", ");
-    return `[unresolved ${this.id} -> ${dependencies}: ${this.expr.inspect()}]`;
+    return `[unresolved ${this.id} -> ${dependencies}: ${dumpExpr(this.expr)}]`;
   }
 
   canAssignFrom(other) {

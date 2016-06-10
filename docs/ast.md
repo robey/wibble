@@ -10,10 +10,8 @@
   - comment
   - trailingComment
 
-- a few nodes have a "scope" field, meaning they open a new lexical scope.
-  scope is (name -> type).
-- a few nodes will grow a "type" field to hold the descriptor of the object
-  being created.
+- a few nodes have a "scope" field, meaning they open a new lexical scope. scope is (name -> CReference).
+- a few nodes will grow a "computedType" field to hold the descriptor of the object being created.
 
 X = eliminated by transformations
 
@@ -30,9 +28,9 @@ X = eliminated by transformations
     - X: PFunction(inType, outType)
     - PStruct
       - PStructField(name)
-    - PNew [scope, newType]
+    - PNew  [scope, newType]
     - X: PUnary(op)
-    - PCall [coerceType]
+    - PCall  [coerceType]
     - X: PBinary(op)
     - PLogic(op)
     - PAssignment
@@ -46,8 +44,8 @@ X = eliminated by transformations
 
   - PLocal(name, mutable)
   - PLocals(mutable)
-  - POn [scope]
-  - PBlock [scope]
+  - POn  [scope, computedType]
+  - PBlock  [scope]
 
 ## types
 

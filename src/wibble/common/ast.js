@@ -48,6 +48,7 @@ export class PNode {
     if (this.trailingComment) rv += "##\"" + cstring(this.trailingComment) + "\"";
     // generated nodes may have no span.
     if (this.span) rv += "[" + this.span.start + ":" + this.span.end + "]";
+    if (this.computedType) rv += "<type: " + this.computedType.inspect() + ">";
     return rv;
   }
 }

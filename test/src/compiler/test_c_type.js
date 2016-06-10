@@ -46,7 +46,7 @@ describe("compileType", () => {
   it("disjoint", () => {
     compileType("String | Symbol").inspect().should.eql("String | Symbol");
     compileType("String | (x: Int, y: Int)").inspect().should.eql("String | (x: Int, y: Int)");
-    compileType("String | (x: Int) -> String").inspect().should.eql("String | ((x: Int) -> String)");
+    compileType("String | (x: Int) -> String").inspect().should.eql("String | (x: Int) -> String");
   });
 });
 
