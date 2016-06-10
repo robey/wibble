@@ -14,29 +14,37 @@ export class TypeDescriptor {
   constructor(name) {
     this.id = _nextId++;
     this.name = name;
+    // for inspect:
+    this.precedence = 1;
     // typeHandlers: { guard, type }
     this.typeHandlers = [];
     this.symbolHandlers = {};
   }
 
   inspect() {
-    return this.name == null ? this.describe() : this.name;
+    return this._inspect({}, 100);
   }
 
-  inspectNested() {
-    if (this.name == null && Object.keys(this.symbolHandlers).length == 0 && this.typeHandlers.length == 1) {
-      return "(" + this.inspect() + ")";
-    }
-    return this.inspect();
-  }
+  _inspect(seen, precedence) {
+    if (this.name != null) return this.name;
 
-  describe() {
+    if (seen[this.id]) return "[recursive]";
+    seen[this.id] = true;
+
+    // default implementation: describe interface.
     const symbols = Object.keys(this.symbolHandlers).map(key => {
-      return `.${key} -> ${this.symbolHandlers[key].inspect()}`;
+      return `.${key} -> ${this.symbolHandlers[key]._inspect(seen, 2)}`;
     });
-    const types = this.typeHandlers.map(({ guard, type }) => `${guard.inspect()} -> ${type.inspect()}`);
-    // shorthand for functions, which only have one handler:
-    return symbols.length == 0 && types.length == 1 ? types[0] : ("{ " + symbols.concat(types).join(", ") + " }");
+    const types = this.typeHandlers.map(({ guard, type }) => `${guard._inspect(seen, 9)} -> ${type._inspect(seen, 2)}`);
+
+    // hack to make functions print out with nicer style.
+    const isFunction = symbols.length == 0 && types.length == 1;
+    const myPrecedence = isFunction ? this.precedence + 1 : this.precedence;
+
+    const description = isFunction ? types[0] : ("{ " + symbols.concat(types).join(", ") + " }");
+
+    seen[this.id] = false;
+    return myPrecedence > precedence ? "(" + description + ")" : description;
   }
 
   addSymbolHandler(name, type) {
@@ -102,8 +110,8 @@ export class CTypedField {
     this.defaultValue = defaultValue;
   }
 
-  inspect() {
-    return `${this.name}: ${this.type.inspect()}` +
+  _inspect(seen) {
+    return `${this.name}: ${this.type._inspect(seen, 9)}` +
       (this.defaultValue == null ? "" : ` = ${dumpExpr(this.defaultValue)}`);
   }
 }
@@ -116,12 +124,8 @@ export class CompoundType extends TypeDescriptor {
     fields.forEach(f => this.addSymbolHandler(f.name, f.type));
   }
 
-  inspect() {
-    return "(" + this.fields.map(f => f.inspect()).join(", ") + ")";
-  }
-
-  inspectNested() {
-    return this.inspect();
+  _inspect(seen) {
+    return "(" + this.fields.map(f => f._inspect(seen, 9)).join(", ") + ")";
   }
 
   canAssignFrom(other) {
@@ -185,11 +189,12 @@ export class ParameterType extends TypeDescriptor {
 export class MergedType extends TypeDescriptor {
   constructor(types) {
     super();
+    this.precedence = 3;
     this.types = types;
   }
 
-  inspect() {
-    return this.types.map(t => t.inspectNested()).join(" | ");
+  _inspect(seen) {
+    return this.types.map(t => t._inspect(seen, this.precedence)).join(" | ");
   }
 }
 
