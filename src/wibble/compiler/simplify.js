@@ -17,8 +17,8 @@ export function simplify(ast, errors) {
    * user-written code).
    */
   let generateIndex = 0;
-  function nextLocal() {
-    return new PReference(`_${generateIndex++}`);
+  function nextLocal(span) {
+    return new PReference(`_${generateIndex++}`, span);
   }
 
   // keep breadcrumbs of the path we took to get to this node.
@@ -52,17 +52,22 @@ export function simplify(ast, errors) {
 
       case "PIf": {
         // ensure every "if" has an "else".
-        if (node.children.length < 3) node.children.push(new PConstant(PConstantType.NOTHING));
+        if (node.children.length < 3) node.children.push(new PConstant(PConstantType.NOTHING, node.spar));
         return null;
       }
 
       case "PWhile": {
         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
-        const newVar = nextLocal();
-        const breakOut = new PIf(new PUnary("not", node.children[0]), new PBreak(newVar));
-        const newLocal = new PLocal(newVar.name, node.children[1]);
-        const block = new PBlock([ new PLocals(null, [ newLocal ], false), breakOut ]);
-        return new PIf(node.children[0], new PRepeat(block, node.span));
+        const newVar = nextLocal(node.span);
+        const breakOut = new PIf(
+          new PUnary("not", node.children[0], node.children[0].span),
+          new PBreak(newVar, node.span),
+          null,
+          node.span
+        );
+        const newLocal = new PLocal(newVar.name, node.children[1], node.children[1].span, false);
+        const block = new PBlock([ new PLocals(node.span, [ newLocal ], false), breakOut ], null, node.span);
+        return new PIf(node.children[0], new PRepeat(block, node.span), null, node.span);
       }
 
       case "PStruct": {
@@ -85,7 +90,7 @@ export function simplify(ast, errors) {
 
       case "PFunction": {
         // convert function(inType, a, outType) into new(on(inType, a, outType)).
-        return new PNew(new POn(node.children[0], node.children[1], node.children[2], node.span));
+        return new PNew(new POn(node.children[0], node.children[1], node.children[2], node.span), node.span);
       }
 
       case "POn": {
