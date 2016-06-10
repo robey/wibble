@@ -138,6 +138,7 @@ function buildScopes(expr, errors, scope, typeScope) {
         // mark return type as unresolved. we'll figure it out when we shake the bucket later.
         const rtype = new UnresolvedType(node.children[1], scope, typeScope);
         unresolved.push(rtype);
+        variables.push(rtype);
         variables = rtype.variables;
         if (node.children[0].nodeType == "PCompoundType") {
           const guardType = compileType(node.children[0], errors, typeScope);
