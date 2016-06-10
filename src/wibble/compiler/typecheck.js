@@ -1,11 +1,10 @@
 "use strict";
 
 import { PConstantType } from "../common/ast";
-import { transformAst } from "../common/transform";
 import { dumpExpr } from "../dump";
 import { compileType } from "./c_type";
 import { Scope } from "./scope";
-import { CompoundType, CTypedField, mergeTypes, newType } from "./type_descriptor";
+import { CompoundType, CTypedField, mergeTypes, newType, TypeDescriptor } from "./type_descriptor";
 
 const APPLY_SYMBOL = "\u2053";
 
@@ -18,63 +17,94 @@ export class CReference {
 }
 
 /*
+ * placeholder for types we need to resolve. can't assign from anything but
+ * itself. keeps a reference to the expression that isn't resolved yet, so
+ * we can shake them out later.
+ */
+class UnresolvedType extends TypeDescriptor {
+  constructor(expr, scope, typeScope) {
+    super();
+    this.expr = expr;
+    this.scope = scope;
+    this.typeScope = typeScope;
+    // where we'll put the real type when we figure it out:
+    this.type = null;
+    // what free variables (other unresolved types) does this one depend on?
+    this.variables = [];
+  }
+
+  _inspect(seen) {
+    if (this.type) return `[resolved ${this.id}: ${this.type._inspect(seen, 9)}]`;
+    const dependencies = this.variables.length == 0 ? "none" : this.variables.map(t => t.id).join(", ");
+    return `[unresolved ${this.id} -> ${dependencies}: ${this.expr.inspect()}]`;
+  }
+
+  canAssignFrom(other) {
+    return this.isType(other);
+  }
+}
+
+
+/*
  * 1. Attach a new (locals) scope to each block and handler.
- * xxx2. Attach an unknown-type reference to each local and handler.
+ * 2. Attach an unknown-type reference to each local.
  * 3. Catch unresolved references and duplicate names.
  *
- * FIXME: ensure types in PCompoundType are checked.
- *
  * - scope: name -> CReference
+ *
+ * returns an array of the new UnresolvedType it made.
  */
-export function buildScopes(expr, errors, scope, typeScope, logger) {
+function buildScopes(expr, errors, scope, typeScope) {
   let type = null;
+  let variables = [];
 
   // keep breadcrumbs of the path we took to get to this node.
   const path = [];
-  // stacks of the "current" scope, typeScope, and any type being defined.
-  const scopeStack = [];
-  const typeScopeStack = [];
-  const typeStack = [];
+  // stack of the "current" scope, typeScope, any type being defined, and free variables in an unresolved expression.
+  const stack = [];
 
-  transformAst(expr, {
-    enter: node => {
-      path.push(node);
-      scopeStack.push(scope);
-      typeScopeStack.push(typeScope);
-      typeStack.push(type);
-    },
-    exit: () => {
-      path.pop();
-      scope = scopeStack.pop();
-      typeScope = typeScopeStack.pop();
-      type = typeStack.pop();
-    },
-    // allow expressions inside a handler to make forward references.
-    postpone: [ "POn" ]
-  }, node => {
-    const nodeType = node.constructor.name;
+  // list of UnresolvedType objects we created.
+  const unresolved = [];
 
-    switch (nodeType) {
+  navigate(expr);
+  return unresolved;
+
+  function navigate(node) {
+    // create scopes.
+    if (node.nodeType == "PBlock") node.scope = scope = new Scope(scope);
+    if (node.nodeType == "POn" && node.children[0].constructor.name == "PCompoundType") {
+      // open up a new scope for the parameters.
+      node.scope = scope = new Scope(scope);
+      node.children[0].children.forEach(field => {
+        const ftype = compileType(field.type, errors, typeScope);
+        scope.add(field.name, new CReference(field.name, ftype, false));
+      });
+    }
+
+    // do some quick checks.
+    switch (node.nodeType) {
       case "PReference": {
         if (scope.get(node.name) == null) {
           errors.add(`Undefined reference '${node.name}'`, node.span);
           // stub in an "Anything" immutable so we can plug onward.
           scope.add(node.name, new CReference(node.name, typeScope.get("Anything"), false));
         }
-        return null;
+        const rtype = scope.get(node.name).type;
+        if (rtype instanceof UnresolvedType) variables.push(rtype);
+        break;
       }
 
       case "PNew": {
         // attach a new (blank) type that we'll fill with handlers.
         node.newType = type = newType();
-        if (node.children[0].constructor.name == "PBlock") {
+        if (node.children[0].nodeType == "PBlock") {
           // new -> block: push a new scope & typeScope with "@" defined.
           node.scope = scope = new Scope(scope);
           scope.add("@", new CReference("@", type, false));
           typeScope = new Scope(typeScope);
           typeScope.add("@", type);
         }
-        return null;
+        break;
       }
 
       case "PAssignment": {
@@ -82,66 +112,126 @@ export function buildScopes(expr, errors, scope, typeScope, logger) {
         const rtype = scope.get(name);
         if (rtype == null) {
           errors.add(`Undefined reference '${name}'`, node.children[0].span);
-          return null;
+        } else if (!rtype.mutable) {
+          errors.add(`Assignment to immutable (let) '${name}'`, node.children[0].span);
         }
-        if (!rtype.mutable) errors.add(`Assignment to immutable (let) '${name}'`, node.children[0].span);
-        return null;
+        break;
       }
 
       case "PLocal": {
         if (scope.get(node.name) != null) {
           errors.add(`Redefined local '${node.name}'`, node.span);
+        } else {
+          /*
+           * add an unresolved-type marker for now, because the expression
+           * might be a handler that makes a recursive reference to itself.
+           */
+          const ltype = new UnresolvedType(node.children[0], scope, typeScope);
+          unresolved.push(ltype);
+          variables = ltype.variables;
+          scope.add(node.name, new CReference(node.name, ltype, node.mutable));
         }
-        return null;
+        break;
       }
 
       case "POn": {
-        if (node.children[0].constructor.name == "PCompoundType") {
-          // open up a new scope for the parameters.
-          node.scope = scope = new Scope(scope);
-          node.children[0].children.forEach(field => {
-            const ftype = compileType(field.type, errors, typeScope);
-            scope.add(field.name, new CReference(field.name, ftype, false));
-          });
-        }
-        return null;
-      }
-
-      case "PBlock": {
-        node.scope = scope = new Scope(scope);
-        return null;
-      }
-
-      default:
-        return null;
-    }
-  }, node => {
-    // late transform: after child nodes have been traversed.
-    const nodeType = node.constructor.name;
-
-    switch (nodeType) {
-      case "PLocal": {
-        // don't add a local to scope until we've traversed the value expression & it's ready for 'computeType'.
-        const rtype = computeType(node.children[0], errors, scope, typeScope, logger);
-        scope.add(node.name, new CReference(node.name, rtype, node.mutable));
-        return null;
-      }
-
-      case "POn": {
-        const rtype = computeType(node.children[1], errors, scope, typeScope, logger);
-        if (node.children[0].constructor.name == "PCompoundType") {
+        // mark return type as unresolved. we'll figure it out when we shake the bucket later.
+        const rtype = new UnresolvedType(node.children[1], scope, typeScope);
+        unresolved.push(rtype);
+        variables = rtype.variables;
+        if (node.children[0].nodeType == "PCompoundType") {
           const guardType = compileType(node.children[0], errors, typeScope);
           type.addTypeHandler(guardType, rtype);
         } else {
           type.addSymbolHandler(node.children[0].value, rtype);
         }
-        return null;
+        break;
       }
-
-      default:
-        return null;
     }
-  });
+
+    // now, traverse children.
+    if (node.children.length > 0) {
+      path.push(node);
+      stack.push({ scope, typeScope, type, variables });
+
+      // do checks of "on" handlers last, since they're allowed to make forward references.
+      node.children.filter(n => n.nodeType != "POn").forEach(navigate);
+      node.children.filter(n => n.nodeType == "POn").forEach(navigate);
+
+      path.pop();
+      // babel can't handle this kind of deconstruction.
+      const context = stack.pop();
+      scope = context.scope;
+      typeScope = context.typeScope;
+      type = context.type;
+      variables = context.variables;
+    }
+  }
+}
+
+/*
+ * 4. assume the unresolved types and their dependencies (free variables)
+ *    make a kind of DAG, and shake the bucket to keep resolving any that
+ *    have no more free variables.
+ */
+function resolveTypes(expr, unresolved, errors, logger) {
+  let stillUnresolved = tryProgress(unresolved);
+  while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
+    unresolved = stillUnresolved;
+    stillUnresolved = tryProgress(unresolved);
+  }
+  if (stillUnresolved.length > 0) {
+    // couldn't solve it. :(
+    stillUnresolved.forEach(ut => {
+      errors.add("Recursive definition needs explicit type declaration", ut.expr.span);
+      ut.type = ut.typeScope.get("Anything");
+    });
+  }
+
+  // now, walk the expr, looking for new scopes & type definitions, replacing
+  // the unresolved type markers with their solutions.
+  fixup(expr);
+
+  function fixup(node) {
+    if (node.scope) node.scope.forEach(name => {
+      const cref = node.scope.get(name);
+      if (cref.type instanceof UnresolvedType) cref.type = cref.type.type;
+    });
+    if (node.newType) {
+      Object.keys(node.newType.symbolHandlers).forEach(symbol => {
+        const t = node.newType.symbolHandlers[symbol];
+        if (t instanceof UnresolvedType) node.newType.symbolHandlers[symbol] = t.type;
+      });
+      node.newType.typeHandlers = node.newType.typeHandlers.map(({ guard, type }) => {
+        if (type instanceof UnresolvedType) return { guard, type: type.type };
+        return { guard, type };
+      });
+    }
+
+    node.children.forEach(fixup);
+  }
+
+  /*
+   * optimistically assume that the unresolved types make a DAG, and resolve
+   * anything we can find that has zero radicals.
+   */
+  function tryProgress(unresolved) {
+    if (logger) {
+      logger("try to resolve:");
+      unresolved.forEach(ut => logger("  " + ut.inspect()));
+    }
+
+    return unresolved.filter(ut => {
+      // drop any free variables that are now resolved.
+      ut.variables = ut.variables.filter(t => t.type == null);
+      if (ut.variables.length > 0) return true;
+
+      // can resolve this one!
+      ut.type = computeType(ut.expr, errors, ut.scope, ut.typeScope, logger);
+      if (logger) logger(`resolved type: ${ut.inspect()}`);
+      return false;
+    });
+  }
 }
 
 
@@ -150,6 +240,7 @@ export function buildScopes(expr, errors, scope, typeScope, logger) {
  *   - alias type "@" to the nearest outer "new"
  *   - when a type is explicitly given, verify that it matches our inferred type.
  *   - recursion? (nail-biter)
+ *   - verify that PCompoundType default params match their declared type
  */
 
 
@@ -172,7 +263,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 }
 
 function _computeType(expr, errors, scope, typeScope, logger) {
-  switch (expr.constructor.name) {
+  switch (expr.nodeType) {
     case "PConstant": {
       switch (expr.type) {
         case PConstantType.NOTHING: return typeScope.get("Nothing");
@@ -186,7 +277,10 @@ function _computeType(expr, errors, scope, typeScope, logger) {
       }
     }
 
-    case "PReference": return scope.get(expr.name).type;
+    case "PReference": {
+      const t = scope.get(expr.name).type;
+      return (t instanceof UnresolvedType) ? t.type : t;
+    }
 
     // FIXME: PArray
 
@@ -202,7 +296,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
     case "PCall": {
       const [ targetType, argType ] = expr.children.map(node => computeType(node, errors, scope, typeScope, logger));
       const message = expr.children[1];
-      const isSymbol = message.constructor.name == "PConstant" && message.type == PConstantType.SYMBOL;
+      const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
       if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
 
       let rtype = null;
@@ -267,12 +361,13 @@ function _computeType(expr, errors, scope, typeScope, logger) {
     }
 
     default:
-      throw new Error("Unimplemented expression type: " + expr.constructor.name);
+      throw new Error("Unimplemented expression type: " + expr.nodeType);
   }
 }
 
 export function typecheck(expr, errors, scope, typeScope, logger) {
   if (logger) logger(`typecheck: ${dumpExpr(expr)}`);
-  buildScopes(expr, errors, scope, typeScope, logger);
+  const unresolved = buildScopes(expr, errors, scope, typeScope);
+  resolveTypes(expr, unresolved, errors, logger);
   return computeType(expr, errors, scope, typeScope, logger);
 }

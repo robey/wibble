@@ -225,8 +225,8 @@ describe("Typecheck expressions", () => {
     it("handles double recursion", () => {
       const even = "if n == 0 then 0 else odd(n - 1)";
       const odd = "if n == 1 then 1 else even(n - 1)";
-      (() => typecheck(`{ even = (n: Int) -> ${even}; odd = (n: Int) -> ${odd} }`)).should.throw(/Recursive/);
-      typecheck(`{ even = (n: Int): Int -> ${even}; odd = (n: Int): Int -> ${odd} }`).type.inspect().should.eql(
+      (() => typecheck(`{ let even = (n: Int) -> ${even}; let odd = (n: Int) -> ${odd} }`)).should.throw(/Recursive/);
+      typecheck(`{ let even = (n: Int): Int -> ${even}; let odd = (n: Int): Int -> ${odd} }`).type.inspect().should.eql(
         "(n: Int) -> Int"
       );
     });

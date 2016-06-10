@@ -45,6 +45,10 @@ export class Scope {
     this.symtab[name] = obj;
   }
 
+  forEach(f) {
+    Object.keys(this.symtab).sort().forEach(f);
+  }
+
   inspect() {
     const keys = Object.keys(this.symtab).sort().join(", ");
     return "Scope(" + keys + (this.parent == null ? "" : ` ${ARROW_RIGHT} ${this.parent.inspect()}`) + ")";
