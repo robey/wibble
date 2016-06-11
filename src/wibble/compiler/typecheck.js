@@ -46,7 +46,7 @@ class UnresolvedType extends TypeDescriptor {
     return this.isType(other);
   }
 
-  flatten() {
+  resolved() {
     return this.annotatedType || this.type;
   }
 }
@@ -216,10 +216,10 @@ function resolveTypes(expr, unresolved, errors, logger) {
     if (node.newType) {
       Object.keys(node.newType.symbolHandlers).forEach(symbol => {
         const t = node.newType.symbolHandlers[symbol];
-        if (t instanceof UnresolvedType) node.newType.symbolHandlers[symbol] = t.flatten();
+        if (t instanceof UnresolvedType) node.newType.symbolHandlers[symbol] = t.resolved();
       });
       node.newType.typeHandlers = node.newType.typeHandlers.map(({ guard, type }) => {
-        if (type instanceof UnresolvedType) return { guard, type: type.flatten() };
+        if (type instanceof UnresolvedType) return { guard, type: type.resolved() };
         return { guard, type };
       });
     }
@@ -310,7 +310,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
 
     case "PReference": {
       const t = scope.get(expr.name).type;
-      return (t instanceof UnresolvedType) ? t.flatten() : t;
+      return (t instanceof UnresolvedType) ? t.resolved() : t;
     }
 
     // FIXME: PArray
