@@ -31,16 +31,23 @@ class UnresolvedType extends TypeDescriptor {
     this.type = null;
     // what free variables (other unresolved types) does this one depend on?
     this.variables = [];
+    // was there an annotated type we can use to break recursion?
+    this.annotatedType = null;
   }
 
   _inspect(seen) {
     if (this.type) return `[resolved ${this.id}: ${this.type.inspect(seen, 9)}]`;
+    const atype = this.annotatedType ? `[annotated as: ${this.annotatedType.inspect(seen, 9)}] ` : "";
     const dependencies = this.variables.length == 0 ? "none" : this.variables.map(t => t.id).join(", ");
-    return `[unresolved ${this.id} -> ${dependencies}: ${dumpExpr(this.expr)}]`;
+    return `[unresolved ${this.id} -> ${dependencies}: ${atype}${dumpExpr(this.expr)}]`;
   }
 
   canAssignFrom(other) {
     return this.isType(other);
+  }
+
+  flatten() {
+    return this.annotatedType || this.type;
   }
 }
 
@@ -138,8 +145,13 @@ function buildScopes(expr, errors, scope, typeScope) {
         // mark return type as unresolved. we'll figure it out when we shake the bucket later.
         const rtype = new UnresolvedType(node.children[1], scope, typeScope);
         unresolved.push(rtype);
-        variables.push(rtype);
         variables = rtype.variables;
+        if (node.children[2] != null) {
+          // trust the type annotation for now. (we'll check later.)
+          rtype.annotatedType = compileType(node.children[2], errors, typeScope);
+        } else {
+          variables.push(rtype);
+        }
         if (node.children[0].nodeType == "PCompoundType") {
           const guardType = compileType(node.children[0], errors, typeScope);
           type.addTypeHandler(guardType, rtype);
@@ -174,6 +186,8 @@ function buildScopes(expr, errors, scope, typeScope) {
  * 4. assume the unresolved types and their dependencies (free variables)
  *    make a kind of DAG, and shake the bucket to keep resolving any that
  *    have no more free variables.
+ * 5. walk the tree again and replace unresolved type markers with their
+ *    solutions. mark any mismatched types (declared vs inferred) as errors.
  */
 function resolveTypes(expr, unresolved, errors, logger) {
   let stillUnresolved = tryProgress(unresolved);
@@ -186,6 +200,7 @@ function resolveTypes(expr, unresolved, errors, logger) {
     stillUnresolved.forEach(ut => {
       errors.add("Recursive definition needs explicit type declaration", ut.expr.span);
       ut.type = ut.typeScope.get("Anything");
+      ut.expr.computedType = ut.type;
     });
   }
 
@@ -201,10 +216,10 @@ function resolveTypes(expr, unresolved, errors, logger) {
     if (node.newType) {
       Object.keys(node.newType.symbolHandlers).forEach(symbol => {
         const t = node.newType.symbolHandlers[symbol];
-        if (t instanceof UnresolvedType) node.newType.symbolHandlers[symbol] = t.type;
+        if (t instanceof UnresolvedType) node.newType.symbolHandlers[symbol] = t.flatten();
       });
       node.newType.typeHandlers = node.newType.typeHandlers.map(({ guard, type }) => {
-        if (type instanceof UnresolvedType) return { guard, type: type.type };
+        if (type instanceof UnresolvedType) return { guard, type: type.flatten() };
         return { guard, type };
       });
     }
@@ -228,13 +243,28 @@ function resolveTypes(expr, unresolved, errors, logger) {
       if (ut.variables.length > 0) return true;
 
       // can resolve this one!
+      if (logger) logger(`attempting to resolve: ${ut.inspect()}`);
       ut.type = computeType(ut.expr, errors, ut.scope, ut.typeScope, logger);
+      ut.expr.computedType = ut.type;
       if (logger) logger(`resolved type: ${ut.inspect()}`);
       return false;
     });
   }
 }
 
+/*
+ * 5. walk the tree, matching inferred types with declared types.
+ */
+// function checkTypes(expr) {
+//   function walk(node) {
+//     switch (node.nodeType) {
+//       case "POn": {
+//
+//       }
+//     }
+//     node.children.forEach(walk);
+//   }
+// }
 
 /*
  * unresolved:
@@ -280,7 +310,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
 
     case "PReference": {
       const t = scope.get(expr.name).type;
-      return (t instanceof UnresolvedType) ? t.type : t;
+      return (t instanceof UnresolvedType) ? t.flatten() : t;
     }
 
     // FIXME: PArray
@@ -316,6 +346,10 @@ function _computeType(expr, errors, scope, typeScope, logger) {
         if (!targetType.anything) errors.add("No matching handler found", expr.span);
         rtype = typeScope.get("Anything");
       }
+      // if the return type was annotated, use that (for now).
+      if (rtype instanceof UnresolvedType) {
+        rtype = rtype.flatten();
+      }
       if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
       return rtype;
     }
@@ -350,6 +384,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
     // - PBreak
 
     case "PLocals": return typeScope.get("Nothing");
+
     case "POn": return typeScope.get("Nothing");
 
     case "PBlock": {
