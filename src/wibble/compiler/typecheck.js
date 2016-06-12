@@ -145,13 +145,13 @@ function buildScopes(expr, errors, scope, typeScope) {
         // mark return type as unresolved. we'll figure it out when we shake the bucket later.
         const rtype = new UnresolvedType(node.children[1], scope, typeScope);
         unresolved.push(rtype);
-        variables = rtype.variables;
         if (node.children[2] != null) {
           // trust the type annotation for now. (we'll check later.)
           rtype.annotatedType = compileType(node.children[2], errors, typeScope);
         } else {
           variables.push(rtype);
         }
+        variables = rtype.variables;
         if (node.children[0].nodeType == "PCompoundType") {
           const guardType = compileType(node.children[0], errors, typeScope);
           type.addTypeHandler(guardType, rtype);
@@ -348,7 +348,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
       }
       // if the return type was annotated, use that (for now).
       if (rtype instanceof UnresolvedType) {
-        rtype = rtype.flatten();
+        rtype = rtype.resolved();
       }
       if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
       return rtype;

@@ -212,7 +212,7 @@ describe("Typecheck expressions", () => {
   describe("tricksy", () => {
     it("handles single recursion", () => {
       (() => typecheck("{ let sum = (n: Int) -> sum(n - 1) }")).should.throw(/Recursive/);
-      typecheck("{ let sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1) }").type.inspect().should.eql(
+      typecheck("{ let sum = (n: Int): Int -> if n == 0 then 0 else n + sum(n - 1); sum }").type.inspect().should.eql(
         "(n: Int) -> Int"
       );
     });
