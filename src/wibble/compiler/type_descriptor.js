@@ -23,7 +23,7 @@ export class TypeDescriptor {
 
   inspect(seen = {}, precedence = 100) {
     if (this.name != null) return this.name;
-    if (seen[this.id]) return "(recursive)";
+    if (seen[this.id]) return "@";
     seen[this.id] = true;
     const rv = this._inspect(seen, precedence);
     seen[this.id] = false;
