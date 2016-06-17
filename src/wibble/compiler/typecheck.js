@@ -65,8 +65,9 @@ function buildScopes(expr, errors, scope, typeScope) {
   let type = null;
   let variables = [];
 
-  // keep breadcrumbs of the path we took to get to this node.
-  const path = [];
+  // collect unprocessed "on" expressions to run at the end of the block.
+  let handlers = [];
+
   // stack of the "current" scope, typeScope, any type being defined, and free variables in an unresolved expression.
   const stack = [];
 
@@ -74,11 +75,33 @@ function buildScopes(expr, errors, scope, typeScope) {
   const unresolved = [];
 
   navigate(expr);
+  handlers.forEach(state => {
+    save();
+    restoreTo(state);
+    navigate(state.node, { handlers: true });
+    restore();
+  });
   return unresolved;
 
-  function navigate(node) {
+  function save() {
+    stack.push({ scope, typeScope, type, variables, handlers });
+  }
+
+  function restore() {
+    // babel can't handle this kind of deconstruction.
+    restoreTo(stack.pop());
+  }
+
+  function restoreTo(state) {
+    scope = state.scope;
+    typeScope = state.typeScope;
+    type = state.type;
+    variables = state.variables;
+    handlers = state.handlers;
+  }
+
+  function navigate(node, options = {}) {
     // create scopes.
-    if (node.nodeType == "PBlock") node.scope = scope = new Scope(scope);
     if (node.nodeType == "POn" && node.children[0].constructor.name == "PCompoundType") {
       // open up a new scope for the parameters.
       node.scope = scope = new Scope(scope);
@@ -105,8 +128,8 @@ function buildScopes(expr, errors, scope, typeScope) {
         // attach a new (blank) type that we'll fill with handlers.
         node.newType = type = newType();
         if (node.children[0].nodeType == "PBlock") {
-          // new -> block: push a new scope & typeScope with "@" defined.
           node.scope = scope = new Scope(scope);
+          // new -> block: push a new typeScope with "@" defined.
           scope.add("@", new CReference("@", type, false));
           typeScope = new Scope(typeScope);
           typeScope.add("@", type);
@@ -142,42 +165,55 @@ function buildScopes(expr, errors, scope, typeScope) {
       }
 
       case "POn": {
-        // mark return type as unresolved. we'll figure it out when we shake the bucket later.
-        const rtype = new UnresolvedType(node.children[1], scope, typeScope);
-        unresolved.push(rtype);
-        if (node.children[2] != null) {
-          // trust the type annotation for now. (we'll check later.)
-          rtype.annotatedType = compileType(node.children[2], errors, typeScope);
+        if (!options.handlers) {
+          // punt!
+          handlers.push({ node, scope, typeScope, type, variables, handlers });
+          return;
         } else {
-          variables.push(rtype);
+          // mark return type as unresolved. we'll figure it out when we shake the bucket later.
+          const rtype = new UnresolvedType(node.children[1], scope, typeScope);
+          unresolved.push(rtype);
+          if (node.children[2] != null) {
+            // trust the type annotation for now. (we'll check later.)
+            rtype.annotatedType = compileType(node.children[2], errors, typeScope);
+            node.children[1].coerceType = rtype.annotatedType;
+          } else {
+            variables.push(rtype);
+          }
+          variables = rtype.variables;
+          if (node.children[0].nodeType == "PCompoundType") {
+            const guardType = compileType(node.children[0], errors, typeScope);
+            type.addTypeHandler(guardType, rtype);
+          } else {
+            type.addSymbolHandler(node.children[0].value, rtype);
+          }
         }
-        variables = rtype.variables;
-        if (node.children[0].nodeType == "PCompoundType") {
-          const guardType = compileType(node.children[0], errors, typeScope);
-          type.addTypeHandler(guardType, rtype);
-        } else {
-          type.addSymbolHandler(node.children[0].value, rtype);
-        }
+        break;
+      }
+
+      case "PBlock": {
+        node.scope = scope = new Scope(scope);
+        handlers = [];
         break;
       }
     }
 
     // now, traverse children.
     if (node.children.length > 0) {
-      path.push(node);
-      stack.push({ scope, typeScope, type, variables });
+      save();
+      node.children.forEach(n => navigate(n, options));
+      restore();
+    }
 
-      // do checks of "on" handlers last, since they're allowed to make forward references.
-      node.children.filter(n => n.nodeType != "POn").forEach(navigate);
-      node.children.filter(n => n.nodeType == "POn").forEach(navigate);
-
-      path.pop();
-      // babel can't handle this kind of deconstruction.
-      const context = stack.pop();
-      scope = context.scope;
-      typeScope = context.typeScope;
-      type = context.type;
-      variables = context.variables;
+    // now process any handlers we saw in the block, so they have access to all the locals.
+    if (node.nodeType == "PBlock") {
+      handlers.forEach(state => {
+        save();
+        restoreTo(state);
+        navigate(state.node, { handlers: true });
+        restore();
+      });
+      handlers = [];
     }
   }
 }
@@ -224,6 +260,13 @@ function resolveTypes(expr, unresolved, errors, logger) {
       });
     }
 
+    if (node.coerceType && node.computedType && !node.coerceType.canAssignFrom(node.computedType)) {
+      errors.add(
+        `Expected type ${node.coerceType.inspect()}; inferred type ${node.computedType.inspect()}`,
+        node.span
+      );
+    }
+
     node.children.forEach(fixup);
   }
 
@@ -252,25 +295,10 @@ function resolveTypes(expr, unresolved, errors, logger) {
   }
 }
 
-/*
- * 5. walk the tree, matching inferred types with declared types.
- */
-// function checkTypes(expr) {
-//   function walk(node) {
-//     switch (node.nodeType) {
-//       case "POn": {
-//
-//       }
-//     }
-//     node.children.forEach(walk);
-//   }
-// }
 
 /*
  * unresolved:
  *   - alias type "@" to the nearest outer "new"
- *   - when a type is explicitly given, verify that it matches our inferred type.
- *   - recursion? (nail-biter)
  *   - verify that PCompoundType default params match their declared type
  */
 
@@ -286,14 +314,16 @@ function resolveTypes(expr, unresolved, errors, logger) {
  * - scope: name -> CReference
  * - typeScope: name -> TypeDescriptor
  */
-export function computeType(expr, errors, scope, typeScope, logger) {
+export function computeType(expr, errors, scope, typeScope, logger, escapePod = []) {
   if (logger) logger(`computeType ->: ${dumpExpr(expr)}`);
-  const rv = _computeType(expr, errors, scope, typeScope, logger);
+  const rv = _computeType(expr, errors, scope, typeScope, logger, escapePod);
   if (logger) logger(`computeType <-: ${dumpExpr(expr)} == ${rv.inspect()}`);
   return rv;
 }
 
-function _computeType(expr, errors, scope, typeScope, logger) {
+function _computeType(expr, errors, scope, typeScope, logger, escapePod) {
+  const nested = node => computeType(node, errors, scope, typeScope, logger, escapePod);
+
   switch (expr.nodeType) {
     case "PConstant": {
       switch (expr.type) {
@@ -317,7 +347,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
 
     case "PStruct": {
       const fields = expr.children.map(field => {
-        return new CTypedField(field.name, computeType(field.children[0], errors, scope, typeScope, logger));
+        return new CTypedField(field.name, nested(field.children[0]));
       });
       return new CompoundType(fields);
     }
@@ -325,7 +355,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
     case "PNew": return expr.newType;
 
     case "PCall": {
-      const [ targetType, argType ] = expr.children.map(node => computeType(node, errors, scope, typeScope, logger));
+      const [ targetType, argType ] = expr.children.map(node => nested(node));
       const message = expr.children[1];
       const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
       if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
@@ -356,7 +386,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
 
     case "PLogic": {
       expr.children.forEach(node => {
-        if (!computeType(node, errors, scope, typeScope, logger).isType(typeScope.get("Boolean"))) {
+        if (!nested(node).isType(typeScope.get("Boolean"))) {
           errors.add("Logical operations require a boolean", node.span);
         }
       });
@@ -364,7 +394,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
     }
 
     case "PAssignment": {
-      const types = expr.children.map(n => computeType(n, errors, scope, typeScope, logger));
+      const types = expr.children.map(nested);
       if (!types[0].canAssignFrom(types[1])) {
         errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, expr.span);
       }
@@ -372,14 +402,20 @@ function _computeType(expr, errors, scope, typeScope, logger) {
     }
 
     case "PIf": {
-      const condType = computeType(expr.children[0], errors, scope, typeScope, logger);
+      const condType = nested(expr.children[0]);
       if (!condType.isType(typeScope.get("Boolean"))) {
         errors.add("Conditional expression must be true or false", expr.children[0].span);
       }
-      return mergeTypes(expr.children.slice(1).map(n => computeType(n, errors, scope, typeScope, logger)), logger);
+      return mergeTypes(expr.children.slice(1).map(nested));
     }
 
     // - PRepeat
+
+    case "PReturn": {
+      escapePod.push(nested(expr.children[0]));
+      return typeScope.get("Nothing");
+    }
+
     // - PReturn
     // - PBreak
 
@@ -391,7 +427,7 @@ function _computeType(expr, errors, scope, typeScope, logger) {
       let rtype = typeScope.get("Nothing");
       expr.children.forEach(n => {
         // hit every node so we collect errors.
-        rtype = computeType(n, errors, expr.scope, typeScope, logger);
+        rtype = nested(n);
       });
       return rtype;
     }
