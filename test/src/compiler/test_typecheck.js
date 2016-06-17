@@ -129,6 +129,13 @@ describe("Typecheck expressions", () => {
   });
 
   // - PRepeat
+
+  it("return", () => {
+    typecheck("{ let screwy = (n: Int) -> { return 3; return true; }; screwy }").type.inspect().should.eql(
+      "Int | Boolean"
+    );
+  });
+
   // - PReturn
   // - PBreak
 
@@ -218,15 +225,18 @@ describe("Typecheck expressions", () => {
     });
 
     it("checks single recursion", () => {
-      typecheck("{ sum = (n: Int) -> n * 2 }").type.inspect().should.eql("(n: Int) -> Int");
-      (() => typecheck("{ sum = (n: Int): Int -> .wut }")).should.throw("Expected type Int; inferred type Symbol");
+      typecheck("{ let sum = (n: Int) -> n * 2; sum }").type.inspect().should.eql("(n: Int) -> Int");
+      (() => typecheck("{ let sum = (n: Int): Int -> .wut }")).should.throw(/Expected type Int; inferred type Symbol/);
     });
 
     it("handles double recursion", () => {
-      const even = "if n == 0 then 0 else odd(n - 1)";
-      const odd = "if n == 1 then 1 else even(n - 1)";
-      (() => typecheck(`{ let even = (n: Int) -> ${even}; let odd = (n: Int) -> ${odd} }`)).should.throw(/Recursive/);
-      typecheck(`{ let even = (n: Int): Int -> ${even}; let odd = (n: Int): Int -> ${odd} }`).type.inspect().should.eql(
+      const even = "(n: Int) -> if n == 0 then 0 else odd(n - 1)";
+      const odd = "(n: Int) -> if n == 1 then 1 else even(n - 1)";
+      (() => typecheck(`{ let even = ${even}; let odd = ${odd}; odd }`)).should.throw(/Recursive/);
+
+      const even2 = "(n: Int): Int -> if n == 0 then 0 else odd(n - 1)";
+      const odd2 = "(n: Int): Int -> if n == 1 then 1 else even(n - 1)";
+      typecheck(`{ let even = ${even2}; let odd = ${odd2}; odd }`).type.inspect().should.eql(
         "(n: Int) -> Int"
       );
     });
