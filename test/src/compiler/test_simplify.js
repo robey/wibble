@@ -83,6 +83,17 @@ describe("Simplify expressions", () => {
     );
   });
 
+  it("return", () => {
+    simplify("() -> return 3").should.eql(
+      "new on () -> return 3"
+    );
+    should.throws(() => simplify("x := { return 3 }"), error => {
+      console.log(error);
+      error.errors.inspect().should.match(/\[7:13\] 'return'/);
+      return true;
+    });
+  });
+
   it("break", () => {
     simplify("repeat { break 10 }").should.eql("repeat break 10");
     should.throws(() => simplify("if true then { 10; break 11 }"), error => {

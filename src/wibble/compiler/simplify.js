@@ -128,6 +128,10 @@ export function simplify(ast, errors) {
         return null;
       }
 
+      case "PReturn": {
+        return null;
+      }
+
       case "PBreak": {
         // "break" must be inside a loop.
         if (path.filter(n => n.constructor.name == "PRepeat").length == 0) {
