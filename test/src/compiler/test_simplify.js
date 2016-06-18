@@ -88,7 +88,6 @@ describe("Simplify expressions", () => {
       "new on () -> return 3"
     );
     should.throws(() => simplify("x := { return 3 }"), error => {
-      console.log(error);
       error.errors.inspect().should.match(/\[7:13\] 'return'/);
       return true;
     });

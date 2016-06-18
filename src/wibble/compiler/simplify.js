@@ -105,12 +105,12 @@ export function simplify(ast, errors) {
 
       case "PNew": {
         // "new" must contain either an "on", or a block that contains at least one "on".
-        const inner = node.children[0].constructor.name;
+        const inner = node.children[0].nodeType;
         if (inner != "PBlock" && inner != "POn") {
           errors.add("'new' expression must contain at least one 'on' handler", node.span);
         }
         if (inner == "PBlock") {
-          const handlers = node.children[0].children.filter(n => n.constructor.name == "POn");
+          const handlers = node.children[0].children.filter(n => n.nodeType == "POn");
           if (handlers.length == 0) {
             errors.add("'new' expression must contain at least one 'on' handler", node.span);
           }
@@ -122,19 +122,23 @@ export function simplify(ast, errors) {
         // convert one-expression block into that expression.
         if (
           node.children.length == 1 &&
-          node.children[0].constructor.name != "PLocals" &&
-          node.children[0].constructor.name != "POn"
+          node.children[0].nodeType != "PLocals" &&
+          node.children[0].nodeType != "POn"
         ) return node.children[0];
         return null;
       }
 
       case "PReturn": {
+        // "return" must be inside an "on" handler.
+        if (path.filter(n => n.nodeType == "POn").length == 0) {
+          errors.add("'return' must be inside a function or handler", node.span);
+        }
         return null;
       }
 
       case "PBreak": {
         // "break" must be inside a loop.
-        if (path.filter(n => n.constructor.name == "PRepeat").length == 0) {
+        if (path.filter(n => n.nodeType == "PRepeat").length == 0) {
           errors.add("'break' must be inside a loop", node.span);
         }
         return null;
