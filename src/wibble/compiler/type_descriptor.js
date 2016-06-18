@@ -191,8 +191,9 @@ export class MergedType extends TypeDescriptor {
     this.types = types;
   }
 
-  _inspect(seen) {
-    return this.types.map(t => t.inspect(seen, this.precedence)).join(" | ");
+  _inspect(seen, precedence) {
+    const rv = this.types.map(t => t.inspect(seen, this.precedence)).join(" | ");
+    return this.precedence > precedence ? "(" + rv + ")" : rv;
   }
 }
 
