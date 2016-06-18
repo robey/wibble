@@ -132,7 +132,7 @@ describe("Typecheck expressions", () => {
 
   it("return", () => {
     typecheck("{ let screwy = (n: Int) -> { return 3; return true; }; screwy }").type.inspect().should.eql(
-      "Int | Boolean"
+      "(n: Int) -> (Int | Boolean)"
     );
   });
 

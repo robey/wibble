@@ -74,11 +74,11 @@ function buildScopes(expr, errors, scope, typeScope) {
   // list of UnresolvedType objects we created.
   const unresolved = [];
 
-  navigate(expr);
+  visit(expr);
   handlers.forEach(state => {
     save();
     restoreTo(state);
-    navigate(state.node, { handlers: true });
+    visit(state.node, { handlers: true });
     restore();
   });
   return unresolved;
@@ -100,7 +100,7 @@ function buildScopes(expr, errors, scope, typeScope) {
     handlers = state.handlers;
   }
 
-  function navigate(node, options = {}) {
+  function visit(node, options = {}) {
     // create scopes.
     if (node.nodeType == "POn" && node.children[0].constructor.name == "PCompoundType") {
       // open up a new scope for the parameters.
@@ -201,7 +201,7 @@ function buildScopes(expr, errors, scope, typeScope) {
     // now, traverse children.
     if (node.children.length > 0) {
       save();
-      node.children.forEach(n => navigate(n, options));
+      node.children.forEach(n => visit(n, options));
       restore();
     }
 
@@ -210,7 +210,7 @@ function buildScopes(expr, errors, scope, typeScope) {
       handlers.forEach(state => {
         save();
         restoreTo(state);
-        navigate(state.node, { handlers: true });
+        visit(state.node, { handlers: true });
         restore();
       });
       handlers = [];
@@ -314,126 +314,133 @@ function resolveTypes(expr, unresolved, errors, logger) {
  * - scope: name -> CReference
  * - typeScope: name -> TypeDescriptor
  */
-export function computeType(expr, errors, scope, typeScope, logger, escapePod = []) {
-  if (logger) logger(`computeType ->: ${dumpExpr(expr)}`);
-  const rv = _computeType(expr, errors, scope, typeScope, logger, escapePod);
-  if (logger) logger(`computeType <-: ${dumpExpr(expr)} == ${rv.inspect()}`);
-  return rv;
-}
+export function computeType(expr, errors, scope, typeScope, logger) {
+  const Nothing = typeScope.get("Nothing");
+  const Anything = typeScope.get("Anything");
+  const Boolean = typeScope.get("Boolean");
 
-function _computeType(expr, errors, scope, typeScope, logger, escapePod) {
-  const nested = node => computeType(node, errors, scope, typeScope, logger, escapePod);
+  const escapePod = [];
+  const rtype = visit(expr, scope);
+  return (escapePod.length > 0) ? mergeTypes(escapePod.concat(rtype)) : rtype;
 
-  switch (expr.nodeType) {
-    case "PConstant": {
-      switch (expr.type) {
-        case PConstantType.NOTHING: return typeScope.get("Nothing");
-        case PConstantType.BOOLEAN: return typeScope.get("Boolean");
-        case PConstantType.SYMBOL: return typeScope.get("Symbol");
-        case PConstantType.NUMBER_BASE10: return typeScope.get("Int");
-        case PConstantType.NUMBER_BASE16: return typeScope.get("Int");
-        case PConstantType.NUMBER_BASE2: return typeScope.get("Int");
-        case PConstantType.STRING: return typeScope.get("String");
-        default: throw new Error("Internal error: No such constant type " + expr.type);
-      }
-    }
+  function visit(node, scope) {
+    if (logger) logger(`computeType ->: ${dumpExpr(node)}`);
+    const rv = _visit(node, scope);
+    if (logger) logger(`computeType <-: ${dumpExpr(node)} == ${rv.inspect()}`);
+    return rv;
+  }
 
-    case "PReference": {
-      const t = scope.get(expr.name).type;
-      return (t instanceof UnresolvedType) ? t.resolved() : t;
-    }
-
-    // FIXME: PArray
-
-    case "PStruct": {
-      const fields = expr.children.map(field => {
-        return new CTypedField(field.name, nested(field.children[0]));
-      });
-      return new CompoundType(fields);
-    }
-
-    case "PNew": return expr.newType;
-
-    case "PCall": {
-      const [ targetType, argType ] = expr.children.map(node => nested(node));
-      const message = expr.children[1];
-      const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
-      if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
-
-      let rtype = null;
-      // let symbol resolution try first.
-      if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
-      if (rtype == null) {
-        const { coerceType, type } = targetType.handlerTypeForMessage(argType);
-        if (coerceType != null) {
-          expr.coerceType = coerceType;
-          if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
+  function _visit(node, scope) {
+    switch (node.nodeType) {
+      case "PConstant": {
+        switch (node.type) {
+          case PConstantType.NOTHING: return typeScope.get("Nothing");
+          case PConstantType.BOOLEAN: return typeScope.get("Boolean");
+          case PConstantType.SYMBOL: return typeScope.get("Symbol");
+          case PConstantType.NUMBER_BASE10: return typeScope.get("Int");
+          case PConstantType.NUMBER_BASE16: return typeScope.get("Int");
+          case PConstantType.NUMBER_BASE2: return typeScope.get("Int");
+          case PConstantType.STRING: return typeScope.get("String");
+          default: throw new Error("Internal error: No such constant type " + node.type);
         }
-        rtype = type;
       }
-      if (rtype == null) {
-        // special-case "Anything", which bails out of type-checking.
-        if (!targetType.anything) errors.add("No matching handler found", expr.span);
-        rtype = typeScope.get("Anything");
-      }
-      // if the return type was annotated, use that (for now).
-      if (rtype instanceof UnresolvedType) {
-        rtype = rtype.resolved();
-      }
-      if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
-      return rtype;
-    }
 
-    case "PLogic": {
-      expr.children.forEach(node => {
-        if (!nested(node).isType(typeScope.get("Boolean"))) {
-          errors.add("Logical operations require a boolean", node.span);
+      case "PReference": {
+        const t = scope.get(node.name).type;
+        return (t instanceof UnresolvedType) ? t.resolved() : t;
+      }
+
+      // FIXME: PArray
+
+      case "PStruct": {
+        const fields = node.children.map(field => {
+          return new CTypedField(field.name, visit(field.children[0], scope));
+        });
+        return new CompoundType(fields);
+      }
+
+      case "PNew": return node.newType;
+
+      case "PCall": {
+        const [ targetType, argType ] = node.children.map(n => visit(n, scope));
+        const message = node.children[1];
+        const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
+        if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
+
+        let rtype = null;
+        // let symbol resolution try first.
+        if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
+        if (rtype == null) {
+          const { coerceType, type } = targetType.handlerTypeForMessage(argType);
+          if (coerceType != null) {
+            expr.coerceType = coerceType;
+            if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
+          }
+          rtype = type;
         }
-      });
-      return typeScope.get("Boolean");
-    }
-
-    case "PAssignment": {
-      const types = expr.children.map(nested);
-      if (!types[0].canAssignFrom(types[1])) {
-        errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, expr.span);
+        if (rtype == null) {
+          // special-case "Anything", which bails out of type-checking.
+          if (!targetType.anything) errors.add("No matching handler found", node.span);
+          rtype = Anything;
+        }
+        // if the return type was annotated, use that (for now).
+        if (rtype instanceof UnresolvedType) {
+          rtype = rtype.resolved();
+        }
+        if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
+        return rtype;
       }
-      return types[0];
-    }
 
-    case "PIf": {
-      const condType = nested(expr.children[0]);
-      if (!condType.isType(typeScope.get("Boolean"))) {
-        errors.add("Conditional expression must be true or false", expr.children[0].span);
+      case "PLogic": {
+        node.children.forEach(n => {
+          if (!visit(n, scope).isType(Boolean)) {
+            errors.add("Logical operations require a boolean", n.span);
+          }
+        });
+        return Boolean;
       }
-      return mergeTypes(expr.children.slice(1).map(nested));
+
+      case "PAssignment": {
+        const types = node.children.map(n => visit(n, scope));
+        if (!types[0].canAssignFrom(types[1])) {
+          errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, node.span);
+        }
+        return types[0];
+      }
+
+      case "PIf": {
+        const condType = visit(node.children[0], scope);
+        if (!condType.isType(Boolean)) {
+          errors.add("Conditional expression must be true or false", node.children[0].span);
+        }
+        return mergeTypes(node.children.slice(1).map(n => visit(n, scope)));
+      }
+
+      // - PRepeat
+
+      case "PReturn": {
+        escapePod.push(visit(node.children[0], scope));
+        return Nothing;
+      }
+
+      // - PBreak
+
+      case "PLocals": return Nothing;
+
+      case "POn": return Nothing;
+
+      case "PBlock": {
+        let rtype = Nothing;
+        node.children.forEach(n => {
+          // hit every node so we collect errors.
+          rtype = visit(n, node.scope);
+        });
+        return rtype;
+      }
+
+      default:
+        throw new Error("Unimplemented expression type: " + node.nodeType);
     }
-
-    // - PRepeat
-
-    case "PReturn": {
-      escapePod.push(nested(expr.children[0]));
-      return typeScope.get("Nothing");
-    }
-
-    // - PReturn
-    // - PBreak
-
-    case "PLocals": return typeScope.get("Nothing");
-
-    case "POn": return typeScope.get("Nothing");
-
-    case "PBlock": {
-      let rtype = typeScope.get("Nothing");
-      expr.children.forEach(n => {
-        // hit every node so we collect errors.
-        rtype = nested(n);
-      });
-      return rtype;
-    }
-
-    default:
-      throw new Error("Unimplemented expression type: " + expr.nodeType);
   }
 }
 
