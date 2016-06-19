@@ -23,7 +23,7 @@
 
 ## expressions
 
-    expression := condition | loop | return | break | assignment | function | logical
+    expression := condition | loop | return | break | function | logical
 
     condition := "if" expression "then" expression ("else" expression)?
 
@@ -36,8 +36,6 @@
     return := "return" expression
 
     break := "break" expression?
-
-    assignment := SYMBOL_NAME ":=" expression
 
     logical := logicalAnd ("or" logicalAnd)*
 
@@ -93,10 +91,12 @@
 
 ## code
 
-    code := localLet | localMake | assignment | return | break | handler | expression
+    code := localLet | localMake | assignment | handler | expression
 
     localLet := "let" SYMBOL_NAME "=" expression ("," SYMBOL_NAME "=" expression)*
 
     localMake := "make" SYMBOL_NAME ":=" expression ("," SYMBOL_NAME "=" expression)*
+
+    assignment := SYMBOL_NAME ":=" expression
 
     handler := "on" (symbol | parameterList) "->" expression
