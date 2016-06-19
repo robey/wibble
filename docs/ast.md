@@ -11,7 +11,8 @@
   - trailingComment
 
 - a few nodes have a "scope" field, meaning they open a new lexical scope. scope is (name -> CReference).
-- a few nodes will grow a "computedType" field to hold the descriptor of the object being created.
+- "on" nodes will grow a "computedType" field to hold the descriptor of the object being created.
+- "on" nodes will grow an "coerceType" if they had a type annotation.
 
 X = eliminated by transformations
 
@@ -44,7 +45,7 @@ X = eliminated by transformations
 
   - PLocal(name, mutable)
   - PLocals(mutable)
-  - POn  [scope, computedType]
+  - POn  [scope, coerceType, computedType]
   - PBlock  [scope]
 
 ## types
