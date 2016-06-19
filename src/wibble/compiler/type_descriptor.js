@@ -202,7 +202,7 @@ export function mergeTypes(types, logger) {
   // flatten list of types.
   const list = [].concat.apply([], types.map(type => {
     return (type.constructor.name == "MergedType") ? type.types : [ type ];
-  }));
+  })).filter(t => !t.isType(TNoType));
 
   // perform N**2 unification: reduce to the minimum set of types.
   for (let i = 0; i < list.length; i++) {
@@ -233,3 +233,6 @@ export function mergeTypes(types, logger) {
 export function newType(name) {
   return new TypeDescriptor(name);
 }
+
+// special type for tracking 'return' in blocks:
+export const TNoType = newType("(none)");

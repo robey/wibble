@@ -4,7 +4,7 @@ import { PConstantType } from "../common/ast";
 import { dumpExpr } from "../dump";
 import { compileType } from "./c_type";
 import { Scope } from "./scope";
-import { CompoundType, CTypedField, mergeTypes, newType, TypeDescriptor } from "./type_descriptor";
+import { CompoundType, CTypedField, mergeTypes, newType, TNoType, TypeDescriptor } from "./type_descriptor";
 
 const APPLY_SYMBOL = "\u2053";
 
@@ -431,11 +431,18 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 
       case "PBlock": {
         let rtype = Nothing;
+        // a bare return means anything after it is dead code, and there's no fallback return type.
+        let bareReturn = false, deadCode = false;
         node.children.forEach(n => {
+          if (bareReturn && !deadCode) {
+            errors.add("unreachable code after 'return'", n.span);
+            deadCode = true;
+          }
+          if (n.nodeType == "PReturn") bareReturn = true;
           // hit every node so we collect errors.
           rtype = visit(n, node.scope);
         });
-        return rtype;
+        return bareReturn ? TNoType : rtype;
       }
 
       default:
