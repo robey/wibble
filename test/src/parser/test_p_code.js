@@ -15,6 +15,24 @@ describe("Parse code", () => {
       parseCode("x + y").should.eql("binary(+)(x[0:1], y[4:5])[0:5]");
     });
 
+    it("assignment", () => {
+      parseCode("count := 9").should.eql("assign(count[0:5], const(NUMBER_BASE10, 9)[9:10])[6:8]");
+      parseCode("count := count + 1").should.eql(
+        "assign(count[0:5], binary(+)(count[9:14], const(NUMBER_BASE10, 1)[17:18])[9:18])[6:8]"
+      );
+    });
+
+    it("return", () => {
+      parseCode("return 3").should.eql(
+        "return(const(NUMBER_BASE10, 3)[7:8])[0:6]"
+      );
+    });
+
+    it("break", () => {
+      parseCode("break").should.eql("break[0:5]");
+      parseCode("break 0xff").should.eql("break(const(NUMBER_BASE16, ff)[6:10])[0:5]");
+    });
+
     it("let", () => {
       parseCode("let x = 100").should.eql("let(local(x)(const(NUMBER_BASE10, 100)[8:11])[4:5])[0:3]");
       (() => parseCode("let return = 1")).should.throw(/Reserved/);

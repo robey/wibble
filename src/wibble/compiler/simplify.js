@@ -50,6 +50,11 @@ export function simplify(ast, errors) {
         return new PCall(new PCall(node.children[0], symbol, node.span), node.children[1], node.span);
       }
 
+      case "PAssignment": {
+        if (parentType() != "PBlock") errors.add("mutable assignments may only occur inside a code block", node.span);
+        return null;
+      }
+
       case "PIf": {
         // ensure every "if" has an "else".
         if (node.children.length < 3) node.children.push(new PConstant(PConstantType.NOTHING, node.spar));
@@ -118,26 +123,31 @@ export function simplify(ast, errors) {
         return null;
       }
 
+      // we allow statements everywhere in the parser, to make errors nicer. but here we check and redcard.
+      case "PLocals": {
+        if (parentType() != "PBlock") errors.add("locals may only be defined inside a code block", node.span);
+        return null;
+      }
+
       case "PBlock": {
         // convert one-expression block into that expression.
         if (
           node.children.length == 1 &&
-          node.children[0].nodeType != "PLocals" &&
-          node.children[0].nodeType != "POn"
+          [ "PLocals", "PAssignment", "POn" ].indexOf(node.children[0].nodeType) < 0
         ) return node.children[0];
         return null;
       }
 
+      // "return" must be inside an "on" handler, and a block.
       case "PReturn": {
-        // "return" must be inside an "on" handler.
         if (path.filter(n => n.nodeType == "POn").length == 0) {
           errors.add("'return' must be inside a function or handler", node.span);
         }
         return null;
       }
 
+      // "break" must be inside a loop.
       case "PBreak": {
-        // "break" must be inside a loop.
         if (path.filter(n => n.nodeType == "PRepeat").length == 0) {
           errors.add("'break' must be inside a loop", node.span);
         }

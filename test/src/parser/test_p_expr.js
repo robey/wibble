@@ -282,13 +282,6 @@ describe("Parse expressions", () => {
     });
   });
 
-  it("assignment", () => {
-    parse("count := 9").should.eql("assign(count[0:5], const(NUMBER_BASE10, 9)[9:10])[6:8]");
-    parse("count := count + 1").should.eql(
-      "assign(count[0:5], binary(+)(count[9:14], const(NUMBER_BASE10, 1)[17:18])[9:18])[6:8]"
-    );
-  });
-
   describe("if", () => {
     it("if _ then _", () => {
       parse("if x < 0 then x").should.eql("if(" +
@@ -340,16 +333,5 @@ describe("Parse expressions", () => {
 
   it("while", () => {
     parse("while true do false").should.eql("while(const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19])[0:5]");
-  });
-
-  it("return", () => {
-    parse("return 3").should.eql(
-      "return(const(NUMBER_BASE10, 3)[7:8])[0:6]"
-    );
-  });
-
-  it("break", () => {
-    parse("break").should.eql("break[0:5]");
-    parse("break 0xff").should.eql("break(const(NUMBER_BASE16, ff)[6:10])[0:5]");
   });
 });

@@ -1,7 +1,7 @@
 "use strict";
 
 import $ from "packrattle";
-import { PBlock, PLocal, PLocals, POn } from "../common/ast";
+import { PAssignment, PBlock, PBreak, PLocal, PLocals, POn, PReturn } from "../common/ast";
 import { commentspace, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
@@ -10,6 +10,24 @@ import { compoundType, typedecl } from "./p_type";
 /*
  * parse expressions which can only be in a code block.
  */
+
+const assignment = $([
+  reference,
+  $.drop(linespace),
+  toSpan(":="),
+  $.drop(linespace),
+  () => code
+]).named("assignment").map(match => {
+  return new PAssignment(match[0], match[2], match[1]);
+});
+
+const returnEarly = $([ toSpan("return"), $.drop(linespace), () => code ]).named("return").map(match => {
+  return new PReturn(match[1], match[0]);
+});
+
+const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => code) ]).named("break").map(match => {
+  return new PBreak(match[1], match[0]);
+});
 
 function localDeclaration(operator, mutable) {
   return $([
@@ -57,9 +75,12 @@ const handler = $([
 export const code = $.alt(
   localLet,
   localMake,
+  assignment,
+  returnEarly,
+  breakEarly,
   handler,
   () => expression
-).named("declaration or expression");
+).named("expression");
 
 const lf = $(/[\n;]+/).named("linefeed or ;");
 export const codeBlock = repeatSurrounded(

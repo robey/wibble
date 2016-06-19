@@ -140,7 +140,7 @@ describe("Typecheck expressions", () => {
   // - PBreak
 
   it("locals", () => {
-    typecheck("let x = 3", { parser: parser.code }).type.inspect().should.eql("Nothing");
+    typecheck("{ let x = 3 }").type.inspect().should.eql("Nothing");
   });
 
   describe("block", () => {

@@ -82,7 +82,7 @@ describe("Dump expressions", () => {
   });
 
   it("assignment", () => {
-    dump.dumpExpr(parse("x := 3 .sqrt")).should.eql("x := 3 .sqrt");
+    dump.dumpExpr(parseCode("x := 3 .sqrt")).should.eql("x := 3 .sqrt");
   });
 
   it("if", () => {
@@ -100,12 +100,12 @@ describe("Dump expressions", () => {
   });
 
   it("return", () => {
-    dump.dumpExpr(parse("return 100")).should.eql("return 100");
+    dump.dumpExpr(parseCode("return 100")).should.eql("return 100");
   });
 
   it("break", () => {
-    dump.dumpExpr(parse("break")).should.eql("break");
-    dump.dumpExpr(parse("break 100")).should.eql("break 100");
+    dump.dumpExpr(parseCode("break")).should.eql("break");
+    dump.dumpExpr(parseCode("break 100")).should.eql("break 100");
   });
 
   it("locals", () => {

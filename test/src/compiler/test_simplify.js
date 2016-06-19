@@ -5,7 +5,7 @@ import { compiler, dump, Errors, parser } from "../../../lib/wibble";
 import should from "should";
 import "source-map-support/register";
 
-const parse = (s, options) => parser.expression.run(s, options);
+const parse = (s, options) => parser.code.run(s, options);
 const simplify = (s, options) => {
   const errors = new Errors();
   const rv = dump.dumpExpr(compiler.simplify(parse(s, options), errors));
@@ -31,6 +31,15 @@ describe("Simplify expressions", () => {
     simplify("a + b * c + d").should.eql("a .+ (b .* c) .+ d");
     simplify("a + b * (c + d)").should.eql("a .+ (b .* (c .+ d))");
     simplify("x or y").should.eql("x or y");
+  });
+
+  it("assignment", () => {
+    simplify("{ x := 3 }").should.eql("{ x := 3 }");
+    should.throws(() => simplify("{ y + (x := 3) }"), error => {
+      error.dump.should.eql("y .+ (x := 3)");
+      error.errors.inspect().should.match(/\[9:11\] mutable assignments/);
+      return true;
+    });
   });
 
   it("if", () => {
@@ -79,7 +88,7 @@ describe("Simplify expressions", () => {
       "if true then repeat { let _0 = 13; if true .not then break _0 else () } else ()"
     );
     simplify("while x > 5 do { x := x - 1 }").should.eql(
-      "if x .> 5 then repeat { let _0 = x := x .- 1; if x .> 5 .not then break _0 else () } else ()"
+      "if x .> 5 then repeat { let _0 = { x := x .- 1 }; if x .> 5 .not then break _0 else () } else ()"
     );
   });
 

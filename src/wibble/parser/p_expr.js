@@ -2,10 +2,10 @@
 
 import $ from "packrattle";
 import {
-  PArray, PAssignment, PBinary, PBreak, PCall, PFunction, PIf, PNew, PReference, PRepeat, PReturn, PStruct,
+  PArray, PBinary, PCall, PFunction, PIf, PNew, PReference, PRepeat, PStruct,
   PStructField, PUnary, PWhile
 } from "../common/ast";
-import { codeBlock } from "./p_code";
+import { code, codeBlock } from "./p_code";
 import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan } from "./p_common";
 import { constant } from "./p_const";
 import { compoundType, typedecl } from "./p_type";
@@ -21,7 +21,7 @@ export const reference = $(SYMBOL_NAME).filter(match => !isReserved(match[0]), R
 
 const xarray = repeatSurrounded(
   $.commit("["),
-  () => expression,
+  () => code,
   /[\n,]+/,
   $.commit("]"),
   commentspace,
@@ -38,14 +38,14 @@ export const func = $([
   ], []),
   toSpan("->"),
   $.drop(linespace),
-  () => expression
+  () => code
 ]).named("function").map(match => {
   return new PFunction(match[0][0], match[0][1] ? match[0][1][0] : null, match[2], match[1]);
 });
 
 const structMember = $([
   $.optional([ SYMBOL_NAME, linespace, "=", linespace ], []),
-  () => expression
+  () => code
 ]).map(([ prefix, value ], span) => {
   return new PStructField(prefix.length > 0 ? prefix[0][0] : null, value, span);
 });
@@ -116,16 +116,16 @@ const logical = binary(logicalAnd, "or");
 const condition = $([
   toSpan("if"),
   $.drop(linespace),
-  () => expression,
+  () => code,
   $.drop(linespace),
   toSpan("then"),
   $.drop(linespace),
-  () => expression,
+  () => code,
   $.optional([
     $.drop(linespace),
     toSpan("else"),
     $.drop(linespace),
-    () => expression
+    () => code
   ], []).named("else clause")
 ]).named("condition").map(match => {
   return new PIf(match[1], match[3], (match[4].length > 0) ? match[4][1] : null, match[0]);
@@ -134,37 +134,19 @@ const condition = $([
 const repeatLoop = $([
   toSpan("repeat"),
   $.drop(linespace),
-  () => expression
+  () => code
 ]).named("repeat").map(match => new PRepeat(match[1], match[0]));
 
 const whileLoop = $([
   toSpan("while"),
   $.drop(linespace),
-  () => expression,
+  () => code,
   $.drop(linespace),
   $.commit("do").drop(),
   $.drop(linespace),
-  () => expression
+  () => code
 ]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
 
-const assignment = $([
-  reference,
-  $.drop(linespace),
-  toSpan(":="),
-  $.drop(linespace),
-  () => expression
-]).named("assignment").map(match => {
-  return new PAssignment(match[0], match[2], match[1]);
-});
+const baseExpression = $.alt(condition, repeatLoop, whileLoop, func, logical);
 
-const returnEarly = $([ toSpan("return"), $.drop(linespace), () => expression ]).named("return").map(match => {
-  return new PReturn(match[1], match[0]);
-});
-
-const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => expression) ]).named("break").map(match => {
-  return new PBreak(match[1], match[0]);
-});
-
-const baseExpression = $.alt(condition, repeatLoop, whileLoop, assignment, returnEarly, breakEarly, func, logical);
-
-export const expression = baseExpression.named("expression");
+export const expression = baseExpression;
