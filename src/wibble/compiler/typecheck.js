@@ -196,6 +196,18 @@ function buildScopes(expr, errors, scope, typeScope) {
         handlers = [];
         break;
       }
+
+      case "PTypedField": {
+        if (node.defaultValue != null) {
+          const rtype = new UnresolvedType(node.defaultValue, scope, typeScope);
+          unresolved.push(rtype);
+          // trust the type annotation for now. (we'll check later.)
+          rtype.annotatedType = compileType(node.type, errors, typeScope);
+          node.defaultValue.coerceType = rtype.annotatedType;
+          variables = rtype.variables;
+        }
+        break;
+      }
     }
 
     // now, traverse children.
@@ -295,15 +307,6 @@ function resolveTypes(expr, unresolved, errors, logger) {
   }
 }
 
-
-/*
- * unresolved:
- *   - alias type "@" to the nearest outer "new"
- *   - verify that PCompoundType default params match their declared type
- */
-
-
-
 /*
  * compute the type of an expression by recursively computing the types of
  * its children and combining them.
@@ -319,7 +322,9 @@ export function computeType(expr, errors, scope, typeScope, logger) {
   const Anything = typeScope.get("Anything");
   const Boolean = typeScope.get("Boolean");
 
+  // track escapes ('return') and breaks ('break')
   const escapePod = [];
+  let breaks = [];
   const rtype = visit(expr, scope);
   return (escapePod.length > 0) ? mergeTypes(escapePod.concat(rtype)) : rtype;
 
@@ -416,14 +421,25 @@ export function computeType(expr, errors, scope, typeScope, logger) {
         return mergeTypes(node.children.slice(1).map(n => visit(n, scope)));
       }
 
-      // - PRepeat
+      case "PRepeat": {
+        const oldBreaks = breaks;
+        breaks = [];
+        node.children.forEach(n => visit(n, scope));
+        // it's okay for there to be no 'break' inside; might be a 'return'.
+        const rtype = (breaks.length == 0) ? Nothing : mergeTypes(breaks);
+        breaks = oldBreaks;
+        return rtype;
+      }
 
       case "PReturn": {
         escapePod.push(visit(node.children[0], scope));
-        return Nothing;
+        return TNoType;
       }
 
-      // - PBreak
+      case "PBreak": {
+        if (node.children[0]) breaks.push(visit(node.children[0], scope));
+        return TNoType;
+      }
 
       case "PLocals": return Nothing;
 
@@ -435,7 +451,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
         let bareReturn = false, deadCode = false;
         node.children.forEach(n => {
           if (bareReturn && !deadCode) {
-            errors.add("unreachable code after 'return'", n.span);
+            errors.add("Unreachable code after 'return'", n.span);
             deadCode = true;
           }
           if (n.nodeType == "PReturn") bareReturn = true;

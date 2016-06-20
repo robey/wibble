@@ -45,6 +45,13 @@ describe("Typecheck expressions", () => {
     typecheck("point", { scope }).type.inspect().should.eql("Point");
   });
 
+  it("arrays", () => {
+    typecheck("[]").type.inspect().should.eql("Array(Anything)");
+    typecheck("[ 3 ]").type.inspect().should.eql("Array(Int)");
+    typecheck("[ 3, 4 ]").type.inspect().should.eql("Array(Int)");
+    typecheck("[ 4, true ]").type.inspect().should.eql("Array(Int | Boolean)");
+  });
+
   it("structs", () => {
     typecheck("(x = 9)").type.inspect().should.eql("(x: Int)");
     typecheck("(x = 9, y = 10)").type.inspect().should.eql("(x: Int, y: Int)");
@@ -93,6 +100,12 @@ describe("Typecheck expressions", () => {
       (() => typecheck("new { on (x: Int) -> { y := 3 } }")).should.throw(/reference/);
       (() => typecheck("new { on (x: Int) -> { y := 3 }; let y = 10 }")).should.throw(/immutable/);
     });
+
+    it("matches default value types on handlers", () => {
+      (() => typecheck("new { on (x: Int = true) -> x }")).should.throw(
+        "[19:23] Expected type Int; inferred type Boolean"
+      );
+    });
   });
 
   it("calls", () => {
@@ -128,16 +141,27 @@ describe("Typecheck expressions", () => {
     typecheck("if true then 9 else (if true then 12 else 13)").type.inspect().should.eql("Int");
   });
 
-  // - PRepeat
-
-  it("return", () => {
-    typecheck("{ let screwy = (n: Int) -> { return 3; return true; }; screwy }").type.inspect().should.eql(
-      "(n: Int) -> (Int | Boolean)"
-    );
+  it("repeat/break", () => {
+    typecheck("repeat { break 5 }").type.inspect().should.eql("Int");
+    typecheck("repeat { if 2 > 3 then break false }").type.inspect().should.eql("Boolean");
+    typecheck("repeat { if 2 > 3 then break false; break 9 }").type.inspect().should.eql("Boolean | Int");
   });
 
-  // - PReturn
-  // - PBreak
+  it("return", () => {
+    typecheck("() -> return 3").type.inspect().should.eql("() -> Int");
+    (() => typecheck("{ let x = -> { return 3; return true; } }")).should.throw(/\[25:31\] Unreachable/);
+    typecheck("{ let x = -> { if true then return 3; return true; }; x }").type.inspect().should.eql(
+      "() -> (Int | Boolean)"
+    );
+    typecheck("{ let x = -> { if true then return 3; true; }; x }").type.inspect().should.eql(
+      "() -> (Int | Boolean)"
+    );
+
+    // try to trick it.
+    typecheck("-> { let x = if true then 3 else return false; x }").type.inspect().should.eql(
+      "() -> (Boolean | Int)"
+    );
+  });
 
   it("locals", () => {
     typecheck("{ let x = 3 }").type.inspect().should.eql("Nothing");

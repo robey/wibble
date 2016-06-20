@@ -51,7 +51,7 @@ export function simplify(ast, errors) {
       }
 
       case "PAssignment": {
-        if (parentType() != "PBlock") errors.add("mutable assignments may only occur inside a code block", node.span);
+        if (parentType() != "PBlock") errors.add("Mutable assignments may only occur inside a code block", node.span);
         return null;
       }
 
@@ -125,7 +125,7 @@ export function simplify(ast, errors) {
 
       // we allow statements everywhere in the parser, to make errors nicer. but here we check and redcard.
       case "PLocals": {
-        if (parentType() != "PBlock") errors.add("locals may only be defined inside a code block", node.span);
+        if (parentType() != "PBlock") errors.add("Locals may only be defined inside a code block", node.span);
         return null;
       }
 
