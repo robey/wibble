@@ -12,13 +12,14 @@ type Set($A) {
 let wrapSet = (item: $A): Set($A) -> ...
 ```
 
-## resolve
+## resolve/bind
 
 - explicit new: `new Set(Int) { ... }`
+    - check that explicit type has no missing templates
 
 - message passing fills in the blanks:
     - `wrapSet 3`
     - `($A -> Set($A)) ~ Int`
-    - therefore, $A is Int for this call
+    - therefore, $A is Int for this call:
+        - add to type scope and resolve nestedly if necessary
     - resolves to `Set(Int)`
-    
