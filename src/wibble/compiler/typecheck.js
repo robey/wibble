@@ -114,6 +114,15 @@ function buildScopes(expr, errors, scope, typeScope) {
       node.children[0].children.forEach(field => {
         const ftype = compileType(field.type, errors, typeScope);
         scope.add(field.name, new CReference(field.name, ftype, false));
+
+        if (field.defaultValue != null) {
+          const rtype = new UnresolvedType(field.defaultValue, scope, typeScope);
+          unresolved.push(rtype);
+          // trust the type annotation for now. (we'll check later.)
+          rtype.annotatedType = ftype;
+          field.defaultValue.coerceType = rtype.annotatedType;
+          variables = rtype.variables;
+        }
       });
     }
 
@@ -200,18 +209,6 @@ function buildScopes(expr, errors, scope, typeScope) {
       case "PBlock": {
         node.scope = scope = new Scope(scope);
         handlers = [];
-        break;
-      }
-
-      case "PTypedField": {
-        if (node.defaultValue != null) {
-          const rtype = new UnresolvedType(node.defaultValue, scope, typeScope);
-          unresolved.push(rtype);
-          // trust the type annotation for now. (we'll check later.)
-          rtype.annotatedType = compileType(node.type, errors, typeScope);
-          node.defaultValue.coerceType = rtype.annotatedType;
-          variables = rtype.variables;
-        }
         break;
       }
     }
