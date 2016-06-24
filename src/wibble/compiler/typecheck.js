@@ -1,5 +1,11 @@
 "use strict";
 
+/*
+ * FIXME: TODO:
+ *
+ *   - check that the declared type of a 'new' matches the created type
+ */
+
 import { PConstantType } from "../common/ast";
 import { dumpExpr } from "../dump";
 import { compileType } from "./c_type";

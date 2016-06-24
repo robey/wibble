@@ -116,8 +116,8 @@ export class PStruct extends PNode {
 }
 
 export class PNew extends PNode {
-  constructor(code, span) {
-    super("new", span, [ code ]);
+  constructor(code, type, span) {
+    super("new", span, [ code, type ]);
     this.precedence = 100;
   }
 }

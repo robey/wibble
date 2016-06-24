@@ -65,9 +65,10 @@ const struct = repeatSurrounded(
 
 const newObject = $([
   toSpan("new"),
+  $.optional([ $.drop(linespace), typedecl ], []),
   $.drop(linespace),
   () => codeBlock
-]).map(([ span, code ]) => new PNew(code, span));
+]).map(([ span, type, code ]) => new PNew(code, type[0], span));
 
 const atom = $.alt(
   constant,
