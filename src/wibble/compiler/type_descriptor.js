@@ -19,6 +19,8 @@ export class TypeDescriptor {
     // typeHandlers: { guard, type }
     this.typeHandlers = [];
     this.symbolHandlers = {};
+    // override to refuse handler lookups:
+    this.canCall = true;
   }
 
   inspect(seen = {}, precedence = 100) {
@@ -184,11 +186,27 @@ export class ParameterType extends TypeDescriptor {
 }
 
 
+// export class TemplateType extends TypeDescriptor {
+//   constructor(name, parameters) {
+//     super(name);
+//   }
+//
+//   canAssignFrom(other) {
+//
+//   }
+//
+//   _inspect(seen, precedence) {
+//
+//   }
+// }
+
+
 export class MergedType extends TypeDescriptor {
   constructor(types) {
     super();
     this.precedence = 3;
     this.types = types;
+    this.canCall = false;
   }
 
   _inspect(seen, precedence) {

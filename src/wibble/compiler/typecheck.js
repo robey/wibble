@@ -379,25 +379,29 @@ export function computeType(expr, errors, scope, typeScope, logger) {
         if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
 
         let rtype = null;
-        // let symbol resolution try first.
-        if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
-        if (rtype == null) {
-          const { coerceType, type } = targetType.handlerTypeForMessage(argType);
-          if (coerceType != null) {
-            expr.coerceType = coerceType;
-            if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
-          }
-          rtype = type;
-        }
-        if (rtype == null) {
-          // special-case "Anything", which bails out of type-checking.
-          if (!targetType.anything) errors.add("No matching handler found", node.span);
+        if (!targetType.canCall) {
+          errors.add("Combo type can't be invoked; use 'match' to figure out the type first", node.span);
           rtype = Anything;
+        } else {
+          // let symbol resolution try first.
+          if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
+          if (rtype == null) {
+            const { coerceType, type } = targetType.handlerTypeForMessage(argType);
+            if (coerceType != null) {
+              expr.coerceType = coerceType;
+              if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
+            }
+            rtype = type;
+          }
+          if (rtype == null) {
+            // special-case "Anything", which bails out of type-checking.
+            // FIXME: might be better to make Anything be an error too, and require a 'match'.
+            if (!targetType.anything) errors.add("No matching handler found", node.span);
+            rtype = Anything;
+          }
         }
-        // if the return type was annotated, use that (for now).
-        if (rtype instanceof UnresolvedType) {
-          rtype = rtype.resolved();
-        }
+
+        if (rtype instanceof UnresolvedType) rtype = rtype.resolved();
         if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
         return rtype;
       }

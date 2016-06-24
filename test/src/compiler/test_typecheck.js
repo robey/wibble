@@ -268,5 +268,9 @@ describe("Typecheck expressions", () => {
     it("handles self-types", () => {
       typecheck("new { on (x: @) -> true }").type.inspect().should.eql("(x: @) -> Boolean");
     });
+
+    it("refuses to guess handlers for merged type", () => {
+      (() => typecheck("(x: Int | Boolean) -> x.hash")).should.throw(/can't be invoked/);
+    });
   });
 });
