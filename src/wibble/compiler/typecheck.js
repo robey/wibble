@@ -108,7 +108,7 @@ function buildScopes(expr, errors, scope, typeScope) {
 
   function visit(node, options = {}) {
     // create scopes.
-    if (node.nodeType == "POn" && node.children[0].constructor.name == "PCompoundType") {
+    if (node.nodeType == "POn" && node.children[0].nodeType == "PCompoundType") {
       // open up a new scope for the parameters.
       node.scope = scope = new Scope(scope);
       node.children[0].children.forEach(field => {
