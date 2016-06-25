@@ -75,7 +75,7 @@ export class TypeDescriptor {
     cache.push([ this, other ]);
 
     for (const symbol in this.symbolHandlers) {
-      const otherType = other.symbolHandlers[symbol];
+      const otherType = other.symbolHandlers.hasOwnProperty(symbol) ? other.symbolHandlers[symbol] : null;
       if (otherType == null || !this.symbolHandlers[symbol].canAssignFrom(otherType)) return false;
     }
 
@@ -92,7 +92,7 @@ export class TypeDescriptor {
   }
 
   handlerTypeForSymbol(name) {
-    if (this.symbolHandlers[name] != null) return this.symbolHandlers[name];
+    if (this.symbolHandlers.hasOwnProperty(name)) return this.symbolHandlers[name];
     return null;
   }
 
