@@ -67,7 +67,7 @@ class UnresolvedType extends TypeDescriptor {
  *
  * returns an array of the new UnresolvedType it made.
  */
-function buildScopes(expr, errors, scope, typeScope) {
+function buildScopes(expr, errors, scope, typeScope, logger) {
   let type = null;
   let variables = [];
 
@@ -112,7 +112,7 @@ function buildScopes(expr, errors, scope, typeScope) {
       // open up a new scope for the parameters.
       node.scope = scope = new Scope(scope);
       node.children[0].children.forEach(field => {
-        const ftype = compileType(field.type, errors, typeScope);
+        const ftype = compileType(field.type, errors, typeScope, logger);
         scope.add(field.name, new CReference(field.name, ftype, false));
 
         if (field.defaultValue != null) {
@@ -190,14 +190,14 @@ function buildScopes(expr, errors, scope, typeScope) {
           unresolved.push(rtype);
           if (node.children[2] != null) {
             // trust the type annotation for now. (we'll check later.)
-            rtype.annotatedType = compileType(node.children[2], errors, typeScope);
+            rtype.annotatedType = compileType(node.children[2], errors, typeScope, logger);
             node.children[1].coerceType = rtype.annotatedType;
           } else {
             variables.push(rtype);
           }
           variables = rtype.variables;
           if (node.children[0].nodeType == "PCompoundType") {
-            const guardType = compileType(node.children[0], errors, typeScope);
+            const guardType = compileType(node.children[0], errors, typeScope, logger);
             type.addTypeHandler(guardType, rtype);
           } else {
             type.addSymbolHandler(node.children[0].value, rtype);
@@ -476,7 +476,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 
 export function typecheck(expr, errors, scope, typeScope, logger) {
   if (logger) logger(`typecheck: ${dumpExpr(expr)}`);
-  const unresolved = buildScopes(expr, errors, scope, typeScope);
+  const unresolved = buildScopes(expr, errors, scope, typeScope, logger);
   resolveTypes(expr, unresolved, errors, logger);
   return computeType(expr, errors, scope, typeScope, logger);
 }

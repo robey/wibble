@@ -238,6 +238,10 @@ describe("Typecheck expressions", () => {
       const func = "(n: Int): (x: Int, y: Int) -> (4, 8)";
       typecheck(func).type.inspect().should.eql("(n: Int) -> (x: Int, y: Int)");
     });
+
+    it("allows a default value for a merged type", () => {
+      typecheck("(n: Int | Boolean = 3) -> true").type.inspect().should.eql("(n: Int | Boolean = 3) -> Boolean");
+    });
   });
 
   describe("tricksy", () => {
