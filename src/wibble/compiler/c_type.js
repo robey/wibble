@@ -1,7 +1,7 @@
 "use strict";
 
 import { PType } from "../common/ast";
-import { CompoundType, CTypedField, MergedType, newType } from "./type_descriptor";
+import { CompoundType, CTypedField, MergedType, newType, ParameterType } from "./type_descriptor";
 
 /*
  * compile an AST type into a type descriptor.
@@ -9,7 +9,7 @@ import { CompoundType, CTypedField, MergedType, newType } from "./type_descripto
 export function compileType(node, errors, scope) {
   if (!(node instanceof PType)) throw new Error("Internal error: compileType on non-PType");
 
-  switch(node.constructor.name) {
+  switch(node.nodeType) {
     case "PSimpleType": {
       if (scope.get(node.name) == null) {
         errors.add(`Unresolved type '${node.nome}'`);
@@ -35,7 +35,7 @@ export function compileType(node, errors, scope) {
     case "PParameterType": {
       const name = "$" + node.name;
       if (scope.get(name) != null) return scope.get(name);
-      return newType(name);
+      return new ParameterType(name);
     }
 
     case "PFunctionType": {

@@ -272,5 +272,9 @@ describe("Typecheck expressions", () => {
     it("refuses to guess handlers for merged type", () => {
       (() => typecheck("(x: Int | Boolean) -> x.hash")).should.throw(/can't be invoked/);
     });
+
+    it("refuses to guess handlers for wildcard types", () => {
+      (() => typecheck("(x: $A) -> x.hash")).should.throw(/can't be invoked/);
+    });
   });
 });

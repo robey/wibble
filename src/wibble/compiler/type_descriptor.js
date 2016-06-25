@@ -175,6 +175,7 @@ export class CompoundType extends TypeDescriptor {
 export class ParameterType extends TypeDescriptor {
   constructor(name) {
     super(name);
+    this.canCall = false;
   }
 
   canAssignFrom(other) {

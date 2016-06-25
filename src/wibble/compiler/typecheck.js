@@ -377,7 +377,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 
         let rtype = null;
         if (!targetType.canCall) {
-          errors.add("Combo type can't be invoked; use 'match' to figure out the type first", node.span);
+          errors.add("Wildcard or combo type can't be invoked; use 'match' to figure out the type first", node.span);
           rtype = Anything;
         } else {
           // let symbol resolution try first.
