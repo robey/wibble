@@ -9,11 +9,13 @@ import { CompoundType, CTypedField, mergeTypes, newType, ParameterType } from ".
 export function compileType(expr, errors, scope, logger) {
   if (!(expr instanceof PType)) throw new Error("Internal error: compileType on non-PType");
 
+  const wildcards = [];
+
   const compile = node => {
     switch(node.nodeType) {
       case "PSimpleType": {
         if (scope.get(node.name) == null) {
-          errors.add(`Unresolved type '${node.nome}'`);
+          errors.add(`Unresolved type '${node.name}'`, node.span);
           return scope.get("Anything");
         }
         return scope.get(node.name);
@@ -36,6 +38,7 @@ export function compileType(expr, errors, scope, logger) {
       case "PParameterType": {
         const name = "$" + node.name;
         if (scope.get(name) != null) return scope.get(name);
+        if (wildcards.indexOf(name) < 0) wildcards.push(name);
         return new ParameterType(name);
       }
 
@@ -52,5 +55,8 @@ export function compileType(expr, errors, scope, logger) {
     }
   };
 
-  return compile(expr);
+  const rtype = compile(expr);
+  rtype.wildcards = wildcards;
+  console.log("compiled type", rtype.inspect(), rtype.wildcards);
+  return rtype;
 }
