@@ -10,6 +10,8 @@ type Set($A) {
 
 # global or local function may introduce a new $
 let wrapSet = (item: $A): Set($A) -> ...
+# which is really:
+on (item: $A) -> ...
 ```
 
 ## resolve/bind
@@ -21,5 +23,14 @@ let wrapSet = (item: $A): Set($A) -> ...
     - `wrapSet 3`
     - `($A -> Set($A)) ~ Int`
     - therefore, $A is Int for this call:
-        - add to type scope and resolve nestedly if necessary
+        - when running `handlerTypeForMessage` (`canAssignFrom`), resolve $A to be Int and store in wildcard map
+        - use wildcard map to resolve rtype (`Set($A)` becomes `Set(Int)`)
+        - store wildcard map in coerceType, so the expr compiler can do type checking inside
     - resolves to `Set(Int)`
+
+## how
+
+compileType called:
+  - building scope for 'on' handler parameters
+  - marking annotated type for an 'on' handler
+  - adding 'on' guard to type definition
