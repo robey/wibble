@@ -67,7 +67,7 @@
 
     codeBlock := "{" (code ";"?)* "}"
 
-    new := "new" codeBlock
+    new := "new" typedecl? codeBlock
 
 ## typedecl
 

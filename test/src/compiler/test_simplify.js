@@ -37,7 +37,7 @@ describe("Simplify expressions", () => {
     simplify("{ x := 3 }").should.eql("{ x := 3 }");
     should.throws(() => simplify("{ y + (x := 3) }"), error => {
       error.dump.should.eql("y .+ (x := 3)");
-      error.errors.inspect().should.match(/\[9:11\] mutable assignments/);
+      error.errors.inspect().should.match(/\[9:11\] Mutable assignments/);
       return true;
     });
   });

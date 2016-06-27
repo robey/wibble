@@ -64,6 +64,15 @@ builtinTypes.setInit(() => {
     ".>=: Int -> Boolean",
     ".**: Int -> Int"
   ]);
+
+  addHandlers(TString, [
+    ".length: Int",
+    ".toSymbol: Symbol"
+  ]);
+
+  addHandlers(TSymbol, [
+    ".toString: String"
+  ]);
 });
 
 // t_type.addHandlers DString, typemap,

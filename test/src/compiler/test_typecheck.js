@@ -218,16 +218,18 @@ describe("Typecheck expressions", () => {
       typecheck(`(${func}) ((n: Int, incr: Int = 1) -> n + incr)`).type.inspect().should.eql("(n: Int) -> Int");
     });
 
-    //   it "simple type parameters", ->
-    //     func = "(x: $A) -> x"
-    //     typecheck(func).type.inspect().should.eql "(x: $A) -> $A"
-    //     typecheck("(#{func}) 10").type.inspect().should.eql "Int"
-    //
-    //   it "type parameters in a disjoint type", ->
-    //     func = "(x: $A, y: Boolean) -> if y then x else 100"
-    //     typecheck(func).type.inspect().should.eql "(x: $A, y: Boolean) -> ($A | Int)"
-    //     typecheck("(#{func}) (10, true)").type.inspect().should.eql "Int"
-    //     typecheck("(#{func}) (10, false)").type.inspect().should.eql "Int"
+    it("simple type parameters", () => {
+      const func = "(x: $A) -> x";
+      typecheck(func).type.inspect().should.eql("(x: $A) -> $A");
+      typecheck(`(${func}) 10`).type.inspect().should.eql("Int");
+    });
+
+    it("type parameters in a disjoint type", () => {
+      const func = "(x: $A, y: Boolean) -> if y then x else 100";
+      typecheck(func).type.inspect().should.eql("(x: $A, y: Boolean) -> ($A | Int)");
+      typecheck(`(${func}) (10, true)`, { logger: console.log }).type.inspect().should.eql("Int");
+      typecheck(`(${func}) (10, false)`).type.inspect().should.eql("Int");
+    });
 
     it("insists that the returned type match the prototype", () => {
       const func = "(n: Int): Int -> true";
@@ -237,6 +239,10 @@ describe("Typecheck expressions", () => {
     it("unifies struct return types", () => {
       const func = "(n: Int): (x: Int, y: Int) -> (4, 8)";
       typecheck(func).type.inspect().should.eql("(n: Int) -> (x: Int, y: Int)");
+    });
+
+    it("allows a default value for a merged type", () => {
+      typecheck("(n: Int | Boolean = 3) -> true").type.inspect().should.eql("(n: Int | Boolean = 3) -> Boolean");
     });
   });
 
@@ -267,6 +273,14 @@ describe("Typecheck expressions", () => {
 
     it("handles self-types", () => {
       typecheck("new { on (x: @) -> true }").type.inspect().should.eql("(x: @) -> Boolean");
+    });
+
+    it("refuses to guess handlers for merged type", () => {
+      (() => typecheck("(x: Int | Boolean) -> x.hash")).should.throw(/can't be invoked/);
+    });
+
+    it("refuses to guess handlers for wildcard types", () => {
+      (() => typecheck("(x: $A) -> x.hash")).should.throw(/can't be invoked/);
     });
   });
 });

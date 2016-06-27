@@ -95,7 +95,7 @@ export function simplify(ast, errors) {
 
       case "PFunction": {
         // convert function(inType, a, outType) into new(on(inType, a, outType)).
-        return new PNew(new POn(node.children[0], node.children[1], node.children[2], node.span), node.span);
+        return new PNew(new POn(node.children[0], node.children[1], node.children[2], node.span), null, node.span);
       }
 
       case "POn": {

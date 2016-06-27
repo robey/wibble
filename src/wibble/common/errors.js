@@ -23,6 +23,9 @@ export class Errors {
   }
 
   inspect() {
-    return this.list.map(error => `[${error.span.start}:${error.span.end}] ${error.message}`).join(", ");
+    return this.list.map(error => {
+      if (!error.span) return error.message;
+      return `[${error.span.start}:${error.span.end}] ${error.message}`;
+    }).join(", ");
   }
 }

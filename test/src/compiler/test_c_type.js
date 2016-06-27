@@ -48,6 +48,13 @@ describe("compileType", () => {
     compileType("String | (x: Int, y: Int)").inspect().should.eql("String | (x: Int, y: Int)");
     compileType("String | (x: Int) -> String").inspect().should.eql("String | (x: Int) -> String");
   });
+
+  it("wildcards", () => {
+    compileType("Int").wildcards.should.eql([]);
+    compileType("$A").wildcards.should.eql([ "$A" ]);
+    compileType("$A | Int | $B").wildcards.should.eql([ "$A", "$B" ]);
+    compileType("(x: Int, y: $C) -> String").wildcards.should.eql([ "$C" ]);
+  });
 });
 
 

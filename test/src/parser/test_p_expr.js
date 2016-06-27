@@ -168,6 +168,12 @@ describe("Parse expressions", () => {
         ")[0:25]"
       );
     });
+
+    it("explicit type", () => {
+      parse("new List(Int) { true }").should.eql(
+        "new(block(const(BOOLEAN, true)[16:20])[14:22], templateType(List)(type(Int)[9:12])[4:13])[0:3]"
+      );
+    });
   });
 
   it("unary", () => {

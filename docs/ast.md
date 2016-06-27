@@ -64,9 +64,9 @@ X = eliminated by transformations
 # Type descriptors
 
   - TypeDescriptor
-    - CompoundType
+    - CompoundType(fields)
       - CTypedField(name, type, defaultValue)
-
+    - MergedType(types)
 
 
 
