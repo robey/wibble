@@ -26,25 +26,25 @@ X = eliminated by transformations
   - PExpr(description, span, children, comment, trailingComment)
     - PReference(name)
     - PArray
-    - X: PFunction(inType, outType)
+    - *X* PFunction(inType, outType)
     - PStruct
       - PStructField(name)
     - PNew  [scope, newType]
-    - X: PUnary(op)
+    - *X* PUnary(op)
     - PCall  [coerceType]
-    - X: PBinary(op)
+    - *X* PBinary(op)
     - PLogic(op)
     - PAssignment
     - PIf
     - PRepeat
-    - X: PWhile
+    - *X* PWhile
     - PReturn
     - PBreak
 
 ## code
 
-  - PLocal(name, mutable)
   - PLocals(mutable)
+    - PLocal(name, mutable)
   - POn  [scope, coerceType, computedType]
   - PBlock  [scope]
 
@@ -54,6 +54,7 @@ X = eliminated by transformations
     - PSimpleType(name)
     - PCompoundType
       - PTypedField(name, type, defaultValue, span)
+        - defaultValue: [coerceType, computedType]
     - PTemplateType(name)
     - PParameterType(name)
     - PFunctionType(argType, resultType)
