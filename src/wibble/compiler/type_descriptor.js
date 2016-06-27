@@ -118,26 +118,24 @@ export class TypeDescriptor {
     return null;
   }
 
-  handlerTypeForMessage(inType) {
+  handlerTypeForMessage(inType, logger) {
     const wildcardMap = {};
     const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType, [], wildcardMap));
     if (matches.length == 0) return {};
-    console.log("-> match:", matches[0].guard.inspect(), matches[0].type.inspect());
-    const guard = matches[0].guard.withWildcardMap(wildcardMap);
-    const type = matches[0].type.withWildcardMap(wildcardMap);
-    console.log("-> post wildcard:", guard.inspect(), type.inspect());
+    const guard = matches[0].guard.withWildcardMap(wildcardMap, logger);
+    const type = matches[0].type.withWildcardMap(wildcardMap, logger);
     return { coerceType: guard, type };
   }
 
   // fill in any wildcard types from the map
-  withWildcardMap(wildcardMap) {
+  withWildcardMap(wildcardMap, logger) {
     if (this.wildcards.length == 0) return this;
     const rtype = new TypeDescriptor(this.name);
     for (const symbol in this.symbolHandlers) {
-      rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap);
+      rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, logger);
     }
     rtype.typeHandlers = this.typeHandlers.map(({ guard, type }) => {
-      return { guard: guard.withWildcardMap(wildcardMap), type: type.withWildcardMap(wildcardMap) };
+      return { guard: guard.withWildcardMap(wildcardMap, logger), type: type.withWildcardMap(wildcardMap, logger) };
     });
     rtype.wildcards = this.wildcards.filter(w => wildcardMap[w] == null);
     return rtype;
@@ -267,8 +265,8 @@ export class MergedType extends TypeDescriptor {
     return this.precedence > precedence ? "(" + rv + ")" : rv;
   }
 
-  withWildcardMap(wildcardMap) {
-    return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap)));
+  withWildcardMap(wildcardMap, logger) {
+    return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap, logger)), logger);
   }
 }
 
