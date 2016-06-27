@@ -57,6 +57,5 @@ export function compileType(expr, errors, scope, logger) {
 
   const rtype = compile(expr);
   rtype.wildcards = wildcards;
-  console.log("compiled type", rtype.inspect(), rtype.wildcards);
   return rtype;
 }

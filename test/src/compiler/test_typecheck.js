@@ -198,8 +198,6 @@ describe("Typecheck expressions", () => {
     });
   });
 
-  // -----
-
   describe("functions", () => {
     it("simple", () => {
       const func = "-> 3";
