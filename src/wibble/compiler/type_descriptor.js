@@ -210,9 +210,11 @@ export class CompoundType extends TypeDescriptor {
     return true;
   }
 
-  withWildcardMap(wildcardMap) {
+  withWildcardMap(wildcardMap, logger) {
     if (this.wildcards.length == 0) return this;
-    const fields = this.fields.map(f => new CTypedField(f.name, f.type.withWildcardMap(wildcardMap), f.defaultValue));
+    const fields = this.fields.map(f => {
+      return new CTypedField(f.name, f.type.withWildcardMap(wildcardMap, logger), f.defaultValue);
+    });
     return new CompoundType(fields);
   }
 }
