@@ -10,10 +10,14 @@ let _nextId = 1;
  * Set of handlers that map a symbol or compound type to a return type.
  */
 export class TypeDescriptor {
-  // name is optional.
-  constructor(name) {
+  /*
+   * name: optional (user-defined types have one)
+   * parameters: list of "$A" to fill in later (if possible)
+   */
+  constructor(name, parameters = []) {
     this.id = _nextId++;
     this.name = name;
+    this.parameters = parameters;
     // for inspect:
     this.precedence = 1;
     // typeHandlers: { guard, type }
@@ -23,12 +27,14 @@ export class TypeDescriptor {
     this.canCall = true;
     // am *i* a wildcard? only ParameterType says yes. :)
     this.wildcard = false;
-    // are there any wildcards? (in other words, not fully defined)
+    // are there any wildcards in my handlers? (in other words, not fully defined)
     this.wildcards = [];
   }
 
   inspect(seen = {}, precedence = 100) {
-    if (this.name != null) return this.name;
+    if (this.name != null) {
+      return this.name + (this.parameters.length == 0 ? "" : `(${this.parameters.join(", ")})`);
+    }
     if (seen[this.id]) return "@";
     seen[this.id] = true;
     const rv = this._inspect(seen, precedence);
@@ -154,7 +160,13 @@ export class TypeDescriptor {
   // fill in any wildcard types from the map
   withWildcardMap(wildcardMap, logger) {
     if (this.wildcards.length == 0) return this;
-    const rtype = new TypeDescriptor(this.name);
+
+    const parameters = this.parameters.map(p => {
+      if (wildcardMap.hasOwnProperty(p)) return wildcardMap[p].inspect();
+      return p;
+    });
+    const rtype = new TypeDescriptor(this.name, parameters);
+
     for (const symbol in this.symbolHandlers) {
       rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, logger);
     }
@@ -251,26 +263,11 @@ export class ParameterType extends TypeDescriptor {
     this.wildcard = true;
   }
 
-  withWildcardMap(wildcardMap) {
+  withWildcardMap(wildcardMap, _logger) {
     if (wildcardMap.hasOwnProperty(this.name)) return wildcardMap[this.name];
     return this;
   }
 }
-
-
-// export class TemplateType extends TypeDescriptor {
-//   constructor(name, parameters) {
-//     super(name);
-//   }
-//
-//   canAssignFrom(other) {
-//
-//   }
-//
-//   _inspect(seen, precedence) {
-//
-//   }
-// }
 
 
 export class MergedType extends TypeDescriptor {
@@ -330,8 +327,8 @@ export function mergeTypes(types, logger) {
   return rv;
 }
 
-export function newType(name) {
-  return new TypeDescriptor(name);
+export function newType(name, parameters) {
+  return new TypeDescriptor(name, parameters);
 }
 
 // special type for tracking 'return' in blocks:
