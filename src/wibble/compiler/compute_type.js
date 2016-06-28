@@ -53,7 +53,10 @@ export function computeType(expr, errors, scope, typeScope, logger) {
         return scope.get(node.name).type.resolved;
       }
 
-      // FIXME: PArray
+      case "PArray": {
+        const atype = node.children.length == 0 ? Anything : mergeTypes(node.children.map(n => visit(n, scope)));
+        return typeScope.get("Array").withWildcardMap({ "$A": atype });
+      }
 
       case "PStruct": {
         const fields = node.children.map(field => {
