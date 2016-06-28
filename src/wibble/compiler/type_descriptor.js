@@ -103,20 +103,28 @@ export class TypeDescriptor {
 
     if (this.wildcard) {
       // i'm a wildcard! i can coerce anything! tag, you're it!
-      if (logger) logger(`${this.inspect()} := ${other.inspect()} : wildcard resolved`);
+      if (logger) logger(`canAssign? ${this.inspect()} := ${other.inspect()} : wildcard resolved`);
       wildcardMap[this.name] = other;
       return true;
     }
-    // if (other.wildcard) {
-    //   // you're a wildcard! i squish your head!
-    //   wildcardMap[other.name] = this;
-    //   return true;
-    // }
 
     // avoid recursing forever:
     cache.push([ this, other ]);
 
-    return this._canAssignFrom(other, logger, cache, wildcardMap);
+    const mappings = Object.keys(wildcardMap).length;
+    const rv = this._canAssignFrom(other, logger, cache, wildcardMap);
+    if (!rv && mappings < Object.keys(wildcardMap).length) {
+      // didn't match, but we bound at least one wildcard type. try doing a wildcard substitution?
+      const newThis = this.withWildcardMap(wildcardMap, logger);
+      const newOther = other.withWildcardMap(wildcardMap, logger);
+      if (logger) {
+        const mapNames = Object.keys(wildcardMap).map(name => `${name} = ${wildcardMap[name].inspect()}`);
+        logger(`canAssign? retrying with wildcard mapping: ${mapNames.join(", ")}`);
+      }
+      return newThis.canAssignFrom(newOther, logger, cache, wildcardMap);
+    } else {
+      return rv;
+    }
   }
 
   /*
@@ -127,7 +135,7 @@ export class TypeDescriptor {
    *       filling in some (`$A`) wildcard types
    */
   _canAssignFrom(other, logger, cache, wildcardMap) {
-    if (logger) logger(`${this.inspect()} := ${other.inspect()} : handler scan`);
+    if (logger) logger(`canAssign? ${this.inspect()} := ${other.inspect()} : handler scan`);
     for (const symbol in this.symbolHandlers) {
       const otherType = other.symbolHandlers.hasOwnProperty(symbol) ? other.symbolHandlers[symbol] : null;
       if (otherType == null || !this.symbolHandlers[symbol].canAssignFrom(otherType, logger, cache, wildcardMap)) {
