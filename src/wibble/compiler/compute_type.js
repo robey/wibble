@@ -112,7 +112,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 
       case "PAssignment": {
         const types = node.children.map(n => visit(n, scope));
-        if (!types[0].canAssignFrom(types[1])) {
+        if (!types[0].canAssignFrom(types[1], logger)) {
           errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, node.span);
         }
         return types[0];

@@ -43,7 +43,7 @@ class UnresolvedType extends TypeDescriptor {
     if (this.type) return `[resolved ${this.id}: ${this.type.inspect(seen, 9)}]`;
     const atype = this.annotatedType ? `[annotated as: ${this.annotatedType.inspect(seen, 9)}] ` : "";
     const dependencies = this.variables.length == 0 ? "none" : this.variables.map(t => t.id).join(", ");
-    return `[unresolved ${this.id} -> ${dependencies}: ${atype}${dumpExpr(this.expr)}]`;
+    return `[unresolved ${this.id} -> depends on ${dependencies}: ${atype}${dumpExpr(this.expr)}]`;
   }
 
   canAssignFrom(other) {
@@ -271,7 +271,7 @@ function resolveTypes(expr, unresolved, errors, logger) {
       });
     }
 
-    if (node.coerceType && node.computedType && !node.coerceType.canAssignFrom(node.computedType)) {
+    if (node.coerceType && node.computedType && !node.coerceType.canAssignFrom(node.computedType, logger)) {
       errors.add(
         `Expected type ${node.coerceType.inspect()}; inferred type ${node.computedType.inspect()}`,
         node.span

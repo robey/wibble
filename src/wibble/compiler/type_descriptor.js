@@ -95,7 +95,7 @@ export class TypeDescriptor {
    *   - otherwise, check handler signatures or something more complicated
    *       (for compound types)
    */
-  canAssignFrom(other, cache = [], wildcardMap = {}) {
+  canAssignFrom(other, logger, cache = [], wildcardMap = {}) {
     if (this.isType(other)) return true;
     for (let i = 0; i < cache.length; i++) {
       if (this.isType(cache[i][0]) && other.isType(cache[i][1])) return true;
@@ -103,19 +103,20 @@ export class TypeDescriptor {
 
     if (this.wildcard) {
       // i'm a wildcard! i can coerce anything! tag, you're it!
+      if (logger) logger(`${this.inspect()} := ${other.inspect()} : wildcard resolved`);
       wildcardMap[this.name] = other;
       return true;
     }
-    if (other.wildcard) {
-      // you're a wildcard! i squish your head!
-      wildcardMap[other.name] = this;
-      return true;
-    }
+    // if (other.wildcard) {
+    //   // you're a wildcard! i squish your head!
+    //   wildcardMap[other.name] = this;
+    //   return true;
+    // }
 
     // avoid recursing forever:
     cache.push([ this, other ]);
 
-    return this._canAssignFrom(other, cache, wildcardMap);
+    return this._canAssignFrom(other, logger, cache, wildcardMap);
   }
 
   /*
@@ -125,17 +126,20 @@ export class TypeDescriptor {
    *   - wildcardMap: { name -> type } if the assignment can succeed by
    *       filling in some (`$A`) wildcard types
    */
-  _canAssignFrom(other, cache, wildcardMap) {
+  _canAssignFrom(other, logger, cache, wildcardMap) {
+    if (logger) logger(`${this.inspect()} := ${other.inspect()} : handler scan`);
     for (const symbol in this.symbolHandlers) {
       const otherType = other.symbolHandlers.hasOwnProperty(symbol) ? other.symbolHandlers[symbol] : null;
-      if (otherType == null || !this.symbolHandlers[symbol].canAssignFrom(otherType, cache, wildcardMap)) return false;
+      if (otherType == null || !this.symbolHandlers[symbol].canAssignFrom(otherType, logger, cache, wildcardMap)) {
+        return false;
+      }
     }
 
     for (let i = 0; i < this.typeHandlers.length; i++) {
       const matches = other.typeHandlers.filter(h => {
         // arg coercion is contravariant, so it has to be compared in the opposite direction.
-        return h.guard.canAssignFrom(this.typeHandlers[i].guard, cache, wildcardMap) &&
-          this.typeHandlers[i].type.canAssignFrom(h.type, cache, wildcardMap);
+        return h.guard.canAssignFrom(this.typeHandlers[i].guard, logger, cache, wildcardMap) &&
+          this.typeHandlers[i].type.canAssignFrom(h.type, logger, cache, wildcardMap);
       });
       if (matches.length < 1) return false;
     }
@@ -150,7 +154,7 @@ export class TypeDescriptor {
 
   handlerTypeForMessage(inType, logger) {
     const wildcardMap = {};
-    const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType, [], wildcardMap));
+    const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType, logger, [], wildcardMap));
     if (matches.length == 0) return {};
     const guard = matches[0].guard.withWildcardMap(wildcardMap, logger);
     const type = matches[0].type.withWildcardMap(wildcardMap, logger);
@@ -204,17 +208,17 @@ export class CompoundType extends TypeDescriptor {
     return "(" + this.fields.map(f => f.inspect(seen, 9)).join(", ") + ")";
   }
 
-  _canAssignFrom(other, cache, wildcardMap) {
+  _canAssignFrom(other, logger, cache, wildcardMap) {
     if (this.isType(other)) return true;
     if (other.nothing) {
       other = new CompoundType([]);
     } else if (!(other instanceof CompoundType)) {
       other = new CompoundType([ new CTypedField("?0", other) ]);
     }
-    if (this.looselyMatches(other.fields, cache, wildcardMap)) return true;
+    if (this.looselyMatches(other.fields, logger, cache, wildcardMap)) return true;
     // special case: if we're a one-field struct that is itself a struct, we have to go deeper.
     if (this.fields.length == 1 && (this.fields[0].type instanceof CompoundType)) {
-      if (this.fields[0].type.looselyMatches(other.fields, cache, wildcardMap)) return true;
+      if (this.fields[0].type.looselyMatches(other.fields, logger, cache, wildcardMap)) return true;
     }
     return false;
   }
@@ -225,7 +229,7 @@ export class CompoundType extends TypeDescriptor {
    *   - positional fields have the right type
    *   - all missing fields have default values
    */
-  looselyMatches(fields, cache, wildcardMap) {
+  looselyMatches(fields, logger, cache, wildcardMap) {
     const remaining = {};
     this.fields.forEach(f => {
       remaining[f.name] = f;
@@ -239,7 +243,7 @@ export class CompoundType extends TypeDescriptor {
         name = this.fields[i].name;
       }
       if (remaining[name] == null) return false;
-      if (!remaining[name].type.canAssignFrom(f.type, cache, wildcardMap)) return false;
+      if (!remaining[name].type.canAssignFrom(f.type, logger, cache, wildcardMap)) return false;
       delete remaining[name];
     }
     for (const name in remaining) if (remaining[name].defaultValue == null) return false;
@@ -311,10 +315,10 @@ export function mergeTypes(types, logger) {
         continue;
       }
 
-      if (list[i].canAssignFrom(list[j])) {
+      if (list[i].canAssignFrom(list[j], logger)) {
         if (logger) logger(`${list[i].inspect()} can assign from ${list[j].inspect()}`);
         list[j] = null;
-      } else if (list[j].canAssignFrom(list[i])) {
+      } else if (list[j].canAssignFrom(list[i], logger)) {
         if (logger) logger(`${list[j].inspect()} can assign from ${list[i].inspect()}`);
         list[i] = null;
       }

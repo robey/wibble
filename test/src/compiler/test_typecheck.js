@@ -232,7 +232,7 @@ describe("Typecheck expressions", () => {
     it("type parameters in the argument", () => {
       const func = "(f: Int -> Int) -> f 2";
       typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> Int");
-      typecheck(`(${func}) ((x: $A) -> x)`).type.inspect().should.eql("Int");
+      typecheck(`(${func}) ((x: $A) -> x)`, { logger: console.log }).type.inspect().should.eql("Int");
     });
 
     // FIXME this will require more work.
