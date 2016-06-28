@@ -38,7 +38,6 @@ function addHandlers(type, list) {
     const n = spec.indexOf("::");
     const guardString = spec.slice(0, n).trim();
     const typeString = spec.slice(n + 2).trim();
-    console.log(typeString);
     const rtype = compileType(typedecl.run(typeString), null, builtinTypes);
     if (guardString[0] == ".") {
       type.addSymbolHandler(guardString.slice(1), rtype);
