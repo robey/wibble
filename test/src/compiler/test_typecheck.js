@@ -225,9 +225,22 @@ describe("Typecheck expressions", () => {
     it("type parameters in a disjoint type", () => {
       const func = "(x: $A, y: Boolean) -> if y then x else 100";
       typecheck(func).type.inspect().should.eql("(x: $A, y: Boolean) -> ($A | Int)");
-      typecheck(`(${func}) (10, true)`, { logger: console.log }).type.inspect().should.eql("Int");
+      typecheck(`(${func}) (10, true)`).type.inspect().should.eql("Int");
       typecheck(`(${func}) (10, false)`).type.inspect().should.eql("Int");
     });
+
+    it("type parameters in the argument", () => {
+      const func = "(f: Int -> Int) -> f 2";
+      typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> Int");
+      typecheck(`(${func}) ((x: $A) -> x)`).type.inspect().should.eql("Int");
+    });
+
+    // FIXME this will require more work.
+    // it("type checks a wildcard expression *after* resolving the type", () => {
+    //   const func = "(f: (x: Int, y: Int) -> Int) -> f(2, 3)";
+    //   const arg = ("(x: $A, y: $A) -> x + y");
+    //   typecheck(`(${func}) (${arg})`).type.inspect().should.eql("Int");
+    // });
 
     it("insists that the returned type match the prototype", () => {
       const func = "(n: Int): Int -> true";
