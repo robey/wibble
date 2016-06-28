@@ -215,6 +215,7 @@ export class PLocals extends PNode {
 export class POn extends PNode {
   constructor(receiver, expr, outType, span) {
     super("on", span, [ receiver, expr, outType ]);
+    this.precedence = 100;
   }
 }
 

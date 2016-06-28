@@ -78,7 +78,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
           // let symbol resolution try first.
           if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
           if (rtype == null) {
-            const { coerceType, type } = targetType.handlerTypeForMessage(argType);
+            const { coerceType, type } = targetType.handlerTypeForMessage(argType, logger);
             if (coerceType != null) {
               expr.coerceType = coerceType;
               if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);

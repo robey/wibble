@@ -67,9 +67,9 @@ describe("Simplify expressions", () => {
   });
 
   it("function", () => {
-    simplify("(n: Int) -> n * 2").should.eql("new on (n: Int) -> n .* 2");
+    simplify("(n: Int) -> n * 2").should.eql("new (on (n: Int) -> n .* 2)");
     simplify("(a: Int, b: Int): Int -> a + b + calc(b)").should.eql(
-      "new on (a: Int, b: Int): Int -> a .+ b .+ (calc b)"
+      "new (on (a: Int, b: Int): Int -> a .+ b .+ (calc b))"
     );
   });
 
@@ -94,7 +94,7 @@ describe("Simplify expressions", () => {
 
   it("return", () => {
     simplify("() -> return 3").should.eql(
-      "new on () -> return 3"
+      "new (on () -> return 3)"
     );
     should.throws(() => simplify("x := { return 3 }"), error => {
       error.errors.inspect().should.match(/\[7:13\] 'return'/);
