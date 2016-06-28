@@ -270,30 +270,6 @@ export class ParameterType extends TypeDescriptor {
 }
 
 
-// export class TemplateType extends TypeDescriptor {
-//   constructor(name, parameters) {
-//     super(name);
-//     this.parameters = parameters;
-//   }
-//
-//   withWildcardMap(wildcardMap, logger) {
-//     const parameters = this.parameters.map(p => {
-//       if (wildcardMap.hasOwnProperty(p)) return wildcardMap[p];
-//       return p;
-//     });
-//     const type = this._withWildcardMap(wildcardMap, logger);
-//     if (wildcardMap.hasOwnProperty())
-//   }
-//   canAssignFrom(other) {
-//
-//   }
-//
-//   _inspect(seen, precedence) {
-//
-//   }
-// }
-
-
 export class MergedType extends TypeDescriptor {
   constructor(types) {
     super();
