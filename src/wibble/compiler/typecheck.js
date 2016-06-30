@@ -26,6 +26,11 @@ export class CReference {
  * we can shake them out later.
  */
 class UnresolvedType extends TypeDescriptor {
+  /*
+   * expr: AST of the unresolved expression
+   * scope: (lexical) scope in effect for the expression
+   * typeScope: (lexical) scope of type names in effect for the expression
+   */
   constructor(expr, scope, typeScope) {
     super();
     this.expr = expr;
@@ -34,15 +39,24 @@ class UnresolvedType extends TypeDescriptor {
     // where we'll put the real type when we figure it out:
     this.type = null;
     // what free variables (other unresolved types) does this one depend on?
-    this.variables = [];
+    this._variables = [];
     // was there an annotated type we can use to break recursion?
     this.annotatedType = null;
+  }
+
+  /*
+   * optional user-supplied (already compiled) type to check later.
+   */
+  setAnnotation(annotatedType) {
+    this.annotatedType = annotatedType;
+    this.expr.coerceType = annotatedType;
   }
 
   _inspect(seen) {
     if (this.type) return `[resolved ${this.id}: ${this.type.inspect(seen, 9)}]`;
     const atype = this.annotatedType ? `[annotated as: ${this.annotatedType.inspect(seen, 9)}] ` : "";
-    const dependencies = this.variables.length == 0 ? "none" : this.variables.map(t => t.id).join(", ");
+    const variables = this.variables;
+    const dependencies = variables.length == 0 ? "none" : variables.map(t => t.id).join(", ");
     return `[unresolved ${this.id} -> depends on ${dependencies}: ${atype}${dumpExpr(this.expr)}]`;
   }
 
@@ -50,8 +64,23 @@ class UnresolvedType extends TypeDescriptor {
     return this.isType(other);
   }
 
+  // return the list of variables (types we depend on) that aren't resolved yet.
+  get variables() {
+    return this._variables.filter(t => t.type == null);
+  }
+
+  // fill in the computed type! a happy day!
+  resolve(type) {
+    this.type = type;
+    this.expr.computedType = type;
+  }
+
   get resolved() {
     return this.annotatedType || this.type;
+  }
+
+  addVariable(type) {
+    this._variables.push(type);
   }
 }
 
@@ -66,29 +95,36 @@ class UnresolvedType extends TypeDescriptor {
  * returns an array of the new UnresolvedType it made.
  */
 function buildScopes(expr, errors, scope, typeScope, logger) {
+  // what type is currently being defined?
   let type = null;
-  let variables = [];
+
+  // what UnresolvedType are we investigating and collecting variables for?
+  let unresolvedType = null;
 
   // collect unprocessed "on" expressions to run at the end of the block.
   let handlers = [];
 
-  // stack of the "current" scope, typeScope, any type being defined, and free variables in an unresolved expression.
+  // stack of the "current" scope, typeScope, type, unresolvedType, and handlers.
   const stack = [];
 
   // list of UnresolvedType objects we created.
   const unresolved = [];
 
   visit(expr);
-  handlers.forEach(state => {
+  handlers.forEach(data => {
     save();
-    restoreTo(state);
-    visit(state.node, { handlers: true });
+    restoreTo(data.state);
+    visit(data.node, { handlers: true });
     restore();
   });
   return unresolved;
 
   function save() {
-    stack.push({ scope, typeScope, type, variables, handlers });
+    stack.push(saveState());
+  }
+
+  function saveState() {
+    return { scope, typeScope, type, unresolvedType, handlers };
   }
 
   function restore() {
@@ -100,7 +136,7 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
     scope = state.scope;
     typeScope = state.typeScope;
     type = state.type;
-    variables = state.variables;
+    unresolvedType = state.unresolvedType;
     handlers = state.handlers;
   }
 
@@ -114,12 +150,10 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
         scope.add(field.name, new CReference(field.name, ftype, false));
 
         if (field.defaultValue != null) {
-          const rtype = new UnresolvedType(field.defaultValue, scope, typeScope);
-          unresolved.push(rtype);
+          unresolvedType = new UnresolvedType(field.defaultValue, scope, typeScope);
           // trust the type annotation for now. (we'll check later.)
-          rtype.annotatedType = ftype;
-          field.defaultValue.coerceType = rtype.annotatedType;
-          variables = rtype.variables;
+          unresolvedType.setAnnotation(ftype);
+          unresolved.push(unresolvedType);
         }
       });
     }
@@ -133,7 +167,7 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
           scope.add(node.name, new CReference(node.name, typeScope.get("Anything"), false));
         }
         const rtype = scope.get(node.name).type;
-        if (rtype instanceof UnresolvedType) variables.push(rtype);
+        if ((rtype instanceof UnresolvedType) && unresolvedType) unresolvedType.addVariable(rtype);
         break;
       }
 
@@ -169,10 +203,9 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
            * add an unresolved-type marker for now, because the expression
            * might be a handler that makes a recursive reference to itself.
            */
-          const ltype = new UnresolvedType(node.children[0], scope, typeScope);
-          unresolved.push(ltype);
-          variables = ltype.variables;
-          scope.add(node.name, new CReference(node.name, ltype, node.mutable));
+          unresolvedType = new UnresolvedType(node.children[0], scope, typeScope);
+          unresolved.push(unresolvedType);
+          scope.add(node.name, new CReference(node.name, unresolvedType, node.mutable));
         }
         break;
       }
@@ -180,7 +213,7 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
       case "POn": {
         if (!options.handlers) {
           // punt!
-          handlers.push({ node, scope, typeScope, type, variables, handlers });
+          handlers.push({ node, state: saveState() });
           return;
         } else {
           // mark return type as unresolved. we'll figure it out when we shake the bucket later.
@@ -188,12 +221,12 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
           unresolved.push(rtype);
           if (node.children[2] != null) {
             // trust the type annotation for now. (we'll check later.)
-            rtype.annotatedType = compileType(node.children[2], errors, typeScope, logger);
-            node.children[1].coerceType = rtype.annotatedType;
+            const annotatedType = compileType(node.children[2], errors, typeScope, logger);
+            rtype.setAnnotation(annotatedType);
           } else {
-            variables.push(rtype);
+            if (unresolvedType) unresolvedType.addVariable(rtype);
           }
-          variables = rtype.variables;
+          unresolvedType = rtype;
           if (node.children[0].nodeType == "PCompoundType") {
             const guardType = compileType(node.children[0], errors, typeScope, logger);
             type.addTypeHandler(guardType, rtype);
@@ -220,10 +253,10 @@ function buildScopes(expr, errors, scope, typeScope, logger) {
 
     // now process any handlers we saw in the block, so they have access to all the locals.
     if (node.nodeType == "PBlock") {
-      handlers.forEach(state => {
+      handlers.forEach(data => {
         save();
-        restoreTo(state);
-        visit(state.node, { handlers: true });
+        restoreTo(data.state);
+        visit(data.node, { handlers: true });
         restore();
       });
       handlers = [];
@@ -292,14 +325,11 @@ function resolveTypes(expr, unresolved, errors, logger) {
     }
 
     return unresolved.filter(ut => {
-      // drop any free variables that are now resolved.
-      ut.variables = ut.variables.filter(t => t.type == null);
       if (ut.variables.length > 0) return true;
 
       // can resolve this one!
       if (logger) logger(`attempting to resolve: ${ut.inspect()}`);
-      ut.type = computeType(ut.expr, errors, ut.scope, ut.typeScope, logger);
-      ut.expr.computedType = ut.type;
+      ut.resolve(computeType(ut.expr, errors, ut.scope, ut.typeScope, logger));
       if (logger) logger(`resolved type: ${ut.inspect()}`);
       return false;
     });
