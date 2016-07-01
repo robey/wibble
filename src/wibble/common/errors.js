@@ -28,4 +28,17 @@ export class Errors {
       return `[${error.span.start}:${error.span.end}] ${error.message}`;
     }).join(", ");
   }
+
+  // remember the set of errors we have so far, in cas we want to backtrack later.
+  mark() {
+    this._mark = this.list.length;
+  }
+
+  restore() {
+    while (this.list.length > this._mark) this.list.pop();
+  }
+
+  haveIncreased() {
+    return this.list.length > this._mark;
+  }
 }

@@ -257,6 +257,15 @@ export class TypeChecker {
     } while (handlers.length > 0);
     return unresolved;
   }
+
+  /*
+   * 4. assume the unresolved types and their dependencies (free variables)
+   *    make a kind of DAG, and shake the bucket to keep resolving any that
+   *    have no more free variables.
+   * 5. walk the tree again and replace unresolved type markers with their
+   *    solutions. mark any mismatched types (declared vs inferred) as errors.
+   */
+  // resolveTypes(expr, unresolved) {
 }
 
 

@@ -33,7 +33,9 @@ export class TypeDescriptor {
 
   inspect(seen = {}, precedence = 100) {
     if (this.name != null) {
-      return this.name + (this.parameters.length == 0 ? "" : `(${this.parameters.join(", ")})`);
+      let rv = this.name + (this.parameters.length == 0 ? "" : `(${this.parameters.join(", ")})`);
+      if (this.wildcard) rv += `<${this.id}>`;
+      return rv;
     }
     if (seen[this.id]) return "@";
     seen[this.id] = true;
@@ -160,8 +162,7 @@ export class TypeDescriptor {
     return null;
   }
 
-  handlerTypeForMessage(inType, logger) {
-    const wildcardMap = {};
+  handlerTypeForMessage(inType, logger, wildcardMap = {}) {
     const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType, logger, [], wildcardMap));
     if (matches.length == 0) return {};
     const guard = matches[0].guard.withWildcardMap(wildcardMap, logger);

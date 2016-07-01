@@ -16,7 +16,7 @@ const APPLY_SYMBOL = "\u2053";
  * - scope: name -> CReference
  * - typeScope: name -> TypeDescriptor
  */
-export function computeType(expr, errors, scope, typeScope, logger) {
+export function computeType(expr, errors, scope, typeScope, logger, wildcardMap = {}) {
   const Nothing = typeScope.get("Nothing");
   const Anything = typeScope.get("Anything");
   const Boolean = typeScope.get("Boolean");
@@ -81,7 +81,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
           // let symbol resolution try first.
           if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
           if (rtype == null) {
-            const { coerceType, type } = targetType.handlerTypeForMessage(argType, logger);
+            const { coerceType, type } = targetType.handlerTypeForMessage(argType, logger, wildcardMap);
             if (coerceType != null) {
               expr.coerceType = coerceType;
               if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
@@ -112,7 +112,7 @@ export function computeType(expr, errors, scope, typeScope, logger) {
 
       case "PAssignment": {
         const types = node.children.map(n => visit(n, scope));
-        if (!types[0].canAssignFrom(types[1], logger)) {
+        if (!types[0].canAssignFrom(types[1], logger, [], wildcardMap)) {
           errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, node.span);
         }
         return types[0];
