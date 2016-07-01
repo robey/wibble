@@ -31,6 +31,5 @@ on (item: $A) -> ...
 ## how
 
 compileType called:
-  - building scope for 'on' handler parameters
+  - building scope for 'on' handler parameters, attached as "guardType" to node
   - marking annotated type for an 'on' handler
-  - adding 'on' guard to type definition

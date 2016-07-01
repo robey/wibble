@@ -118,14 +118,14 @@ export class TypeChecker {
       if (node.nodeType == "POn" && node.children[0].nodeType == "PCompoundType") {
         // open up a new scope for the parameters.
         node.scope = state.scope = new Scope(state.scope);
-        node.children[0].children.forEach(field => {
-          const ftype = compileType(field.type, this.errors, state.typeScope, this.logger);
-          state.scope.add(field.name, new CReference(field.name, ftype, false));
+        node.guardType = compileType(node.children[0], this.errors, state.typeScope, this.loggern);
+        node.guardType.fields.forEach(field => {
+          state.scope.add(field.name, new CReference(field.name, field.type, false));
 
           if (field.defaultValue != null) {
             state.unresolvedType = new UnresolvedType(field.defaultValue, state.scope, state.typeScope);
             // trust the type annotation for now. (we'll check later.)
-            state.unresolvedType.setAnnotation(ftype);
+            state.unresolvedType.setAnnotation(field.type);
             unresolved.push(state.unresolvedType);
           }
         });
@@ -229,9 +229,8 @@ export class TypeChecker {
           if (state.unresolvedType) state.unresolvedType.addVariable(rtype);
         }
         state.unresolvedType = rtype;
-        if (node.children[0].nodeType == "PCompoundType") {
-          const guardType = compileType(node.children[0], this.errors, state.typeScope, this.logger);
-          state.type.addTypeHandler(guardType, rtype);
+        if (node.guardType != null) {
+          state.type.addTypeHandler(node.guardType, rtype);
         } else {
           state.type.addSymbolHandler(node.children[0].value, rtype);
         }
