@@ -12,7 +12,8 @@ const typecheck = (s, options = {}) => {
   const expr = (options.parser || parser.expression).run(s, options);
   const simplified = compiler.simplify(expr, errors);
   if (options.logger) options.logger("expr: " + dump.dumpExpr(simplified));
-  const type = compiler.typecheck(simplified, errors, scope, typeScope, options.logger);
+  const checker = new compiler.TypeChecker(errors, typeScope, options.logger);
+  const type = checker.typecheck(simplified, scope);
   if (errors.length > 0) {
     const error = new Error(errors.inspect());
     error.errors = errors;
@@ -93,6 +94,13 @@ describe("Typecheck expressions", () => {
     it("can do forward references from inside the closure", () => {
       typecheck("new { on (x: Int) -> { y + 3 }; let y = 10 }").type.inspect().should.eql("(x: Int) -> Int");
       typecheck("new { on (x: Int) -> { y := 3 }; make y := 10 }").type.inspect().should.eql("(x: Int) -> Int");
+    });
+
+    it("can do forward references from inside a deeply nested closure", () => {
+      const inner = "{ new { on (y: Int) -> y * x * a } }";
+      typecheck("new { on (x: Int) -> " + inner + " ; let a = 10 }").type.inspect().should.eql(
+        "(x: Int) -> (y: Int) -> Int"
+      );
     });
 
     it("can still trap unknown references inside the closure", () => {
@@ -216,32 +224,6 @@ describe("Typecheck expressions", () => {
       typecheck(`(${func}) ((n: Int, incr: Int = 1) -> n + incr)`).type.inspect().should.eql("(n: Int) -> Int");
     });
 
-    it("simple type parameters", () => {
-      const func = "(x: $A) -> x";
-      typecheck(func).type.inspect().should.eql("(x: $A) -> $A");
-      typecheck(`(${func}) 10`).type.inspect().should.eql("Int");
-    });
-
-    it("type parameters in a disjoint type", () => {
-      const func = "(x: $A, y: Boolean) -> if y then x else 100";
-      typecheck(func).type.inspect().should.eql("(x: $A, y: Boolean) -> ($A | Int)");
-      typecheck(`(${func}) (10, true)`).type.inspect().should.eql("Int");
-      typecheck(`(${func}) (10, false)`).type.inspect().should.eql("Int");
-    });
-
-    it("type parameters in the argument", () => {
-      const func = "(f: Int -> Int) -> f 2";
-      typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> Int");
-      typecheck(`(${func}) ((x: $A) -> x)`).type.inspect().should.eql("Int");
-    });
-
-    // FIXME this will require more work.
-    // it("type checks a wildcard expression *after* resolving the type", () => {
-    //   const func = "(f: (x: Int, y: Int) -> Int) -> f(2, 3)";
-    //   const arg = ("(x: $A, y: $A) -> x + y");
-    //   typecheck(`(${func}) (${arg})`).type.inspect().should.eql("Int");
-    // });
-
     it("insists that the returned type match the prototype", () => {
       const func = "(n: Int): Int -> true";
       (() => typecheck(func)).should.throw(/Expected type Int; inferred type Boolean/);
@@ -293,5 +275,35 @@ describe("Typecheck expressions", () => {
     it("refuses to guess handlers for wildcard types", () => {
       (() => typecheck("(x: $A) -> x.hash")).should.throw(/can't be invoked/);
     });
+  });
+
+  describe("wildcard types", () => {
+    it("simple type parameters", () => {
+      const func = "(x: $A) -> x";
+      typecheck(func).type.inspect().should.eql("(x: $A) -> $A");
+      typecheck(`(${func}) 10`).type.inspect().should.eql("Int");
+    });
+
+    it("type parameters in a disjoint type", () => {
+      const func = "(x: $A, y: Boolean) -> if y then x else 100";
+      typecheck(func).type.inspect().should.eql("(x: $A, y: Boolean) -> ($A | Int)");
+      typecheck(`(${func}) (10, true)`).type.inspect().should.eql("Int");
+      typecheck(`(${func}) (10, false)`).type.inspect().should.eql("Int");
+    });
+
+    it("type parameters in the argument", () => {
+      const func = "(f: Int -> Int) -> f 2";
+      typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> Int");
+      typecheck(`(${func}) ((x: $A) -> x)`).type.inspect().should.eql("Int");
+    });
+
+    // FIXME this will require more work.
+    it("type checks a wildcard expression *after* resolving the type", () => {
+      const func = "(f: (x: Int, y: Int) -> Int) -> f(2, 3)";
+      const arg = ("(x: $A, y: $A) -> x + y");
+      typecheck(`(${func}) (${arg})`, { logger: console.log }).type.inspect().should.eql("Int");
+    });
+
+
   });
 });
