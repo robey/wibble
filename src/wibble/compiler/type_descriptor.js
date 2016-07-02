@@ -12,12 +12,12 @@ let _nextId = 1;
 export class TypeDescriptor {
   /*
    * name: optional (user-defined types have one)
-   * parameters: list of "$A" to fill in later (if possible)
+   * parameters: any type parameters, either wildcards or concrete types
    */
-  constructor(name, parameters = []) {
+  constructor(name, parameters) {
     this.id = _nextId++;
     this.name = name;
-    this.parameters = parameters;
+    this.parameters = parameters || [];
     // for inspect:
     this.precedence = 1;
     // typeHandlers: { guard, type }
@@ -27,15 +27,11 @@ export class TypeDescriptor {
     this.canCall = true;
     // am *i* a wildcard? only ParameterType says yes. :)
     this.wildcard = false;
-    // are there any wildcards in my handlers? (in other words, not fully defined)
-    this.wildcards = [];
   }
 
   inspect(seen = {}, precedence = 100) {
     if (this.name != null) {
-      let rv = this.name + (this.parameters.length == 0 ? "" : `(${this.parameters.join(", ")})`);
-      if (this.wildcard) rv += `<${this.id}>`;
-      return rv;
+      return this.name + (this.parameters.length == 0 ? "" : `(${this.parameters.map(w => w.inspect()).join(", ")})`);
     }
     if (seen[this.id]) return "@";
     seen[this.id] = true;
@@ -61,16 +57,10 @@ export class TypeDescriptor {
 
   addSymbolHandler(name, type) {
     this.symbolHandlers[name] = type;
-    type.wildcards.forEach(w => {
-      if (this.wildcards.indexOf(w) < 0) this.wildcards.push(w);
-    });
   }
 
   addTypeHandler(guard, type) {
     this.typeHandlers.push({ guard, type });
-    guard.wildcards.concat(type.wildcards).forEach(w => {
-      if (this.wildcards.indexOf(w) < 0) this.wildcards.push(w);
-    });
   }
 
   /*
@@ -106,7 +96,7 @@ export class TypeDescriptor {
     if (this.wildcard) {
       // i'm a wildcard! i can coerce anything! tag, you're it!
       if (logger) logger(`canAssign? ${this.inspect()} := ${other.inspect()} : wildcard resolved`);
-      wildcardMap[this.name] = other;
+      wildcardMap[this.id] = other;
       return true;
     }
 
@@ -120,7 +110,7 @@ export class TypeDescriptor {
       const newThis = this.withWildcardMap(wildcardMap, logger);
       const newOther = other.withWildcardMap(wildcardMap, logger);
       if (logger) {
-        const mapNames = Object.keys(wildcardMap).map(name => `${name} = ${wildcardMap[name].inspect()}`);
+        const mapNames = Object.keys(wildcardMap).map(id => `${id} = ${wildcardMap[id].inspect()}`);
         logger(`canAssign? retrying with wildcard mapping: ${mapNames.join(", ")}`);
       }
       return newThis.canAssignFrom(newOther, logger, cache, wildcardMap);
@@ -171,22 +161,30 @@ export class TypeDescriptor {
   }
 
   // fill in any wildcard types from the map
-  withWildcardMap(wildcardMap, logger) {
-    if (this.wildcards.length == 0) return this;
+  withWildcardMap(wildcardMap, logger, seen = {}) {
+    // avoid infinite loops
+    if (seen[this.id]) return this;
+    seen[this] = true;
 
-    const parameters = this.parameters.map(p => {
-      if (wildcardMap.hasOwnProperty(p)) return wildcardMap[p].inspect();
-      return p;
-    });
+    if (this.wildcard && wildcardMap.hasOwnProperty(this.id)) return wildcardMap[this.id];
+
+    // bail early if there are no wildcards
+    if (this.parameters.length == 0) return this;
+    if (! this.parameters.map(p => p.wildcard).reduce((a, b) => a || b)) return this;
+
+    const parameters = this.parameters.map(p => p.withWildcardMap(wildcardMap, logger, seen));
     const rtype = new TypeDescriptor(this.name, parameters);
 
     for (const symbol in this.symbolHandlers) {
-      rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, logger);
+      rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, logger, seen);
     }
     rtype.typeHandlers = this.typeHandlers.map(({ guard, type }) => {
-      return { guard: guard.withWildcardMap(wildcardMap, logger), type: type.withWildcardMap(wildcardMap, logger) };
+      return {
+        guard: guard.withWildcardMap(wildcardMap, logger, seen),
+        type: type.withWildcardMap(wildcardMap, logger, seen)
+      };
     });
-    rtype.wildcards = this.wildcards.filter(w => wildcardMap[w] == null);
+
     return rtype;
   }
 }
@@ -259,10 +257,9 @@ export class CompoundType extends TypeDescriptor {
     return true;
   }
 
-  withWildcardMap(wildcardMap, logger) {
-    if (this.wildcards.length == 0) return this;
+  withWildcardMap(wildcardMap, logger, seen = {}) {
     const fields = this.fields.map(f => {
-      return new CTypedField(f.name, f.type.withWildcardMap(wildcardMap, logger), f.defaultValue);
+      return new CTypedField(f.name, f.type.withWildcardMap(wildcardMap, logger, seen), f.defaultValue);
     });
     return new CompoundType(fields);
   }
@@ -274,11 +271,6 @@ export class ParameterType extends TypeDescriptor {
     super(name);
     this.canCall = false;
     this.wildcard = true;
-  }
-
-  withWildcardMap(wildcardMap, _logger) {
-    if (wildcardMap.hasOwnProperty(this.name)) return wildcardMap[this.name];
-    return this;
   }
 }
 
@@ -296,8 +288,8 @@ export class MergedType extends TypeDescriptor {
     return this.precedence > precedence ? "(" + rv + ")" : rv;
   }
 
-  withWildcardMap(wildcardMap, logger) {
-    return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap, logger)), logger);
+  withWildcardMap(wildcardMap, logger, seen = {}) {
+    return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap, logger, seen)), logger);
   }
 }
 
@@ -341,7 +333,8 @@ export function mergeTypes(types, logger) {
 }
 
 export function newType(name, parameters) {
-  return new TypeDescriptor(name, parameters);
+  const wildcards = (parameters != null && parameters.length > 0) ? parameters.map(p => new ParameterType(p)) : null;
+  return new TypeDescriptor(name, wildcards);
 }
 
 // special type for tracking 'return' in blocks:

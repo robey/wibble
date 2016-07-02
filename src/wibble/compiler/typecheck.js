@@ -118,7 +118,7 @@ export class TypeChecker {
       if (node.nodeType == "POn" && node.children[0].nodeType == "PCompoundType") {
         // open up a new scope for the parameters.
         node.scope = state.scope = new Scope(state.scope);
-        node.guardType = compileType(node.children[0], this.errors, state.typeScope, this.loggern);
+        node.guardType = compileType(node.children[0], this.errors, state.typeScope, this.logger);
         node.guardType.fields.forEach(field => {
           state.scope.add(field.name, new CReference(field.name, field.type, false));
 

@@ -9,7 +9,9 @@ import { CompoundType, CTypedField, mergeTypes, newType, ParameterType } from ".
 export function compileType(expr, errors, scope, logger) {
   if (!(expr instanceof PType)) throw new Error("Internal error: compileType on non-PType");
 
-  const wildcards = [];
+  // if a wildcard name appears multiple times, use the same type descriptor
+  // name -> type
+  const wildcards = {};
 
   const compile = node => {
     switch(node.nodeType) {
@@ -38,8 +40,10 @@ export function compileType(expr, errors, scope, logger) {
       case "PParameterType": {
         const name = "$" + node.name;
         if (scope.get(name) != null) return scope.get(name);
-        if (wildcards.indexOf(name) < 0) wildcards.push(name);
-        return new ParameterType(name);
+        if (wildcards.hasOwnProperty(name)) return wildcards[name];
+        const type = new ParameterType(name);
+        wildcards[name] = type;
+        return type;
       }
 
       case "PFunctionType": {
@@ -56,6 +60,6 @@ export function compileType(expr, errors, scope, logger) {
   };
 
   const rtype = compile(expr);
-  rtype.wildcards = wildcards;
+  rtype.wildcards = Object.keys(wildcards).map(key => wildcards[key]);
   return rtype;
 }

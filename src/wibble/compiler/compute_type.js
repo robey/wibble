@@ -55,7 +55,8 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
 
       case "PArray": {
         const atype = node.children.length == 0 ? Anything : mergeTypes(node.children.map(n => visit(n, scope)));
-        return typeScope.get("Array").withWildcardMap({ "$A": atype });
+        const Array = typeScope.get("Array");
+        return Array.withWildcardMap({ [Array.parameters[0].id]: atype });
       }
 
       case "PStruct": {

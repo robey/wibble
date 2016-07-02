@@ -59,17 +59,6 @@ describe("compileType", () => {
 
 
 // describe "TypeDescriptor", ->
-//   it "named type equality", ->
-//     new t_type.NamedType("House").equals(new t_type.NamedType("House")).should.eql true
-//     new t_type.NamedType("House").equals(new t_type.NamedType("Cat")).should.eql false
-//
-//   it "function type equality", ->
-//     f1 = t_type.functionType(descriptors.DInt, descriptors.DSymbol)
-//     f2 = t_type.functionType(descriptors.DString, descriptors.DSymbol)
-//     f3 = t_type.functionType(descriptors.DInt, descriptors.DSymbol)
-//     f1.equals(f2).should.eql false
-//     f1.equals(f3).should.eql true
-//
 //   it "compound type equality", ->
 //     xInt = { name: "x", type: descriptors.DInt }
 //     nameString = { name: "name", type: descriptors.DString }
