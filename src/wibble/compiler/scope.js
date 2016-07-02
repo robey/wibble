@@ -45,8 +45,9 @@ export class Scope {
     this.symtab[name] = obj;
   }
 
+  // f(key, value)
   forEach(f) {
-    Object.keys(this.symtab).sort().forEach(f);
+    Object.keys(this.symtab).sort().forEach(key => f(key, this.symtab[key]));
   }
 
   inspect() {

@@ -93,7 +93,7 @@ export class TypeChecker {
       mappings = Object.keys(wildcardMap).length;
       this.errors.restore();
       unresolved.forEach(t => t.reset());
-      resolveTypes(expr, unresolved, this.errors, this.logger, wildcardMap);
+      this.resolveTypes(expr, unresolved);
       type = computeType(expr, this.errors, scope, this.typeScope, this.logger, wildcardMap);
     } while (this.errors.haveIncreased() && Object.keys(wildcardMap).length > mappings);
     if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)} : ${type.inspect()}`);
@@ -265,84 +265,74 @@ export class TypeChecker {
    * 5. walk the tree again and replace unresolved type markers with their
    *    solutions. mark any mismatched types (declared vs inferred) as errors.
    */
-  // resolveTypes(expr, unresolved) {
-}
-
-
-
-
-
-
-
-
-/*
- * 4. assume the unresolved types and their dependencies (free variables)
- *    make a kind of DAG, and shake the bucket to keep resolving any that
- *    have no more free variables.
- * 5. walk the tree again and replace unresolved type markers with their
- *    solutions. mark any mismatched types (declared vs inferred) as errors.
- */
-function resolveTypes(expr, unresolved, errors, logger, wildcardMap) {
-  let stillUnresolved = tryProgress(unresolved);
-  while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
-    unresolved = stillUnresolved;
-    stillUnresolved = tryProgress(unresolved);
-  }
-  if (stillUnresolved.length > 0) {
-    // couldn't solve it. :(
-    stillUnresolved.forEach(ut => {
-      errors.add("Recursive definition needs explicit type declaration", ut.expr.span);
-      ut.type = ut.typeScope.get("Anything");
-      ut.expr.computedType = ut.type;
-    });
-  }
-
-  // now, walk the expr, looking for new scopes & type definitions, replacing
-  // the unresolved type markers with their solutions.
-  fixup(expr);
-
-  function fixup(node) {
-    if (node.scope) node.scope.forEach(name => {
-      const cref = node.scope.get(name);
-      cref.type = cref.type.resolved;
-    });
-    if (node.newType) {
-      Object.keys(node.newType.symbolHandlers).forEach(symbol => {
-        node.newType.symbolHandlers[symbol] = node.newType.symbolHandlers[symbol].resolved;
-      });
-      node.newType.typeHandlers = node.newType.typeHandlers.map(({ guard, type }) => {
-        return { guard, type: type.resolved };
+  resolveTypes(expr, unresolved) {
+    let stillUnresolved = this.tryProgress(unresolved);
+    while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
+      unresolved = stillUnresolved;
+      stillUnresolved = this.tryProgress(unresolved);
+    }
+    if (stillUnresolved.length > 0) {
+      // couldn't solve it. :(
+      const Anything = this.typeScope.get("Anything");
+      stillUnresolved.forEach(ut => {
+        this.errors.add("Recursive definition needs explicit type declaration", ut.expr.span);
+        ut.type = Anything;
+        ut.expr.computedType = ut.type;
       });
     }
 
-    if (node.coerceType && node.computedType && !node.coerceType.canAssignFrom(node.computedType, logger, [], wildcardMap)) {
-      errors.add(
-        `Expected type ${node.coerceType.inspect()}; inferred type ${node.computedType.inspect()}`,
-        node.span
-      );
-    }
-
-    node.children.forEach(fixup);
+    this.flattenResolvedTypes(expr);
   }
 
   /*
    * optimistically assume that the unresolved types make a DAG, and resolve
    * anything we can find that has zero radicals.
    */
-  function tryProgress(unresolved) {
-    if (logger) {
-      logger("try to resolve:");
-      unresolved.forEach(ut => logger("  " + ut.inspect()));
+  tryProgress(unresolved) {
+    if (this.logger) {
+      this.logger("try to resolve:");
+      unresolved.forEach(ut => this.logger("  " + ut.inspect()));
     }
 
     return unresolved.filter(ut => {
       if (ut.variables.length > 0) return true;
 
       // can resolve this one!
-      if (logger) logger(`attempting to resolve: ${ut.inspect()}`);
-      ut.resolve(computeType(ut.expr, errors, ut.scope, ut.typeScope, logger));
-      if (logger) logger(`resolved type: ${ut.inspect()}`);
+      if (this.logger) this.logger(`attempting to resolve: ${ut.inspect()}`);
+      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, this.logger));
+      if (this.logger) this.logger(`resolved type: ${ut.inspect()}`);
       return false;
     });
+  }
+
+  /*
+   * walk the AST, finding all "UnresolvedType" objects and replacing them
+   * with the resolved type.
+   */
+  flattenResolvedTypes(expr) {
+    if (expr.scope) {
+      // everything in a scope starts as unresolved.
+      expr.scope.forEach((name, cref) => {
+        cref.type = cref.type.resolved;
+      });
+    }
+
+    if (expr.newType) {
+      Object.keys(expr.newType.symbolHandlers).forEach(symbol => {
+        expr.newType.symbolHandlers[symbol] = expr.newType.symbolHandlers[symbol].resolved;
+      });
+      expr.newType.typeHandlers = expr.newType.typeHandlers.map(({ guard, type }) => {
+        return { guard, type: type.resolved };
+      });
+    }
+
+    if (expr.coerceType && expr.computedType && !expr.coerceType.canAssignFrom(expr.computedType, this.logger)) {
+      this.errors.add(
+        `Expected type ${expr.coerceType.inspect()}; inferred type ${expr.computedType.inspect()}`,
+        expr.span
+      );
+    }
+
+    expr.children.forEach(node => this.flattenResolvedTypes(node));
   }
 }
