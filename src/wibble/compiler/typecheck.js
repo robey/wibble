@@ -93,9 +93,12 @@ export class TypeChecker {
       mappings = Object.keys(wildcardMap).length;
       this.errors.restore();
       unresolved.forEach(t => t.reset());
-      this.resolveTypes(expr, unresolved);
+      this.resolveTypes(expr, unresolved, wildcardMap);
+      this.flattenResolvedTypes(expr, wildcardMap);
       type = computeType(expr, this.errors, scope, this.typeScope, this.logger, wildcardMap);
     } while (this.errors.haveIncreased() && Object.keys(wildcardMap).length > mappings);
+
+    // this.flattenResolvedTypes(expr, wildcardMap);
     if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)} : ${type.inspect()}`);
     return type;
   }
@@ -262,14 +265,12 @@ export class TypeChecker {
    * 4. assume the unresolved types and their dependencies (free variables)
    *    make a kind of DAG, and shake the bucket to keep resolving any that
    *    have no more free variables.
-   * 5. walk the tree again and replace unresolved type markers with their
-   *    solutions. mark any mismatched types (declared vs inferred) as errors.
    */
-  resolveTypes(expr, unresolved) {
-    let stillUnresolved = this.tryProgress(unresolved);
+  resolveTypes(expr, unresolved, wildcardMap) {
+    let stillUnresolved = this.tryProgress(unresolved, wildcardMap);
     while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
       unresolved = stillUnresolved;
-      stillUnresolved = this.tryProgress(unresolved);
+      stillUnresolved = this.tryProgress(unresolved, wildcardMap);
     }
     if (stillUnresolved.length > 0) {
       // couldn't solve it. :(
@@ -280,15 +281,13 @@ export class TypeChecker {
         ut.expr.computedType = ut.type;
       });
     }
-
-    this.flattenResolvedTypes(expr);
   }
 
   /*
    * optimistically assume that the unresolved types make a DAG, and resolve
    * anything we can find that has zero radicals.
    */
-  tryProgress(unresolved) {
+  tryProgress(unresolved, wildcardMap) {
     if (this.logger) {
       this.logger("try to resolve:");
       unresolved.forEach(ut => this.logger("  " + ut.inspect()));
@@ -299,30 +298,30 @@ export class TypeChecker {
 
       // can resolve this one!
       if (this.logger) this.logger(`attempting to resolve: ${ut.inspect()}`);
-      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, this.logger));
+      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, this.logger, wildcardMap));
       if (this.logger) this.logger(`resolved type: ${ut.inspect()}`);
       return false;
     });
   }
 
   /*
-   * walk the AST, finding all "UnresolvedType" objects and replacing them
-   * with the resolved type.
+   * 5. walk the tree again and replace unresolved type markers with their
+   *    solutions. mark any mismatched types (declared vs inferred) as errors.
    */
-  flattenResolvedTypes(expr) {
+  flattenResolvedTypes(expr, wildcardMap) {
     if (expr.scope) {
       // everything in a scope starts as unresolved.
       expr.scope.forEach((name, cref) => {
-        cref.type = cref.type.resolved;
+        cref.type = cref.type.resolved.withWildcardMap(wildcardMap);
       });
     }
 
     if (expr.newType) {
       Object.keys(expr.newType.symbolHandlers).forEach(symbol => {
-        expr.newType.symbolHandlers[symbol] = expr.newType.symbolHandlers[symbol].resolved;
+        expr.newType.symbolHandlers[symbol] = expr.newType.symbolHandlers[symbol].resolved.withWildcardMap(wildcardMap);
       });
       expr.newType.typeHandlers = expr.newType.typeHandlers.map(({ guard, type }) => {
-        return { guard, type: type.resolved };
+        return { guard, type: type.resolved.withWildcardMap(wildcardMap) };
       });
     }
 
@@ -333,6 +332,6 @@ export class TypeChecker {
       );
     }
 
-    expr.children.forEach(node => this.flattenResolvedTypes(node));
+    expr.children.forEach(node => this.flattenResolvedTypes(node, wildcardMap));
   }
 }

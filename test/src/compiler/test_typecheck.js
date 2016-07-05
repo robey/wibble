@@ -216,7 +216,7 @@ describe("Typecheck expressions", () => {
     it("as function parameters", () => {
       const func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }";
       typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> (n: Int) -> Int");
-      typecheck(`(${func}) ((n: Int) -> n + 1)`).type.inspect().should.eql("(n: Int) -> Int");
+      typecheck(`(${func}) ((n: Int) -> n + 1)`, { logger: console.log }).type.inspect().should.eql("(n: Int) -> Int");
     });
 
     it("with parameters matched contravariantly", () => {
@@ -299,8 +299,12 @@ describe("Typecheck expressions", () => {
 
     // FIXME this will require more work.
     it("type checks a wildcard expression *after* resolving the type", () => {
-      const func = "(f: (x: Int, y: Int) -> Int) -> f(2, 3)";
-      const arg = ("(x: $A, y: $A) -> x + y");
+      // const func = "(f: (x: Int, y: Int) -> Int) -> f(2, 3)";
+      // const arg = ("(x: $A, y: $A) -> x + y");
+      // typecheck(`(${func}) (${arg})`, { logger: console.log }).type.inspect().should.eql("Int");
+
+      const func = "(f: Int -> Int) -> f 2";
+      const arg = ("(x: $A) -> x + 1");
       typecheck(`(${func}) (${arg})`, { logger: console.log }).type.inspect().should.eql("Int");
     });
 
