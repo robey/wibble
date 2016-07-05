@@ -63,10 +63,20 @@ X = eliminated by transformations
 
 # Type descriptors
 
-  - TypeDescriptor
+  - TypeDescriptor(id, name, parameters: TypeDescriptor[])
     - CompoundType(fields)
       - CTypedField(name, type, defaultValue)
     - MergedType(types)
+    - ParameterType
+
+  - TypeDescriptor
+      - kind (SIMPLE, COMPOUND, SUM, WILDCARD)
+      - id
+      - name (optional)
+      - parameters: TypeDescriptor[]
+      - precedence
+      - symbolHandlers
+      - typeHandlers
 
 
 
