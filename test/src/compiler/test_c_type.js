@@ -12,7 +12,8 @@ describe("compileType", () => {
     const errors = new Errors();
     const scope = options.scope || compiler.builtinTypes;
     const expr = compiler.simplify(parse(s, options), errors);
-    const type = compiler.compileType(expr, errors, scope);
+    const assignmentChecker = new compiler.AssignmentChecker(errors, options.logger);
+    const type = compiler.compileType(expr, errors, scope, assignmentChecker);
     if (errors.length > 0) {
       const error = new Error(errors.inspect());
       error.errors = errors;
@@ -46,14 +47,26 @@ describe("compileType", () => {
   it("disjoint", () => {
     compileType("String | Symbol").inspect().should.eql("String | Symbol");
     compileType("String | (x: Int, y: Int)").inspect().should.eql("String | (x: Int, y: Int)");
-    compileType("String | (x: Int) -> String").inspect().should.eql("String | (x: Int) -> String");
+    compileType("String | (x: Int) -> String").inspect().should.eql("String | ((x: Int) -> String)");
   });
 
-  it("wildcards", () => {
-    compileType("Int").wildcards.should.eql([]);
-    compileType("$A").wildcards.should.eql([ "$A" ]);
-    compileType("$A | Int | $B").wildcards.should.eql([ "$A", "$B" ]);
-    compileType("(x: Int, y: $C) -> String").wildcards.should.eql([ "$C" ]);
+  describe("wildcards", () => {
+    it("simple", () => {
+      compileType("Int").parameters.should.eql([]);
+      compileType("$A").parameters.should.eql([]);
+      compileType("List($A)").parameters.map(x => x.inspect()).should.eql([ "$A" ]);
+      compileType("$A | Int | $B").wildcards.should.eql([ "$A", "$B" ]);
+      compileType("(x: Int, y: $C) -> String").wildcards.should.eql([ "$C" ]);
+    });
+
+    it("uses the same id for nested wildcard reuse", () => {
+      const type = compileType("(x: $A) -> List($A)");
+      type.inspect().should.eql("(x: $A) -> List($A)");
+      type.typeHandlers.length.should.eql(1);
+      type.typeHandlers[0].guard.inspect().should.eql("(x: $A)");
+      type.typeHandlers[0].type.inspect().should.eql("List($A)");
+      type.typeHandlers[0].type.parameters[0].inspect().should.eql("$A");
+    });
   });
 });
 

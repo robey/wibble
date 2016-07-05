@@ -1,26 +1,22 @@
 "use strict";
 
 import { PType } from "../common/ast";
-import { newCompoundType, CTypedField, mergeTypes, newType, ParameterType } from "./type_descriptor";
+import { newCompoundType, CTypedField, mergeTypes, newType, newWildcard } from "./type_descriptor";
 
 /*
  * compile an AST type into a type descriptor.
  */
-export function compileType(expr, errors, scope, logger) {
+export function compileType(expr, errors, typeScope, assignmentChecker) {
   if (!(expr instanceof PType)) throw new Error("Internal error: compileType on non-PType");
-
-  // if a wildcard name appears multiple times, use the same type descriptor
-  // name -> type
-  const wildcards = {};
 
   const compile = node => {
     switch(node.nodeType) {
       case "PSimpleType": {
-        if (scope.get(node.name) == null) {
+        if (typeScope.get(node.name) == null) {
           errors.add(`Unresolved type '${node.name}'`, node.span);
-          return scope.get("Anything");
+          return typeScope.get("Anything");
         }
-        return scope.get(node.name);
+        return typeScope.get(node.name);
       }
 
       case "PCompoundType": {
@@ -39,10 +35,8 @@ export function compileType(expr, errors, scope, logger) {
 
       case "PParameterType": {
         const name = "$" + node.name;
-        if (scope.get(name) != null) return scope.get(name);
-        if (wildcards.hasOwnProperty(name)) return wildcards[name];
-        const type = new ParameterType(name);
-        wildcards[name] = type;
+        if (typeScope.get(name) != null) return typeScope.get(name);
+        const type = newWildcard(name);
         return type;
       }
 
@@ -54,12 +48,11 @@ export function compileType(expr, errors, scope, logger) {
 
       // - PMergedType
       case "PMergedType": {
-        return mergeTypes(node.children.map(compile), logger);
+        return mergeTypes(node.children.map(compile), assignmentChecker);
       }
     }
   };
 
   const rtype = compile(expr);
-  rtype.wildcards = Object.keys(wildcards).map(key => wildcards[key]);
   return rtype;
 }
