@@ -59,21 +59,6 @@ describe("compileType", () => {
 
 
 // describe "TypeDescriptor", ->
-//   it "compound type equality", ->
-//     xInt = { name: "x", type: descriptors.DInt }
-//     nameString = { name: "name", type: descriptors.DString }
-//     s1 = new t_type.CompoundType([ xInt, nameString ])
-//     s2 = new t_type.CompoundType([ nameString, xInt ])
-//     s3 = new t_type.CompoundType([ xInt ])
-//     s1.equals(s1).should.eql true
-//     s1.equals(s2).should.eql true
-//     s1.equals(s3).should.eql false
-//     s2.equals(s1).should.eql true
-//     s2.equals(s2).should.eql true
-//     s2.equals(s3).should.eql false
-//     s3.equals(s1).should.eql false
-//     s3.equals(s2).should.eql false
-//     s3.equals(s3).should.eql true
 //
 //   it "compound type accessors", ->
 //     xInt = { name: "x", type: descriptors.DInt }
@@ -83,72 +68,3 @@ describe("compileType", () => {
 //     s1.handlerTypeForMessage(null, "name").should.eql descriptors.DString
 //     s1.handlerTypeForMessage(null, "missing").should.eql descriptors.DAny
 //
-//   describe "can coerce to other types", ->
-//     it "simple", ->
-//       descriptors.DString.canCoerceFrom(descriptors.DString).should.eql true
-//       descriptors.DInt.canCoerceFrom(descriptors.DSymbol).should.eql false
-//       descriptors.DAny.canCoerceFrom(descriptors.DString).should.eql true
-//
-//     it "structs", ->
-//       xInt = { name: "x", type: descriptors.DInt }
-//       nameString = { name: "name", type: descriptors.DString }
-//       s1 = new t_type.CompoundType([ xInt, nameString ])
-//       s2 = new t_type.CompoundType([ nameString, xInt ])
-//       s3 = new t_type.CompoundType([ xInt ])
-//       new t_type.CompoundType([]).canCoerceFrom(descriptors.DNothing).should.eql true
-//       s3.canCoerceFrom(descriptors.DInt).should.eql true
-//       s3.canCoerceFrom(s2).should.eql false
-//       s1.canCoerceFrom(s2).should.eql true
-//       s2.canCoerceFrom(s1).should.eql true
-//
-//     it "structs with positionals", ->
-//       xInt = { name: "x", type: descriptors.DInt }
-//       nameString = { name: "name", type: descriptors.DString }
-//       s1 = new t_type.CompoundType([ xInt, nameString ])
-//       s2 = new t_type.CompoundType([ { name: "?0", type: descriptors.DInt }, { name: "?1", type: descriptors.DString } ])
-//       s3 = new t_type.CompoundType([ { name: "?0", type: descriptors.DSymbol }, { name: "?1", type: descriptors.DString } ])
-//       s1.canCoerceFrom(s2).should.eql true
-//       s1.canCoerceFrom(s3).should.eql false
-//
-//     it "structs with missing fields", ->
-//       s1 = new t_type.CompoundType([
-//         { name: "x", type: descriptors.DInt }
-//         { name: "name", type: descriptors.DString }
-//         { name: "valid", type: descriptors.DBoolean, value: { boolean: true } }
-//         { name: "wicket", type: descriptors.DInt }
-//       ])
-//       s2 = new t_type.CompoundType([
-//         { name: "?0", type: descriptors.DInt }
-//         { name: "wicket", type: descriptors.DInt }
-//         { name: "name", type: descriptors.DString }
-//       ])
-//       s3 = new t_type.CompoundType([
-//         { name: "?0", type: descriptors.DInt }
-//         { name: "name", type: descriptors.DString }
-//       ])
-//       s1.canCoerceFrom(s2).should.eql true
-//       s1.canCoerceFrom(s3).should.eql false
-//       s3.canCoerceFrom(s2).should.eql false
-//
-//     it "structs with nothing", ->
-//       s1 = new t_type.CompoundType([
-//         { name: "height", type: descriptors.DInt, value: { number: "base10", value: "0" } }
-//         { name: "width", type: descriptors.DInt, value: { number: "base10", value: "0" } }
-//       ])
-//       s1.canCoerceFrom(descriptors.DNothing).should.eql true
-//
-//     it "structs with single values", ->
-//       s1 = new t_type.CompoundType([
-//         { name: "height", type: descriptors.DInt, value: { number: "base10", value: "0" } }
-//         { name: "width", type: descriptors.DInt, value: { number: "base10", value: "0" } }
-//       ])
-//       s1.canCoerceFrom(descriptors.DInt).should.eql true
-//       s1.canCoerceFrom(descriptors.DString).should.eql false
-//
-//     it "structs with single nested structs", ->
-//       dPoint = new t_type.CompoundType([
-//         { name: "x", type: descriptors.DInt }
-//         { name: "y", type: descriptors.DInt }
-//       ])
-//       dParam = new t_type.CompoundType([ { name: "point", type: dPoint }])
-//       dParam.canCoerceFrom(dPoint).should.eql true

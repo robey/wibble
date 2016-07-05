@@ -1,7 +1,7 @@
 "use strict";
 
 import { PType } from "../common/ast";
-import { CompoundType, CTypedField, mergeTypes, newType, ParameterType } from "./type_descriptor";
+import { newCompoundType, CTypedField, mergeTypes, newType, ParameterType } from "./type_descriptor";
 
 /*
  * compile an AST type into a type descriptor.
@@ -30,7 +30,7 @@ export function compileType(expr, errors, scope, logger) {
           if (seen[f.name]) errors.add(`Field name ${f.name} is repeated`, f.span);
           seen[f.name] = true;
         });
-        return new CompoundType(node.children.map(f => {
+        return newCompoundType(node.children.map(f => {
           return new CTypedField(f.name, compile(f.type), f.defaultValue);
         }));
       }

@@ -1,5 +1,6 @@
 "use strict";
 
+export * from "./compiler/assign";
 export * from "./compiler/builtin_types";
 export * from "./compiler/c_type";
 export * from "./compiler/scope";

@@ -9,6 +9,10 @@ export class AssignmentChecker {
   constructor(errors, logger) {
     this.errors = errors;
     this.logger = logger;
+    this.reset();
+  }
+
+  reset() {
     // "id:id" => true/false
     this.cache = {};
     // track wildcard resolutions (id -> type)
@@ -17,6 +21,9 @@ export class AssignmentChecker {
 
   canAssignFrom(type1, type2) {
     if (this.logger) this.logger(`canAssign? ${type1.inspect()} := ${type2.inspect()}`);
+    type1 = this.resolve(type1);
+    type2 = this.resolve(type2);
+    if (this.logger) this.logger(`canAssign? ${type1.inspect()} := ${type2.inspect()}  post-resolve`);
     const rv = this._canAssignFrom(type1, type2);
     if (this.logger) this.logger(`canAssign? ${type1.inspect()} := ${type2.inspect()}  ${rv ? "YES" : "NO"}`);
     return rv;
@@ -40,6 +47,19 @@ export class AssignmentChecker {
       return true;
     }
 
+    // nope.
+    if (type2.kind == Type.WILDCARD) return false;
+
+    if (type1.kind == Type.SUM || type2.kind == Type.SUM) {
+      const types1 = type1.kind == Type.SUM ? type1.types : [ type1 ];
+      const types2 = type2.kind == Type.SUM ? type2.types : [ type2 ];
+      // every type on the right side must be allowed somewhere on the left side.
+      return types2.map(t2 => {
+        // can any t1 take this?
+        return types1.map(t1 => this.canAssignFrom(t1, t2)).reduce((a, b) => a || b);
+      }).reduce((a, b) => a && b);
+    }
+
     // FIXME: cache to avoid loops?
 
     switch (type1.kind) {
@@ -61,7 +81,6 @@ export class AssignmentChecker {
         return false;
       }
     }
-    // sum: check alts?
 
     return false;
   }
@@ -118,5 +137,14 @@ export class AssignmentChecker {
 
     for (const name in remaining) if (remaining[name].defaultValue == null) return false;
     return true;
+  }
+
+  // follow any series of "resolved" & wildcard mappings
+  resolve(type) {
+    type = type.resolved;
+    while (type.kind == Type.WILDCARD && this.wildcardMap.hasOwnProperty(type.id)) {
+      type = this.wildcardMap[type.id].resolved;
+    }
+    return type;
   }
 }

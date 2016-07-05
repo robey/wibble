@@ -8,8 +8,8 @@ TAnything.anything = true;
 TAnything.canAssignFrom = () => true;
 
 const TNothing = newType("Nothing");
+// special hack to prevent anything from being able to assign to Nothing, or vice-versa.
 TNothing.nothing = true;
-TNothing.canAssignFrom = () => false;
 
 const TBoolean = newType("Boolean");
 const TInt = newType("Int");

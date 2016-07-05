@@ -141,4 +141,71 @@ describe("AssignmentChecker", () => {
       checker.canAssignFrom(s5, dPoint).should.eql(true);
     });
   });
+
+  describe("wildcard type", () => {
+    const s1 = compiler.newWildcard("$A");
+    const s2 = compiler.newWildcard("$B");
+    const s3 = compiler.newWildcard("$A");
+    const checker = makeChecker();
+
+    it("gets added to the wildcard map", () => {
+      checker.reset();
+      checker.canAssignFrom(compiler.builtinTypes.get("Int"), s1).should.eql(false);
+      Object.keys(checker.wildcardMap).should.eql([]);
+      checker.canAssignFrom(s1, compiler.builtinTypes.get("Int")).should.eql(true);
+      Object.keys(checker.wildcardMap).should.eql([ s1.id.toString() ]);
+    });
+
+    it("can match itself", () => {
+      checker.reset();
+      checker.canAssignFrom(s1, s1).should.eql(true);
+      checker.canAssignFrom(s2, s2).should.eql(true);
+      checker.canAssignFrom(s1, s2).should.eql(true);
+      checker.canAssignFrom(s1, s3).should.eql(true);
+      Object.keys(checker.wildcardMap).sort().should.eql([ s1.id.toString(), s2.id.toString() ]);
+      checker.canAssignFrom(s2, s1).should.eql(true);
+    });
+
+    it("resolves in reverse after wildcard matching", () => {
+      checker.reset();
+      checker.canAssignFrom(s1, compiler.builtinTypes.get("Int")).should.eql(true);
+      checker.canAssignFrom(compiler.builtinTypes.get("Int"), s1).should.eql(true);
+    });
+  });
+
+  describe("sum type", () => {
+    const checker = makeChecker();
+    const s1 = compiler.mergeTypes([ compiler.builtinTypes.get("Int"), compiler.builtinTypes.get("String") ], checker);
+    const s2 = compiler.mergeTypes([ s1, compiler.builtinTypes.get("Symbol") ], checker);
+    const s3 = compiler.mergeTypes([ s2, compiler.builtinTypes.get("Int") ], checker);
+
+    const game = compiler.newType("Game");
+    game.addSymbolHandler("hungry", compiler.builtinTypes.get("Boolean"));
+    const trap = compiler.newType("Trap");
+    trap.addSymbolHandler("hungry", compiler.builtinTypes.get("Boolean"));
+    trap.addSymbolHandler("full", compiler.builtinTypes.get("Boolean"));
+    const cat = compiler.newType("Cat");
+    cat.addSymbolHandler("play", compiler.builtinTypes.get("Nothing"));
+    cat.addSymbolHandler("hungry", compiler.builtinTypes.get("Boolean"));
+
+    it("right side", () => {
+      checker.canAssignFrom(compiler.builtinTypes.get("Int"), s1).should.eql(false);
+      checker.canAssignFrom(s2, s1).should.eql(true);
+      checker.canAssignFrom(s3, s1).should.eql(true);
+      checker.canAssignFrom(s1, s2).should.eql(false);
+      checker.canAssignFrom(game, compiler.mergeTypes([ trap, cat ], checker)).should.eql(true);
+    });
+
+    it("left side", () => {
+      s1.inspect().should.eql("Int | String");
+      s2.inspect().should.eql("Int | String | Symbol");
+      s3.inspect().should.eql("Int | String | Symbol");
+
+      checker.canAssignFrom(s1, compiler.builtinTypes.get("Int")).should.eql(true);
+      checker.canAssignFrom(s1, compiler.builtinTypes.get("String")).should.eql(true);
+      checker.canAssignFrom(s2, compiler.builtinTypes.get("Int")).should.eql(true);
+      checker.canAssignFrom(compiler.mergeTypes([ trap, cat ], checker), game).should.eql(false);
+      checker.canAssignFrom(compiler.mergeTypes([ trap, cat ], checker), cat).should.eql(true);
+    });
+  });
 });
