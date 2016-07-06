@@ -4,8 +4,6 @@ import { Scope } from "./scope";
 import { newType } from "./type_descriptor";
 
 const TAnything = newType("Anything");
-TAnything.anything = true;
-TAnything.canAssignFrom = () => true;
 
 const TNothing = newType("Nothing");
 // special hack to prevent anything from being able to assign to Nothing, or vice-versa.

@@ -33,10 +33,19 @@ describe("AssignmentChecker", () => {
 
   it("Nothing", () => {
     const checker = makeChecker();
-    checker.canAssignFrom(compiler.builtinTypes.get("Nothing"), type1).should.eql(false);
-    checker.canAssignFrom(type1, compiler.builtinTypes.get("Nothing")).should.eql(false);
-    checker.canAssignFrom(compiler.builtinTypes.get("Nothing"), compiler.newType()).should.eql(false);
-    checker.canAssignFrom(compiler.newType(), compiler.builtinTypes.get("Nothing")).should.eql(false);
+    const Nothing = compiler.builtinTypes.get("Nothing");
+    checker.canAssignFrom(Nothing, type1).should.eql(false);
+    checker.canAssignFrom(type1, Nothing).should.eql(false);
+    checker.canAssignFrom(Nothing, compiler.newType()).should.eql(false);
+    checker.canAssignFrom(compiler.newType(), Nothing).should.eql(false);
+  });
+
+  it("Anything", () => {
+    const checker = makeChecker();
+    const Anything = compiler.builtinTypes.get("Anything");
+    checker.canAssignFrom(Anything, type1).should.eql(true);
+    checker.canAssignFrom(type1, Anything).should.eql(false);
+    checker.canAssignFrom(Anything, type3).should.eql(true);
   });
 
   it("matches compatible signatures", () => {
