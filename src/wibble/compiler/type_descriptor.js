@@ -56,6 +56,7 @@ export class TypeDescriptor {
       case Type.SUM: {
         // sum type has components:
         this.types = parameters;
+        this.precedence = 3;
         break;
       }
     }
@@ -64,6 +65,8 @@ export class TypeDescriptor {
   inspect(seen = {}, precedence = 100) {
     if (this.name != null) {
       return this.name + (this.parameters.length == 0 ? "" : `(${this.parameters.map(w => w.inspect()).join(", ")})`);
+      // if (this.kind == Type.WILDCARD) rv += `<${this.id}>`;
+      // return rv;
     }
     if (seen[this.id]) return "@";
     seen[this.id] = true;
@@ -127,6 +130,10 @@ export class TypeDescriptor {
     return this.id == other.id;
   }
 
+  get wildcards() {
+    return this.parameters.filter(t => t.kind == Type.WILDCARD);
+  }
+
   // /*
   //  * can type 'other' be used in a place expecting this type?
   //  *   - if we're exactly the same type, yes.
@@ -178,12 +185,15 @@ export class TypeDescriptor {
   }
 
   /*
-   * scan the defined guards, looking for one that 'type' can assign into
+   * scan the defined guards, looking for one that 'type' can assign into.
+   * FIXME: should we try to find the "best" match?
    */
-  // findMatchingGuard(type, assignmentChecker) {
-  //   const matches = this.typeHandlers.filter(({ guard }) => assignmentChecker.canAssignFrom(guard, type));
-  // }
-
+  findMatchingHandler(type, assignmentChecker) {
+    assignmentChecker.reset();
+    if (this.kind == Type.SUM || this.kind == Type.WILDCARD) return false;
+    const matches = this.typeHandlers.filter(({ guard }) => assignmentChecker.canAssignFrom(guard, type));
+    return matches.length == 0 ? null : matches[0];
+  }
 
   // handlerTypeForMessage(inType, logger, wildcardMap = {}) {
   //   const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType, logger, [], wildcardMap));
@@ -194,23 +204,22 @@ export class TypeDescriptor {
   // }
 
   // fill in any wildcard types from the map
-  withWildcardMap(wildcardMap, logger) {
+  withWildcardMap(wildcardMap, assignmentChecker) {
     switch (this.kind) {
       case Type.SIMPLE: {
         // bail early if there are no wildcards.
-        if (this.parameters.length == 0) return this;
-        if (! this.parameters.map(p => p.kind == Type.WILDCARD).reduce((a, b) => a || b)) return this;
+        if (this.parameters.length == 0 || this.wildcards.length == 0) return this;
 
-        const parameters = this.parameters.map(p => p.withWildcardMap(wildcardMap, logger));
+        const parameters = this.parameters.map(p => p.withWildcardMap(wildcardMap, assignmentChecker));
         const rtype = new TypeDescriptor(this.kind, this.name, parameters);
 
         for (const symbol in this.symbolHandlers) {
-          rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, logger);
+          rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, assignmentChecker);
         }
         rtype.typeHandlers = this.typeHandlers.map(({ guard, type }) => {
           return {
-            guard: guard.withWildcardMap(wildcardMap, logger),
-            type: type.withWildcardMap(wildcardMap, logger)
+            guard: guard.withWildcardMap(wildcardMap, assignmentChecker),
+            type: type.withWildcardMap(wildcardMap, assignmentChecker)
           };
         });
 
@@ -219,13 +228,13 @@ export class TypeDescriptor {
 
       case Type.COMPOUND: {
         const fields = this.fields.map(f => {
-          return new CTypedField(f.name, f.type.withWildcardMap(wildcardMap, logger), f.defaultValue);
+          return new CTypedField(f.name, f.type.withWildcardMap(wildcardMap, assignmentChecker), f.defaultValue);
         });
         return newCompoundType(fields);
       }
 
       case Type.SUM: {
-        return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap, logger)), logger);
+        return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap, assignmentChecker)), assignmentChecker);
       }
 
       case Type.WILDCARD: {

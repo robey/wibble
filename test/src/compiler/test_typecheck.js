@@ -216,7 +216,7 @@ describe("Typecheck expressions", () => {
     it("as function parameters", () => {
       const func = "(f: Int -> Int) -> { (n: Int) -> f n * 2 }";
       typecheck(func).type.inspect().should.eql("(f: Int -> Int) -> (n: Int) -> Int");
-      typecheck(`(${func}) ((n: Int) -> n + 1)`, { logger: console.log }).type.inspect().should.eql("(n: Int) -> Int");
+      typecheck(`(${func}) ((n: Int) -> n + 1)`).type.inspect().should.eql("(n: Int) -> Int");
     });
 
     it("with parameters matched contravariantly", () => {

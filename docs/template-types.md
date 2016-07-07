@@ -14,10 +14,15 @@ let wrapSet = (item: $A): Set($A) -> ...
 on (item: $A) -> ...
 ```
 
+so a wildcard can only be introduced:
+  - 'on' params
+  - 'type' definition
+
 ## resolve/bind
 
 - explicit new: `new Set(Int) { ... }`
     - check that explicit type has no missing templates
+    - build a new TypeDescriptor based on `Set` with the wildcard filled in on handlers
 
 - message passing fills in the blanks:
     - `wrapSet 3`
@@ -29,6 +34,10 @@ on (item: $A) -> ...
     - resolves to `Set(Int)`
 
 ## how
+
+new typeScope created:
+  - new (to introduce "@")
+  - 'on' (for any introduced wildcards)
 
 compileType called:
   - building scope for 'on' handler parameters, attached as "guardType" to node

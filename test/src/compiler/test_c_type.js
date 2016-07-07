@@ -38,6 +38,13 @@ describe("compileType", () => {
     compileType("$B", { scope }).inspect().should.eql("$B");
   });
 
+  it("template", () => {
+    compileType("Array(Int)").inspect().should.eql("Array(Int)");
+    (() => compileType("Array")).should.throw(/requires type parameters/);
+    (() => compileType("Array()")).should.throw(/requires 1 type parameters/);
+    (() => compileType("Array(String, Int)")).should.throw(/requires 1 type parameters/);
+  });
+
   it("functions", () => {
     compileType("String -> Int").inspect().should.eql("String -> Int");
     compileType("(s: String) -> Int").inspect().should.eql("(s: String) -> Int");
@@ -47,25 +54,27 @@ describe("compileType", () => {
   it("disjoint", () => {
     compileType("String | Symbol").inspect().should.eql("String | Symbol");
     compileType("String | (x: Int, y: Int)").inspect().should.eql("String | (x: Int, y: Int)");
-    compileType("String | (x: Int) -> String").inspect().should.eql("String | ((x: Int) -> String)");
+    compileType("String | (x: Int) -> String").inspect().should.eql("String | (x: Int) -> String");
   });
 
   describe("wildcards", () => {
     it("simple", () => {
       compileType("Int").parameters.should.eql([]);
       compileType("$A").parameters.should.eql([]);
-      compileType("List($A)").parameters.map(x => x.inspect()).should.eql([ "$A" ]);
-      compileType("$A | Int | $B").wildcards.should.eql([ "$A", "$B" ]);
-      compileType("(x: Int, y: $C) -> String").wildcards.should.eql([ "$C" ]);
+      compileType("Array($A)").parameters.map(x => x.inspect()).should.eql([ "$A" ]);
+      compileType("(x: Int, y: $C) -> String").inspect().should.eql("(x: Int, y: $C) -> String");
     });
 
     it("uses the same id for nested wildcard reuse", () => {
-      const type = compileType("(x: $A) -> List($A)");
-      type.inspect().should.eql("(x: $A) -> List($A)");
+      const type = compileType("(x: $A) -> Array($A)");
+      type.inspect().should.eql("(x: $A) -> Array($A)");
       type.typeHandlers.length.should.eql(1);
-      type.typeHandlers[0].guard.inspect().should.eql("(x: $A)");
-      type.typeHandlers[0].type.inspect().should.eql("List($A)");
-      type.typeHandlers[0].type.parameters[0].inspect().should.eql("$A");
+
+      const first = type.typeHandlers[0];
+      first.guard.inspect().should.eql("(x: $A)");
+      first.type.inspect().should.eql("Array($A)");
+      first.type.parameters[0].inspect().should.eql("$A");
+      first.guard.fields[0].type.id.should.eql(first.type.parameters[0].id);
     });
   });
 });

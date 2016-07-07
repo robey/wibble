@@ -2,7 +2,7 @@
 
 import { PConstantType } from "../common/ast";
 import { dumpExpr } from "../dump";
-import { CompoundType, CTypedField, mergeTypes, NoType } from "./type_descriptor";
+import { CTypedField, mergeTypes, newCompoundType, NoType, Type } from "./type_descriptor";
 
 const APPLY_SYMBOL = "\u2053";
 
@@ -16,7 +16,7 @@ const APPLY_SYMBOL = "\u2053";
  * - scope: name -> CReference
  * - typeScope: name -> TypeDescriptor
  */
-export function computeType(expr, errors, scope, typeScope, logger, wildcardMap = {}) {
+export function computeType(expr, errors, scope, typeScope, logger, assignmentChecker) {
   const Nothing = typeScope.get("Nothing");
   const Anything = typeScope.get("Anything");
   const Boolean = typeScope.get("Boolean");
@@ -25,7 +25,7 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
   const escapePod = [];
   let breaks = [];
   const rtype = visit(expr, scope);
-  return (escapePod.length > 0) ? mergeTypes(escapePod.concat(rtype)) : rtype;
+  return (escapePod.length > 0) ? mergeTypes(escapePod.concat(rtype), assignmentChecker) : rtype;
 
   function visit(node, scope) {
     if (logger) logger(`computeType ->: ${dumpExpr(node)}`);
@@ -50,20 +50,22 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
       }
 
       case "PReference": {
-        return scope.get(node.name).type.resolved;
+        return assignmentChecker.resolve(scope.get(node.name).type);
       }
 
       case "PArray": {
-        const atype = node.children.length == 0 ? Anything : mergeTypes(node.children.map(n => visit(n, scope)));
+        const atype = node.children.length == 0 ?
+          Anything :
+          mergeTypes(node.children.map(n => visit(n, scope)), assignmentChecker);
         const Array = typeScope.get("Array");
-        return Array.withWildcardMap({ [Array.parameters[0].id]: atype });
+        return Array.withWildcardMap({ [Array.parameters[0].id]: atype }, assignmentChecker);
       }
 
       case "PStruct": {
         const fields = node.children.map(field => {
           return new CTypedField(field.name, visit(field.children[0], scope));
         });
-        return new CompoundType(fields);
+        return newCompoundType(fields);
       }
 
       case "PNew": return node.newType;
@@ -75,19 +77,22 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
         if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
 
         let rtype = null;
-        if (!targetType.canCall) {
-          errors.add("Wildcard or combo type can't be invoked; use 'match' to figure out the type first", node.span);
+        if (targetType.kind == Type.WILDCARD) {
+          errors.add("Wildcard type can't be invoked; use 'match' to figure out the type first", node.span);
+          rtype = Anything;
+        } else if (targetType.kind == Type.SUM) {
+          errors.add("Wildcard type can't be invoked; use 'match' to figure out the type first", node.span);
           rtype = Anything;
         } else {
           // let symbol resolution try first.
           if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
           if (rtype == null) {
-            const { coerceType, type } = targetType.handlerTypeForMessage(argType, logger, wildcardMap);
-            if (coerceType != null) {
-              expr.coerceType = coerceType;
-              if (logger) logger(`call:   \u21b3 coerce to: ${coerceType.inspect()}`);
+            const handler = targetType.findMatchingHandler(argType, assignmentChecker);
+            if (handler != null) {
+              expr.coerceType = assignmentChecker.resolve(handler.guard);
+              rtype = assignmentChecker.resolve(handler.type);
+              if (logger) logger(`call:   \u21b3 coerce to: ${handler.guard.inspect()}`);
             }
-            rtype = type;
           }
           if (rtype == null) {
             // special-case "Anything", which bails out of type-checking.
@@ -97,7 +102,7 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
           }
         }
 
-        rtype = rtype.resolved;
+        rtype = assignmentChecker.resolve(rtype);
         if (logger) logger(`call:   \u21b3 ${rtype.inspect()}`);
         return rtype;
       }
@@ -113,7 +118,7 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
 
       case "PAssignment": {
         const types = node.children.map(n => visit(n, scope));
-        if (!types[0].canAssignFrom(types[1], logger, [], wildcardMap)) {
+        if (!assignmentChecker.canAssignFrom(types[0], types[1])) {
           errors.add(`Incompatible types in assignment: ${types[0].inspect()} := ${types[1].inspect()}`, node.span);
         }
         return types[0];
@@ -124,7 +129,7 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
         if (!condType.isType(Boolean)) {
           errors.add("Conditional expression must be true or false", node.children[0].span);
         }
-        return mergeTypes(node.children.slice(1).map(n => visit(n, scope)));
+        return mergeTypes(node.children.slice(1).map(n => visit(n, scope)), assignmentChecker);
       }
 
       case "PRepeat": {
@@ -132,7 +137,7 @@ export function computeType(expr, errors, scope, typeScope, logger, wildcardMap 
         breaks = [];
         node.children.forEach(n => visit(n, scope));
         // it's okay for there to be no 'break' inside; might be a 'return'.
-        const rtype = (breaks.length == 0) ? Nothing : mergeTypes(breaks);
+        const rtype = (breaks.length == 0) ? Nothing : mergeTypes(breaks, assignmentChecker);
         breaks = oldBreaks;
         return rtype;
       }

@@ -141,10 +141,12 @@ export class AssignmentChecker {
 
   // follow any series of "resolved" & wildcard mappings
   resolve(type) {
-    type = type.resolved;
-    while (type.kind == Type.WILDCARD && this.wildcardMap.hasOwnProperty(type.id)) {
-      type = this.wildcardMap[type.id].resolved;
-    }
+    if (this.logger) this.logger(`resolve type ${type.inspect()} using ${Object.keys(this.wildcardMap).join(",")}`);
+    type = type.resolved.withWildcardMap(this.wildcardMap, this);
+    // while (type.kind == Type.WILDCARD && this.wildcardMap.hasOwnProperty(type.id)) {
+    //   type = this.wildcardMap[type.id].resolved;
+    // }
+    if (this.logger) this.logger(`resolved to ${type.inspect()}`);
     return type;
   }
 }

@@ -30,19 +30,29 @@ builtinTypes.add(TSymbol.name, TSymbol);
 function addHandlers(type, list) {
   const { typedecl } = require("../parser/p_type");
   const { compileType } = require("./c_type");
+  const { Errors } = require("../common/errors");
+  const { AssignmentChecker } = require("./assign");
+
+  // any errors we collect are fatal. these are builtins!
+  const errors = new Errors();
+  const assignmentChecker = new AssignmentChecker(errors, null);
 
   list.forEach(spec => {
     // omfg we can't use String#split because js people didn't know how it works.
     const n = spec.indexOf("::");
     const guardString = spec.slice(0, n).trim();
     const typeString = spec.slice(n + 2).trim();
-    const rtype = compileType(typedecl.run(typeString), null, builtinTypes);
+    const rtype = compileType(typedecl.run(typeString), null, builtinTypes, assignmentChecker);
     if (guardString[0] == ".") {
       type.addSymbolHandler(guardString.slice(1), rtype);
     } else {
-      type.addTypeHandler(compileType(typedecl.run(guardString), null, builtinTypes), rtype);
+      type.addTypeHandler(compileType(typedecl.run(guardString), null, builtinTypes, assignmentChecker), rtype);
     }
   });
+
+  if (errors.length > 0) {
+    console.error("Errors in builtins!");
+  }
 }
 
 builtinTypes.setInit(() => {

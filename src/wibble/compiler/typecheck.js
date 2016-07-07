@@ -6,6 +6,7 @@
  *   - check that the declared type of a 'new' matches the created type
  */
 
+import { AssignmentChecker } from "./assign";
 import { computeType } from "./compute_type";
 import { compileType } from "./c_type";
 import { dumpExpr } from "../dump";
@@ -70,6 +71,7 @@ export class TypeChecker {
     this.errors = errors;
     this.typeScope = typeScope;
     this.logger = logger;
+    this.assignmentChecker = new AssignmentChecker(this.errors, this.logger);
   }
 
   /*
@@ -79,28 +81,32 @@ export class TypeChecker {
    */
   typecheck(expr, scope) {
     if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)}`);
+
     const unresolved = this.buildScopes(expr, scope);
+    this.resolveTypes(expr, unresolved);
+    this.flattenResolvedTypes(expr);
+    return computeType(expr, this.errors, scope, this.typeScope, this.logger, this.assignmentChecker);
 
     // -----
-    const wildcardMap = {};
-
-    // keep trying as long as we find new wildcard matches.
-    // stop if we succeed, or stop making progress.
-    let mappings, type;
-    this.errors.mark();
-    do {
-      if (this.logger) this.logger(`typecheck: entering progress loop for ${dumpExpr(expr)}`);
-      mappings = Object.keys(wildcardMap).length;
-      this.errors.restore();
-      unresolved.forEach(t => t.reset());
-      this.resolveTypes(expr, unresolved, wildcardMap);
-      this.flattenResolvedTypes(expr, wildcardMap);
-      type = computeType(expr, this.errors, scope, this.typeScope, this.logger, wildcardMap);
-    } while (this.errors.haveIncreased() && Object.keys(wildcardMap).length > mappings);
-
-    // this.flattenResolvedTypes(expr, wildcardMap);
-    if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)} : ${type.inspect()}`);
-    return type;
+    // const wildcardMap = {};
+    //
+    // // keep trying as long as we find new wildcard matches.
+    // // stop if we succeed, or stop making progress.
+    // let mappings, type;
+    // this.errors.mark();
+    // do {
+    //   if (this.logger) this.logger(`typecheck: entering progress loop for ${dumpExpr(expr)}`);
+    //   mappings = Object.keys(wildcardMap).length;
+    //   this.errors.restore();
+    //   unresolved.forEach(t => t.reset());
+    //   this.resolveTypes(expr, unresolved, wildcardMap);
+    //   this.flattenResolvedTypes(expr, wildcardMap);
+    //   type = computeType(expr, this.errors, scope, this.typeScope, this.logger, assignmentChecker);
+    // } while (this.errors.haveIncreased() && Object.keys(wildcardMap).length > mappings);
+    //
+    // // this.flattenResolvedTypes(expr, wildcardMap);
+    // if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)} : ${type.inspect()}`);
+    // return type;
   }
 
   /*
@@ -121,7 +127,7 @@ export class TypeChecker {
       if (node.nodeType == "POn" && node.children[0].nodeType == "PCompoundType") {
         // open up a new scope for the parameters.
         node.scope = state.scope = new Scope(state.scope);
-        node.guardType = compileType(node.children[0], this.errors, state.typeScope, this.logger);
+        node.guardType = compileType(node.children[0], this.errors, state.typeScope, this.assignmentChecker);
         node.guardType.fields.forEach(field => {
           state.scope.add(field.name, new CReference(field.name, field.type, false));
 
@@ -190,6 +196,7 @@ export class TypeChecker {
 
         case "POn": {
           // punt!
+          state.typeScope = new Scope(state.typeScope);
           handlers.push({ node, state: state.save() });
           return;
         }
@@ -226,7 +233,7 @@ export class TypeChecker {
         unresolved.push(rtype);
         if (node.children[2] != null) {
           // trust the type annotation for now. (we'll check later.)
-          const annotatedType = compileType(node.children[2], this.errors, state.typeScope, this.logger);
+          const annotatedType = compileType(node.children[2], this.errors, state.typeScope, this.assignmentChecker);
           rtype.setAnnotation(annotatedType);
         } else {
           if (state.unresolvedType) state.unresolvedType.addVariable(rtype);
@@ -266,11 +273,11 @@ export class TypeChecker {
    *    make a kind of DAG, and shake the bucket to keep resolving any that
    *    have no more free variables.
    */
-  resolveTypes(expr, unresolved, wildcardMap) {
-    let stillUnresolved = this.tryProgress(unresolved, wildcardMap);
+  resolveTypes(expr, unresolved) {
+    let stillUnresolved = this.tryProgress(unresolved);
     while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
       unresolved = stillUnresolved;
-      stillUnresolved = this.tryProgress(unresolved, wildcardMap);
+      stillUnresolved = this.tryProgress(unresolved);
     }
     if (stillUnresolved.length > 0) {
       // couldn't solve it. :(
@@ -287,7 +294,7 @@ export class TypeChecker {
    * optimistically assume that the unresolved types make a DAG, and resolve
    * anything we can find that has zero radicals.
    */
-  tryProgress(unresolved, wildcardMap) {
+  tryProgress(unresolved) {
     if (this.logger) {
       this.logger("try to resolve:");
       unresolved.forEach(ut => this.logger("  " + ut.inspect()));
@@ -298,7 +305,7 @@ export class TypeChecker {
 
       // can resolve this one!
       if (this.logger) this.logger(`attempting to resolve: ${ut.inspect()}`);
-      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, this.logger, wildcardMap));
+      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, this.logger, this.assignmentChecker));
       if (this.logger) this.logger(`resolved type: ${ut.inspect()}`);
       return false;
     });
@@ -308,30 +315,33 @@ export class TypeChecker {
    * 5. walk the tree again and replace unresolved type markers with their
    *    solutions. mark any mismatched types (declared vs inferred) as errors.
    */
-  flattenResolvedTypes(expr, wildcardMap) {
+  flattenResolvedTypes(expr) {
     if (expr.scope) {
       // everything in a scope starts as unresolved.
       expr.scope.forEach((name, cref) => {
-        cref.type = cref.type.resolved.withWildcardMap(wildcardMap);
+        cref.type = this.assignmentChecker.resolve(cref.type);
       });
     }
 
     if (expr.newType) {
       Object.keys(expr.newType.symbolHandlers).forEach(symbol => {
-        expr.newType.symbolHandlers[symbol] = expr.newType.symbolHandlers[symbol].resolved.withWildcardMap(wildcardMap);
+        expr.newType.symbolHandlers[symbol] = this.assignmentChecker.resolve(expr.newType.symbolHandlers[symbol]);
       });
       expr.newType.typeHandlers = expr.newType.typeHandlers.map(({ guard, type }) => {
-        return { guard, type: type.resolved.withWildcardMap(wildcardMap) };
+        return { guard, type: this.assignmentChecker.resolve(type) };
       });
     }
 
-    if (expr.coerceType && expr.computedType && !expr.coerceType.canAssignFrom(expr.computedType, this.logger)) {
+    if (
+      expr.coerceType && expr.computedType &&
+      !this.assignmentChecker.canAssignFrom(expr.coerceType, expr.computedType)
+    ) {
       this.errors.add(
         `Expected type ${expr.coerceType.inspect()}; inferred type ${expr.computedType.inspect()}`,
         expr.span
       );
     }
 
-    expr.children.forEach(node => this.flattenResolvedTypes(node, wildcardMap));
+    expr.children.forEach(node => this.flattenResolvedTypes(node));
   }
 }

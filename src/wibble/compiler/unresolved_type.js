@@ -43,10 +43,6 @@ export default class UnresolvedType extends TypeDescriptor {
     return `[unresolved ${this.id} -> depends on ${dependencies}: ${atype}${dumpExpr(this.expr)}]`;
   }
 
-  canAssignFrom(other) {
-    return this.isType(other);
-  }
-
   // return the list of variables (types we depend on) that aren't resolved yet.
   get variables() {
     return this._variables.filter(t => t.type == null);

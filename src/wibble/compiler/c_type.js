@@ -16,7 +16,14 @@ export function compileType(expr, errors, typeScope, assignmentChecker) {
           errors.add(`Unresolved type '${node.name}'`, node.span);
           return typeScope.get("Anything");
         }
-        return typeScope.get(node.name);
+        const type = typeScope.get(node.name);
+        if (type.wildcards.length > 0) {
+          errors.add(
+            `Type ${node.name} requires type parameters ${type.wildcards.map(t => t.inspect()).join(", ")}`,
+            node.span
+          );
+        }
+        return type;
       }
 
       case "PCompoundType": {
@@ -31,12 +38,32 @@ export function compileType(expr, errors, typeScope, assignmentChecker) {
         }));
       }
 
-      // FIXME: PTemplateType(name)
+      case "PTemplateType": {
+        if (typeScope.get(node.name) == null) {
+          errors.add(`Unresolved type '${node.name}'`, node.span);
+          return typeScope.get("Anything");
+        }
+        const type = typeScope.get(node.name);
+        const wildcards = type.wildcards;
+        const parameters = node.children.map(compile);
+        if (wildcards.length != parameters.length) {
+          errors.add(`Type ${node.name} requires ${wildcards.length} type parameters`, node.span);
+          while (parameters.length < wildcards.length) parameters.push(typeScope.get("Anything"));
+        }
+
+        // fill in wildcards!
+        const wildcardMap = {};
+        for (let i = 0; i < wildcards.length; i++) {
+          wildcardMap[wildcards[i].id] = parameters[i];
+        }
+        return type.withWildcardMap(wildcardMap, assignmentChecker);
+      }
 
       case "PParameterType": {
         const name = "$" + node.name;
         if (typeScope.get(name) != null) return typeScope.get(name);
         const type = newWildcard(name);
+        typeScope.add(name, type);
         return type;
       }
 
@@ -46,7 +73,6 @@ export function compileType(expr, errors, typeScope, assignmentChecker) {
         return type;
       }
 
-      // - PMergedType
       case "PMergedType": {
         return mergeTypes(node.children.map(compile), assignmentChecker);
       }
