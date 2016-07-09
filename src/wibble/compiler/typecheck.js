@@ -71,7 +71,7 @@ export class TypeChecker {
     this.errors = errors;
     this.typeScope = typeScope;
     this.logger = logger;
-    this.assignmentChecker = new AssignmentChecker(this.errors, this.logger);
+    this.assignmentChecker = new AssignmentChecker(this.errors, this.logger, typeScope);
   }
 
   /*
@@ -168,6 +168,13 @@ export class TypeChecker {
           break;
         }
 
+        case "PCall": {
+          // make a place to record any wildcards we figure out.
+          state.typeScope = new Scope(state.typeScope);
+          node.typeScope = state.typeScope;
+          break;
+        }
+
         case "PAssignment": {
           const name = node.children[0].name;
           const rtype = state.scope.get(name);
@@ -195,8 +202,8 @@ export class TypeChecker {
         }
 
         case "POn": {
+          node.typeScope = new Scope(state.typeScope);
           // punt!
-          state.typeScope = new Scope(state.typeScope);
           handlers.push({ node, state: state.save() });
           return;
         }
@@ -229,11 +236,11 @@ export class TypeChecker {
 
       handlers.forEach(({ node, state }) => {
         // mark return type as unresolved. we'll figure it out when we shake the bucket later.
-        const rtype = new UnresolvedType(node.children[1], state.scope, state.typeScope);
+        const rtype = new UnresolvedType(node.children[1], state.scope, node.typeScope);
         unresolved.push(rtype);
         if (node.children[2] != null) {
           // trust the type annotation for now. (we'll check later.)
-          const annotatedType = compileType(node.children[2], this.errors, state.typeScope, this.assignmentChecker);
+          const annotatedType = compileType(node.children[2], this.errors, node.typeScope, this.assignmentChecker);
           rtype.setAnnotation(annotatedType);
         } else {
           if (state.unresolvedType) state.unresolvedType.addVariable(rtype);

@@ -1,6 +1,7 @@
 "use strict";
 
 import { PType } from "../common/ast";
+import { Scope } from "./scope";
 import { newCompoundType, CTypedField, mergeTypes, newType, newWildcard } from "./type_descriptor";
 
 /*
@@ -52,19 +53,19 @@ export function compileType(expr, errors, typeScope, assignmentChecker) {
         }
 
         // fill in wildcards!
-        const wildcardMap = {};
+        const newTypeScope = new Scope(typeScope);
         for (let i = 0; i < wildcards.length; i++) {
-          wildcardMap[wildcards[i].id] = parameters[i];
+          newTypeScope.add(wildcards[i].name, parameters[i]);
         }
-        return type.withWildcardMap(wildcardMap, assignmentChecker);
+        return assignmentChecker.resolve(type, newTypeScope);
       }
 
       case "PParameterType": {
         const name = "$" + node.name;
         if (typeScope.get(name) != null) return typeScope.get(name);
-        const type = newWildcard(name);
-        typeScope.add(name, type);
-        return type;
+        const rtype = newWildcard(name);
+        typeScope.add(name, rtype);
+        return rtype;
       }
 
       case "PFunctionType": {

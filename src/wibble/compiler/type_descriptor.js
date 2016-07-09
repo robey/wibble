@@ -134,45 +134,6 @@ export class TypeDescriptor {
     return this.parameters.filter(t => t.kind == Type.WILDCARD);
   }
 
-  // /*
-  //  * can type 'other' be used in a place expecting this type?
-  //  *   - if we're exactly the same type, yes.
-  //  *   - if either side is a wildcard, yes.
-  //  *   - otherwise, check handler signatures or something more complicated
-  //  *       (for compound types)
-  //  */
-  // canAssignFrom(other, logger, cache = [], wildcardMap = {}) {
-  //   if (this.isType(other)) return true;
-  //   for (let i = 0; i < cache.length; i++) {
-  //     if (this.isType(cache[i][0]) && other.isType(cache[i][1])) return true;
-  //   }
-  //
-  //   if (this.wildcard) {
-  //     // i'm a wildcard! i can coerce anything! tag, you're it!
-  //     if (logger) logger(`canAssign? ${this.inspect()} := ${other.inspect()} : wildcard resolved`);
-  //     wildcardMap[this.id] = other;
-  //     return true;
-  //   }
-  //
-  //   // avoid recursing forever:
-  //   cache.push([ this, other ]);
-  //
-  //   const mappings = Object.keys(wildcardMap).length;
-  //   const rv = this._canAssignFrom(other, logger, cache, wildcardMap);
-  //   if (!rv && mappings < Object.keys(wildcardMap).length) {
-  //     // didn't match, but we bound at least one wildcard type. try doing a wildcard substitution?
-  //     const newThis = this.withWildcardMap(wildcardMap);
-  //     const newOther = other.withWildcardMap(wildcardMap);
-  //     if (logger) {
-  //       const mapNames = Object.keys(wildcardMap).map(id => `${id} = ${wildcardMap[id].inspect()}`);
-  //       logger(`canAssign? retrying with wildcard mapping: ${mapNames.join(", ")}`);
-  //     }
-  //     return newThis.canAssignFrom(newOther, logger, cache, wildcardMap);
-  //   } else {
-  //     return rv;
-  //   }
-  // }
-
   handlerTypeForSymbol(name) {
     if (this.symbolHandlers.hasOwnProperty(name)) return this.symbolHandlers[name];
     return null;
@@ -194,95 +155,7 @@ export class TypeDescriptor {
     const matches = this.typeHandlers.filter(({ guard }) => assignmentChecker.canAssignFrom(guard, type));
     return matches.length == 0 ? null : matches[0];
   }
-
-  // handlerTypeForMessage(inType, logger, wildcardMap = {}) {
-  //   const matches = this.typeHandlers.filter(({ guard }) => guard.canAssignFrom(inType, logger, [], wildcardMap));
-  //   if (matches.length == 0) return {};
-  //   const guard = matches[0].guard.withWildcardMap(wildcardMap);
-  //   const type = matches[0].type.withWildcardMap(wildcardMap);
-  //   return { coerceType: guard, type };
-  // }
-
-  // fill in any wildcard types from the map
-  withWildcardMap(wildcardMap, assignmentChecker) {
-    switch (this.kind) {
-      case Type.SIMPLE: {
-        // bail early if there are no wildcards.
-        if (this.parameters.length == 0 || this.wildcards.length == 0) return this;
-
-        const parameters = this.parameters.map(p => p.withWildcardMap(wildcardMap, assignmentChecker));
-        const rtype = new TypeDescriptor(this.kind, this.name, parameters);
-
-        for (const symbol in this.symbolHandlers) {
-          rtype.symbolHandlers[symbol] = this.symbolHandlers[symbol].withWildcardMap(wildcardMap, assignmentChecker);
-        }
-        rtype.typeHandlers = this.typeHandlers.map(({ guard, type }) => {
-          return {
-            guard: guard.withWildcardMap(wildcardMap, assignmentChecker),
-            type: type.withWildcardMap(wildcardMap, assignmentChecker)
-          };
-        });
-
-        return rtype;
-      }
-
-      case Type.COMPOUND: {
-        const fields = this.fields.map(f => {
-          return new CTypedField(f.name, f.type.withWildcardMap(wildcardMap, assignmentChecker), f.defaultValue);
-        });
-        return newCompoundType(fields);
-      }
-
-      case Type.SUM: {
-        return mergeTypes(this.types.map(t => t.withWildcardMap(wildcardMap, assignmentChecker)), assignmentChecker);
-      }
-
-      case Type.WILDCARD: {
-        if (wildcardMap.hasOwnProperty(this.id)) return wildcardMap[this.id];
-        return this;
-      }
-    }
-  }
 }
-
-
-
-
-
-
-
-// -----
-
-
-
-
-
-
-
-
-
-export class ParameterType extends TypeDescriptor {
-  constructor(name) {
-    super(name);
-    this.canCall = false;
-    this.wildcard = true;
-  }
-}
-
-
-export class MergedType extends TypeDescriptor {
-  constructor(types) {
-    super();
-    this.precedence = 3;
-    this.types = types;
-    this.canCall = false;
-  }
-
-
-}
-
-
-
 
 
 export function newCompoundType(fields) {
@@ -333,7 +206,7 @@ export function mergeTypes(types, assignmentChecker) {
 }
 
 export function newType(name, parameters) {
-  const wildcards = (parameters || []).map(newWildcard);
+  const wildcards = (parameters || []).map(p => typeof p == "string" ? newWildcard(p) : p);
   return new TypeDescriptor(Type.SIMPLE, name, wildcards);
 }
 

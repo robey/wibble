@@ -10,10 +10,10 @@ describe("compileType", () => {
   const parse = (s, options = {}) => parser.typedecl.run(s, options);
   const compileType = (s, options = {}) => {
     const errors = new Errors();
-    const scope = options.scope || compiler.builtinTypes;
+    const typeScope = new compiler.Scope(options.typeScope || compiler.builtinTypes);
     const expr = compiler.simplify(parse(s, options), errors);
-    const assignmentChecker = new compiler.AssignmentChecker(errors, options.logger);
-    const type = compiler.compileType(expr, errors, scope, assignmentChecker);
+    const assignmentChecker = new compiler.AssignmentChecker(errors, options.logger, typeScope);
+    const type = compiler.compileType(expr, errors, typeScope, assignmentChecker);
     if (errors.length > 0) {
       const error = new Error(errors.inspect());
       error.errors = errors;
@@ -32,10 +32,10 @@ describe("compileType", () => {
   });
 
   it("parameter", () => {
-    const scope = new compiler.Scope(compiler.builtinTypes);
-    scope.add("$A", compiler.builtinTypes.get("String"));
-    compileType("$A", { scope }).inspect().should.eql("String");
-    compileType("$B", { scope }).inspect().should.eql("$B");
+    const typeScope = new compiler.Scope(compiler.builtinTypes);
+    typeScope.add("$A", compiler.builtinTypes.get("String"));
+    compileType("$A", { typeScope }).inspect().should.eql("String");
+    compileType("$B", { typeScope }).inspect().should.eql("$B");
   });
 
   it("template", () => {

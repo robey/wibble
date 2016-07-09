@@ -1,22 +1,21 @@
 "use strict";
 
-import { CTypedField, newCompoundType, Type } from "./type_descriptor";
+import { CTypedField, newCompoundType, mergeTypes, newType, Type } from "./type_descriptor";
 
 /*
  * logic for deciding if type A can be assigned from type B.
  */
 export class AssignmentChecker {
-  constructor(errors, logger) {
+  constructor(errors, logger, typeScope) {
     this.errors = errors;
     this.logger = logger;
+    this.typeScope = typeScope;
     this.reset();
   }
 
   reset() {
     // "id:id" => true/false
     this.cache = {};
-    // track wildcard resolutions (id -> type)
-    this.wildcardMap = {};
   }
 
   canAssignFrom(type1, type2) {
@@ -43,7 +42,7 @@ export class AssignmentChecker {
     if (type1.kind == Type.WILDCARD) {
       // i'm a wildcard! i can coerce anything! tag, you're it!
       if (this.logger) this.logger(`canAssign? ${type1.inspect()} := ${type2.inspect()}  wildcard resolved`);
-      this.wildcardMap[type1.id] = type2;
+      this.typeScope.add(type1.name, type2);
       return true;
     }
 
@@ -140,12 +139,46 @@ export class AssignmentChecker {
   }
 
   // follow any series of "resolved" & wildcard mappings
-  resolve(type) {
-    if (this.logger) this.logger(`resolve type ${type.inspect()} using ${Object.keys(this.wildcardMap).join(",")}`);
-    type = type.resolved.withWildcardMap(this.wildcardMap, this);
-    // while (type.kind == Type.WILDCARD && this.wildcardMap.hasOwnProperty(type.id)) {
-    //   type = this.wildcardMap[type.id].resolved;
-    // }
+  resolve(type, typeScope) {
+    if (!typeScope) typeScope = this.typeScope;
+    if (this.logger) this.logger(`resolve type ${type.inspect()} using ${typeScope.inspect()}`);
+
+    // nestedly replace any resolved wildcards
+    const fixType = t => {
+      switch (t.kind) {
+        case Type.SIMPLE: {
+          // bail early if there are no wildcards.
+          if (t.parameters.length == 0) return t;
+
+          const rtype = newType(t.name, t.parameters.map(fixType));
+          for (const symbol in t.symbolHandlers) {
+            rtype.symbolHandlers[symbol] = fixType(t.symbolHandlers[symbol]);
+          }
+          rtype.typeHandlers = t.typeHandlers.map(({ guard, type }) => {
+            return { guard: fixType(guard), type: fixType(type) };
+          });
+          return rtype;
+        }
+
+        case Type.COMPOUND: {
+          const fields = t.fields.map(f => {
+            return new CTypedField(f.name, fixType(f.type), f.defaultValue);
+          });
+          return newCompoundType(fields);
+        }
+
+        case Type.SUM: {
+          return mergeTypes(t.types.map(fixType), this);
+        }
+
+        case Type.WILDCARD: {
+          const rtype = typeScope.get(t.name);
+          return rtype == null ? t : rtype;
+        }
+      }
+    };
+
+    type = fixType(type.resolved);
     if (this.logger) this.logger(`resolved to ${type.inspect()}`);
     return type;
   }

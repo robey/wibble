@@ -19,7 +19,8 @@ describe("AssignmentChecker", () => {
 
   const makeChecker = (options = {}) => {
     const errors = new Errors();
-    return new compiler.AssignmentChecker(errors, options.logger);
+    const typeScope = new compiler.Scope();
+    return new compiler.AssignmentChecker(errors, options.logger, typeScope);
   };
 
   const parse = (s, options = {}) => parser.expression.run(s, options);
@@ -154,29 +155,28 @@ describe("AssignmentChecker", () => {
   describe("wildcard type", () => {
     const s1 = compiler.newWildcard("$A");
     const s2 = compiler.newWildcard("$B");
-    const s3 = compiler.newWildcard("$A");
-    const checker = makeChecker();
+    const s3 = compiler.newWildcard("$C");
 
     it("gets added to the wildcard map", () => {
-      checker.reset();
+      const checker = makeChecker();
       checker.canAssignFrom(compiler.builtinTypes.get("Int"), s1).should.eql(false);
-      Object.keys(checker.wildcardMap).should.eql([]);
+      checker.typeScope.keys.should.eql([]);
       checker.canAssignFrom(s1, compiler.builtinTypes.get("Int")).should.eql(true);
-      Object.keys(checker.wildcardMap).should.eql([ s1.id.toString() ]);
+      checker.typeScope.keys.should.eql([ s1.name ]);
     });
 
     it("can match itself", () => {
-      checker.reset();
+      const checker = makeChecker();
       checker.canAssignFrom(s1, s1).should.eql(true);
       checker.canAssignFrom(s2, s2).should.eql(true);
       checker.canAssignFrom(s1, s2).should.eql(true);
-      checker.canAssignFrom(s1, s3).should.eql(true);
-      Object.keys(checker.wildcardMap).sort().should.eql([ s1.id.toString(), s2.id.toString() ]);
+      checker.canAssignFrom(s2, s3).should.eql(true);
+      checker.typeScope.keys.should.eql([ s1.name, s2.name ]);
       checker.canAssignFrom(s2, s1).should.eql(true);
     });
 
     it("resolves in reverse after wildcard matching", () => {
-      checker.reset();
+      const checker = makeChecker();
       checker.canAssignFrom(s1, compiler.builtinTypes.get("Int")).should.eql(true);
       checker.canAssignFrom(compiler.builtinTypes.get("Int"), s1).should.eql(true);
     });

@@ -42,7 +42,7 @@ function addHandlers(type, list) {
     const n = spec.indexOf("::");
     const guardString = spec.slice(0, n).trim();
     const typeString = spec.slice(n + 2).trim();
-    const rtype = compileType(typedecl.run(typeString), null, builtinTypes, assignmentChecker);
+    const rtype = compileType(typedecl.run(typeString), null, new Scope(builtinTypes), assignmentChecker);
     if (guardString[0] == ".") {
       type.addSymbolHandler(guardString.slice(1), rtype);
     } else {
@@ -78,7 +78,9 @@ builtinTypes.setInit(() => {
 
   addHandlers(TString, [
     ".size :: Int",
-    ".toSymbol :: Symbol"
+    ".toSymbol :: Symbol",
+    ".== :: String -> Boolean",
+    ".!= :: String -> Boolean"
   ]);
 
   addHandlers(TSymbol, [
@@ -90,8 +92,3 @@ builtinTypes.setInit(() => {
     "(n: Int) :: $A"
   ]);
 });
-
-// t_type.addHandlers DString, typemap,
-//   ".size": "Int"
-//   ".==": "String -> Boolean"
-//   ".!=": "String -> Boolean"

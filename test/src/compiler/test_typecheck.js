@@ -8,7 +8,7 @@ import "source-map-support/register";
 const typecheck = (s, options = {}) => {
   const errors = new Errors();
   const scope = options.scope || new compiler.Scope();
-  const typeScope = options.typeScope || compiler.builtinTypes;
+  const typeScope = new compiler.Scope(options.typeScope || compiler.builtinTypes);
   const expr = (options.parser || parser.expression).run(s, options);
   const simplified = compiler.simplify(expr, errors);
   if (options.logger) options.logger("expr: " + dump.dumpExpr(simplified));
@@ -269,11 +269,11 @@ describe("Typecheck expressions", () => {
     });
 
     it("refuses to guess handlers for merged type", () => {
-      (() => typecheck("(x: Int | Boolean) -> x.hash")).should.throw(/can't be invoked/);
+      (() => typecheck("(x: Int | Boolean) -> x.hash")).should.throw(/can.t be invoked/);
     });
 
     it("refuses to guess handlers for wildcard types", () => {
-      (() => typecheck("(x: $A) -> x.hash")).should.throw(/can't be invoked/);
+      (() => typecheck("(x: $A) -> x.hash")).should.throw(/can.t be invoked/);
     });
   });
 
