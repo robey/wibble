@@ -224,7 +224,7 @@ describe("Typecheck expressions", () => {
       typecheck(`(${func}) ((n: Int, incr: Int = 1) -> n + incr)`).type.inspect().should.eql("(n: Int) -> Int");
     });
 
-    it("insists that the returned type match the prototype", () => {
+    it("insists that the returned type match the annotation", () => {
       const func = "(n: Int): Int -> true";
       (() => typecheck(func)).should.throw(/Expected type Int; inferred type Boolean/);
     });
@@ -236,6 +236,10 @@ describe("Typecheck expressions", () => {
 
     it("allows a default value for a merged type", () => {
       typecheck("(n: Int | Boolean = 3) -> true").type.inspect().should.eql("(n: Int | Boolean = 3) -> Boolean");
+    });
+
+    it("refuses a new wildcard in the annotation", () => {
+      (() => typecheck("(n: Int): $B -> n + 3")).should.throw(/new wildcard/);
     });
   });
 

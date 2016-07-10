@@ -7,7 +7,7 @@ import { newCompoundType, CTypedField, mergeTypes, newType, newWildcard } from "
 /*
  * compile an AST type into a type descriptor.
  */
-export function compileType(expr, errors, typeScope, assignmentChecker) {
+export function compileType(expr, errors, typeScope, assignmentChecker, allowNewWildcards = true) {
   if (!(expr instanceof PType)) throw new Error("Internal error: compileType on non-PType");
 
   const compile = node => {
@@ -63,6 +63,10 @@ export function compileType(expr, errors, typeScope, assignmentChecker) {
       case "PParameterType": {
         const name = "$" + node.name;
         if (typeScope.get(name) != null) return typeScope.get(name);
+        if (!allowNewWildcards) {
+          errors.add("Can't introduce a new wildcard here", node.span);
+          return typeScope.get("Anything");
+        }
         const rtype = newWildcard(name);
         typeScope.add(name, rtype);
         return rtype;

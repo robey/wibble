@@ -240,7 +240,9 @@ export class TypeChecker {
         unresolved.push(rtype);
         if (node.children[2] != null) {
           // trust the type annotation for now. (we'll check later.)
-          const annotatedType = compileType(node.children[2], this.errors, node.typeScope, this.assignmentChecker);
+          const annotatedType = compileType(
+            node.children[2], this.errors, node.typeScope, this.assignmentChecker, false
+          );
           rtype.setAnnotation(annotatedType);
         } else {
           if (state.unresolvedType) state.unresolvedType.addVariable(rtype);
