@@ -2,7 +2,7 @@
 
 import $ from "packrattle";
 import { PAssignment, PBlock, PBreak, PLocal, PLocals, POn, PReturn } from "../common/ast";
-import { commentspace, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
+import { commentspace, lf, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
 import { compoundType, typedecl } from "./p_type";
@@ -82,7 +82,6 @@ export const code = $.alt(
   () => expression
 ).named("expression");
 
-const lf = $(/[\n;]+/).named("linefeed or ;");
 export const codeBlock = repeatSurrounded(
   $.commit("{"),
   code,

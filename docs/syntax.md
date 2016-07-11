@@ -19,7 +19,7 @@
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
-    symbol := "." (SYMBOL_NAME | operator) | ":" SYMBOL_NAME
+    symbol := "." (SYMBOL_NAME | operator)
 
 ## expressions
 
@@ -75,7 +75,11 @@
 
     functionType := (componentType "->" componentType) | componentType
 
-    componentType := nestedType | parameterType | templateType | simpleType | compoundType
+    componentType := inlineType | nestedType | parameterType | templateType | simpleType | compoundType
+
+    inlineType := "{" descriptor ( [;\n] descriptor )* "}"
+
+    descriptor := (symbol | compoundType) "->" typedecl
 
     nestedType := "(" typedecl ")"
 

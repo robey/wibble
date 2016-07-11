@@ -288,4 +288,17 @@ export class PMergedType extends PType {
   }
 }
 
+export class PInlineTypeDeclaration extends PType {
+  constructor(guard, type, span) {
+    super("inlineTypeDeclaration", span, [ guard, type ]);
+  }
+}
+
+export class PInlineType extends PType {
+  constructor(declarations, trailingComment, span) {
+    super("inlineType", span, declarations);
+    this.trailingComment = trailingComment;
+  }
+}
+
 const NO_IN_TYPE = new PCompoundType([]);

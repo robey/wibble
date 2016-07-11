@@ -51,23 +51,25 @@ X = eliminated by transformations
 ## types
 
   - PType(description, span, children)
-    - PSimpleType(name)
-    - PCompoundType
-      - PTypedField(name, type, defaultValue, span)
-        - defaultValue: [coerceType, computedType]
-    - PTemplateType(name)
-    - PParameterType(name)
-    - PFunctionType(argType, resultType)
-    - PMergedType
+      - PSimpleType(name)
+      - PCompoundType
+          - PTypedField(name, type, defaultValue, span)
+              - defaultValue: [coerceType, computedType]
+      - PTemplateType(name)
+      - PParameterType(name)
+      - PFunctionType(argType, resultType)
+      - PMergedType
+      - PInlineType
+          - PInlineTypeDeclaration
 
 
 # Type descriptors
 
   - TypeDescriptor(id, name, parameters: TypeDescriptor[])
-    - CompoundType(fields)
-      - CTypedField(name, type, defaultValue)
-    - MergedType(types)
-    - ParameterType
+      - CompoundType(fields)
+          - CTypedField(name, type, defaultValue)
+      - MergedType(types)
+      - ParameterType
 
   - TypeDescriptor
       - kind (SIMPLE, COMPOUND, SUM, WILDCARD)

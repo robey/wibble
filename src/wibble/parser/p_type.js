@@ -2,9 +2,11 @@
 
 import $ from "packrattle";
 import {
-  PCompoundType, PMergedType, PFunctionType, PParameterType, PSimpleType, PTemplateType, PTypedField
+  PCompoundType, PMergedType, PFunctionType, PInlineType, PInlineTypeDeclaration, PParameterType, PSimpleType,
+  PTemplateType, PTypedField
 } from "../common/ast";
-import { linespace, repeatSeparated, repeatSurrounded, TYPE_NAME } from "./p_common";
+import { commentspace, lf, linespace, repeatSeparated, repeatSurrounded, TYPE_NAME } from "./p_common";
+import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
 
 /*
@@ -52,7 +54,28 @@ const parameterType = $([ $.drop("$"), $(TYPE_NAME).map(match => match[0]) ]).ma
 
 const nestedType = $([ $.drop("("), () => typedecl, $.drop(")") ]).map(match => match[0]);
 
-const componentType = $.alt(nestedType, parameterType, templateType, simpleType, compoundType);
+const declaration = $([
+  $.alt(symbolRef, compoundType),
+  $.drop(linespace),
+  $.drop("->"),
+  $.drop(linespace),
+  () => typedecl
+]).map((match, span) => {
+  return new PInlineTypeDeclaration(match[0], match[1], span);
+});
+
+const inlineType = repeatSurrounded(
+  "{",
+  declaration,
+  lf,
+  "}",
+  commentspace,
+  "type declaration"
+).map((match, span) => {
+  return new PInlineType(match[0], match[1], span);
+});
+
+const componentType = $.alt(inlineType, nestedType, parameterType, templateType, simpleType, compoundType);
 
 const functionType = $([
   componentType,

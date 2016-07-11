@@ -48,6 +48,8 @@ export const OPERATORS = [
   "<"
 ];
 
+export const lf = $(/[\n;]+/).named("linefeed or ;");
+
 // line may be continued with "\"
 export const linespace = $.optional(/([ ]+|\\[ ]*\n)+/, null);
 
