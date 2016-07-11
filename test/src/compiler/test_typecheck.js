@@ -241,6 +241,11 @@ describe("Typecheck expressions", () => {
     it("refuses a new wildcard in the annotation", () => {
       (() => typecheck("(n: Int): $B -> n + 3")).should.throw(/new wildcard/);
     });
+
+    it("inline type", () => {
+      typecheck("(x: { .+ -> Int -> Int }) -> x + 1").type.inspect().should.eql("(x: { .+ -> Int -> Int }) -> Int");
+      typecheck("((x: { .+ -> Int -> Int }) -> x + 1) 100").type.inspect().should.eql("Int");
+    });
   });
 
   describe("tricksy", () => {
