@@ -57,6 +57,16 @@ describe("compileType", () => {
     compileType("String | (x: Int) -> String").inspect().should.eql("String | (x: Int) -> String");
   });
 
+  it("inline", () => {
+    compileType("{}").inspect().should.eql("{}");
+    compileType("{ }").inspect().should.eql("{}");
+    compileType("{ .+ -> Int -> Int }").inspect().should.eql("{ .+ -> Int -> Int }");
+    compileType("{ (x: Int) -> String }").inspect().should.eql("(x: Int) -> String");
+    compileType("{ .name -> String; (x: String) -> Boolean }").inspect().should.eql(
+      "{ .name -> String; (x: String) -> Boolean }"
+    );
+  });
+
   describe("wildcards", () => {
     it("simple", () => {
       compileType("Int").parameters.should.eql([]);

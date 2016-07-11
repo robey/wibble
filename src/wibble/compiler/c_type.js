@@ -81,6 +81,22 @@ export function compileType(expr, errors, typeScope, assignmentChecker, allowNew
       case "PMergedType": {
         return mergeTypes(node.children.map(compile), assignmentChecker);
       }
+
+      case "PInlineType": {
+        const type = newType();
+        node.children.forEach(declaration => {
+          const rtype = compile(declaration.children[1]);
+          if (declaration.children[0].nodeType == "PConstant") {
+            type.addSymbolHandler(declaration.children[0].value, rtype);
+          } else {
+            type.addTypeHandler(compile(declaration.children[0]), rtype);
+          }
+        });
+        return type;
+      }
+
+      default:
+        throw new Error("Unsupported type node " + node.nodeType);
     }
   };
 

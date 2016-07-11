@@ -90,7 +90,17 @@ export class TypeDescriptor {
         const isFunction = symbols.length == 0 && types.length == 1;
         const myPrecedence = isFunction ? this.precedence + 1 : this.precedence;
 
-        const description = isFunction ? types[0] : ("{ " + symbols.concat(types).join(", ") + " }");
+        let description;
+        if (isFunction) {
+          description = types[0];
+        } else {
+          const declarations = symbols.concat(types).join("; ");
+          if (declarations.length == 0) {
+            description = "{}";
+          } else {
+            description = "{ " + declarations + " }";
+          }
+        }
         return myPrecedence > precedence ? "(" + description + ")" : description;
       }
 
