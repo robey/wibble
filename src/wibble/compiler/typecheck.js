@@ -122,7 +122,7 @@ export class TypeChecker {
     // list of UnresolvedType objects we created.
     const unresolved = [];
 
-    const visit = (node, state, handlers) => {
+    const visit = (node, state) => {
       // create scopes.
       if (node.nodeType == "POn" && node.children[0].nodeType == "PCompoundType") {
         // open up a new scope for the parameters.
@@ -203,20 +203,36 @@ export class TypeChecker {
 
         case "POn": {
           node.typeScope = new Scope(state.typeScope);
-          // punt!
-          handlers.push({ node, state: state.save() });
+
+          // mark return type as unresolved. we'll figure it out when we shake the bucket later.
+          const rtype = new UnresolvedType(node.children[1], state.scope, node.typeScope);
+          if (this.logger) this.logger(`added unresolved type here: ${rtype.inspect()}`);
+          unresolved.push(rtype);
+          if (node.children[2] != null) {
+            // trust the type annotation for now. (we'll check later.)
+            const annotatedType = compileType(
+              node.children[2], this.errors, node.typeScope, this.assignmentChecker, false
+            );
+            rtype.setAnnotation(annotatedType);
+          } else {
+            if (state.unresolvedType) state.unresolvedType.addVariable(rtype);
+          }
+          state.unresolvedType = rtype;
+          if (node.guardType != null) {
+            state.type.addTypeHandler(node.guardType, rtype);
+          } else {
+            state.type.addSymbolHandler(node.children[0].value, rtype);
+          }
+
+          // punt on handlers.
+          if (this.logger) this.logger("punt handler " + node.children[1].inspect());
+          handlers.push({ node: node.children[1], state: state.save() });
           return;
         }
 
         case "PBlock": {
           node.scope = state.scope = new Scope(state.scope);
-          const savedState = state.save();
-          node.children.forEach(n => {
-            visit(n, state, handlers);
-            state.restore(savedState);
-          });
-          state = savedState;
-          return;
+          break;
         }
       }
 
@@ -224,56 +240,30 @@ export class TypeChecker {
       if (node.children.length > 0) {
         const savedState = state.save();
         node.children.forEach(n => {
-          visit(n, state, handlers);
+          visit(n, state);
           state.restore(savedState);
         });
+        state = savedState;
       }
     };
 
-    // do late processing on handlers so they have access to anything defined in the scope from later in the block.
-    const processHandlers = (handlers) => {
-      const newHandlers = [];
-
-      handlers.forEach(({ node, state }) => {
-        // mark return type as unresolved. we'll figure it out when we shake the bucket later.
-        const rtype = new UnresolvedType(node.children[1], state.scope, node.typeScope);
-        unresolved.push(rtype);
-        if (node.children[2] != null) {
-          // trust the type annotation for now. (we'll check later.)
-          const annotatedType = compileType(
-            node.children[2], this.errors, node.typeScope, this.assignmentChecker, false
-          );
-          rtype.setAnnotation(annotatedType);
-        } else {
-          if (state.unresolvedType) state.unresolvedType.addVariable(rtype);
-        }
-        state.unresolvedType = rtype;
-        if (node.guardType != null) {
-          state.type.addTypeHandler(node.guardType, rtype);
-        } else {
-          state.type.addSymbolHandler(node.children[0].value, rtype);
-        }
-
-        // now, traverse children.
-        if (node.children.length > 0) {
-          const savedState = state.save();
-          node.children.forEach(n => {
-            visit(n, state, newHandlers);
-            state.restore(savedState);
-          });
-        }
-      });
-
-      return newHandlers;
-    };
-
-    let handlers = [];
+    const handlers = [];
     const state = new TreeState(scope, this.typeScope, null, null);
-    visit(expr, state, handlers);
-    // process any 'on' handlers we delayed. they might, themselves, find more 'on' handlers, too.
-    do {
-      handlers = processHandlers(handlers);
-    } while (handlers.length > 0);
+    visit(expr, state);
+
+    /*
+     * code from the right side of 'on' handlers is saved for processing
+     * after everything else, since it's allowed to reference locals defined
+     * later in the enclosing block. the enclosing block may also be several
+     * levels out, so we do it at the very last moment, and keep trying
+     * after all the other code in the block runs, so all locals will
+     * be in the scope object for resolution.
+     */
+    while (handlers.length > 0) {
+      const { node, state } = handlers.shift();
+      visit(node, state);
+    }
+
     return unresolved;
   }
 
