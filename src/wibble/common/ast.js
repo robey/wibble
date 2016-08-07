@@ -39,7 +39,8 @@ export class PNode {
     return this.constructor.name;
   }
 
-  inspect() {
+  inspect(dump = false) {
+    if (dump) return this.dump().join("\n");
     let rv = this.description;
     if (this.children.length > 0) {
       rv += "(" + this.children.map(c => c.inspect()).join(", ") + ")";
@@ -48,7 +49,20 @@ export class PNode {
     if (this.trailingComment) rv += "##\"" + cstring(this.trailingComment) + "\"";
     // generated nodes may have no span.
     if (this.span) rv += "[" + this.span.start + ":" + this.span.end + "]";
-    if (this.computedType) rv += "<type: " + this.computedType.inspect() + ">";
+    return rv;
+  }
+
+  dump() {
+    const rv = [ this.description ];
+    if (this.scope) rv.push("scope=" + this.scope.inspect());
+    if (this.computedType) rv.push("type=" + this.computedType.inspect());
+    if (this.newType) rv.push("newType=" + this.newType.inspect());
+    const children = this.children.map(c => c.dump());
+    children.forEach((lines, i) => {
+      const [ branch, tail ] = (i == children.length - 1) ? [ "`-", "  " ] : [ "|-", "| " ];
+      rv.push(branch + lines[0]);
+      lines.slice(1).forEach(line => rv.push(tail + line));
+    });
     return rv;
   }
 }
