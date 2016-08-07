@@ -245,6 +245,10 @@ export class TypeChecker {
         });
         state = savedState;
       }
+
+      if (node.nodeType == "PCall") {
+        if (this.logger) this.logger(node.inspect(true));
+      }
     };
 
     const handlers = [];

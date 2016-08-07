@@ -308,9 +308,23 @@ describe("Typecheck expressions", () => {
 
     // FIXME this will require more work.
     it("type checks a wildcard expression *after* resolving the type", () => {
+      // typecheck("((x: $A) -> x + 1) 22", { logger: console.log }).type.inspect().should.eql("Int");
+
       // const func = "(f: (x: Int, y: Int) -> Int) -> f(2, 3)";
       // const arg = ("(x: $A, y: $A) -> x + y");
       // typecheck(`(${func}) (${arg})`, { logger: console.log }).type.inspect().should.eql("Int");
+
+      try {
+        typecheck(`{
+            let x = 30
+            let withX = (f: Int -> Int) -> f x
+            let plusOne = (x: $A) -> x + 1
+            withX plusOne
+        }`, { logger: console.log, parser: parser.code }).type.inspect().should.eql("Int");
+      } catch (error) {
+        console.log(error);
+        throw error;
+      }
 
       const func = "(f: Int -> Int) -> f 2";
       const arg = ("(x: $A) -> x + 1");
