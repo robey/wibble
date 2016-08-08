@@ -57,10 +57,9 @@ export function dumpExpr(expr) {
     case "PBreak":
       return "break" + (expr.children.length > 0 ? ` ${dumpExpr(expr.children[0])}` : "");
     case "PLocals":
-      return (expr.mutable ? "make " : "let ") +
-        expr.children.map(local => {
-          return local.name + (expr.mutable ? " := " : " = ") + dumpExpr(local.children[0]);
-        }).join(", ");
+      return (expr.mutable ? "make " : "let ") + expr.children.map(n => dumpExpr(n)).join(", ");
+    case "PLocal":
+      return expr.name + (expr.mutable ? " := " : " = ") + dumpExpr(expr.children[0]);
     case "POn":
       return "on " + (expr.children[0].constructor.name == "PConstant" ? dumpExpr : dumpType)(expr.children[0]) +
         (expr.children.length > 2 ? `: ${dumpType(expr.children[2])}` : "") +

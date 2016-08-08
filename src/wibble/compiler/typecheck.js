@@ -52,10 +52,10 @@ class TreeState {
 
   inspect() {
     return "TreeState(" + [
-      this.scope.inspect(),
-      this.typeScope.inspect(),
-      this.type ? this.type.inspect() : "null",
-      this.unresolvedType ? this.unresolvedType.inspect() : "null"
+      "scope=" + this.scope.inspect(),
+      "typeScope=" + this.typeScope.inspect(),
+      "type=" + (this.type ? this.type.inspect() : "null"),
+      "unresolved=" + (this.unresolvedType ? this.unresolvedType.inspect() : "null")
     ].join(", ") + ")";
   }
 }
@@ -70,8 +70,42 @@ export class TypeChecker {
   constructor(errors, typeScope, logger) {
     this.errors = errors;
     this.typeScope = typeScope;
-    this.logger = logger;
     this.assignmentChecker = new AssignmentChecker(this.errors, this.logger, typeScope);
+    // do some fancy tree-based logging.
+    this.logger = logger;
+    this.logPrefix = [];
+    this.logState = [];
+  }
+
+  logNestIn(childCount) {
+    if (this.logState.length > 0) {
+      this.logState[0].prefix = this.logState[0].visited == this.logState[0].total ? "  " : "| ";
+    }
+    this.logState.unshift({ lines: 0, visited: 0, total: childCount, prefix: childCount == 1 ? "`-" : "|-" });
+  }
+
+  logNestNext(newChildCount) {
+    if (newChildCount != null) this.logState[0].total = newChildCount;
+    this.logState[0].visited++;
+    this.logState[0].prefix = this.logState[0].visited == this.logState[0].total ? "`-" : "|-";
+    this.logState[0].lines = 0;
+  }
+
+  logNestOut() {
+    this.logState.shift();
+  }
+
+  log(text) {
+    const prefix = this.logState.map(s => s.prefix).reverse().join("");
+    text.split("\n").forEach(line => {
+      this.logger(prefix + line);
+    });
+    if (this.logState.length > 0) {
+      this.logState[0].lines++;
+      if (this.logState[0].lines == 1) {
+        this.logState[0].prefix = this.logState[0].visited == this.logState[0].total ? "  " : "| ";
+      }
+    }
   }
 
   /*
@@ -80,7 +114,7 @@ export class TypeChecker {
    *     (name -> CReference)
    */
   typecheck(expr, scope) {
-    if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)}`);
+    if (this.logger) this.log(`typecheck: ${dumpExpr(expr)}`);
 
     const unresolved = this.buildScopes(expr, scope);
     this.resolveTypes(expr, unresolved);
@@ -123,10 +157,14 @@ export class TypeChecker {
     const unresolved = [];
 
     const visit = (node, state) => {
+      if (this.logger) this.log("visit: " + dumpExpr(node));
+
       // create scopes.
       if (node.nodeType == "POn" && node.children[0].nodeType == "PCompoundType") {
         // open up a new scope for the parameters.
         node.scope = state.scope = new Scope(state.scope);
+        node.typeScope = state.typeScope = new Scope(state.typeScope);
+
         node.guardType = compileType(node.children[0], this.errors, state.typeScope, this.assignmentChecker);
         node.guardType.fields.forEach(field => {
           state.scope.add(field.name, new CReference(field.name, field.type, false));
@@ -202,11 +240,9 @@ export class TypeChecker {
         }
 
         case "POn": {
-          node.typeScope = new Scope(state.typeScope);
-
           // mark return type as unresolved. we'll figure it out when we shake the bucket later.
           const rtype = new UnresolvedType(node.children[1], state.scope, node.typeScope);
-          if (this.logger) this.logger(`added unresolved type here: ${rtype.inspect()}`);
+          if (this.logger) this.log(`added unresolved type here: ${rtype.inspect()}`);
           unresolved.push(rtype);
           if (node.children[2] != null) {
             // trust the type annotation for now. (we'll check later.)
@@ -225,7 +261,7 @@ export class TypeChecker {
           }
 
           // punt on handlers.
-          if (this.logger) this.logger("punt handler " + node.children[1].inspect());
+          if (this.logger) this.log("punt handler " + node.children[1].inspect());
           handlers.push({ node: node.children[1], state: state.save() });
           return;
         }
@@ -239,15 +275,25 @@ export class TypeChecker {
       // now, traverse children.
       if (node.children.length > 0) {
         const savedState = state.save();
+        if (this.logger) {
+          this.log("save state: " + savedState.inspect());
+          this.logNestIn(node.children.length);
+        }
         node.children.forEach(n => {
+          if (this.logger) this.logNestNext();
           visit(n, state);
           state.restore(savedState);
+          if (this.logger) this.log("restore state: " + savedState.inspect());
         });
         state = savedState;
+        if (this.logger) {
+          this.log("restore state final: " + state.inspect());
+          this.logNestOut();
+        }
       }
 
       if (node.nodeType == "PCall") {
-        if (this.logger) this.logger(node.inspect(true));
+        if (this.logger) this.log(node.inspect(true));
       }
     };
 
@@ -263,9 +309,18 @@ export class TypeChecker {
      * after all the other code in the block runs, so all locals will
      * be in the scope object for resolution.
      */
+    if (this.logger) {
+      this.log("processing punted handlers now");
+      this.logNestIn(handlers.length);
+    }
     while (handlers.length > 0) {
+      if (this.logger) this.logNestNext(handlers.length);
       const { node, state } = handlers.shift();
       visit(node, state);
+    }
+    if (this.logger) {
+      this.logNestOut();
+      this.log("done processing punted handlers");
     }
 
     return unresolved;
@@ -277,10 +332,16 @@ export class TypeChecker {
    *    have no more free variables.
    */
   resolveTypes(expr, unresolved) {
+    if (this.logger) {
+      this.log("resolve types:");
+    }
     let stillUnresolved = this.tryProgress(unresolved);
     while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
       unresolved = stillUnresolved;
       stillUnresolved = this.tryProgress(unresolved);
+    }
+    if (this.logger) {
+      this.log("done resolving types.");
     }
     if (stillUnresolved.length > 0) {
       // couldn't solve it. :(
@@ -299,17 +360,25 @@ export class TypeChecker {
    */
   tryProgress(unresolved) {
     if (this.logger) {
-      this.logger("try to resolve:");
-      unresolved.forEach(ut => this.logger("  " + ut.inspect()));
+      this.log("try to resolve:");
+      unresolved.forEach(ut => this.log("  " + ut.inspect()));
     }
 
     return unresolved.filter(ut => {
       if (ut.variables.length > 0) return true;
 
       // can resolve this one!
-      if (this.logger) this.logger(`attempting to resolve: ${ut.inspect()}`);
-      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, this.logger, this.assignmentChecker));
-      if (this.logger) this.logger(`resolved type: ${ut.inspect()}`);
+      if (this.logger) {
+        this.log(`attempting to resolve: ${ut.inspect()}`);
+        this.logNestIn(1);
+        this.logNestNext();
+      }
+      const logger = this.logger ? text => this.log(text) : null;
+      ut.resolve(computeType(ut.expr, this.errors, ut.scope, ut.typeScope, logger, this.assignmentChecker));
+      if (this.logger) {
+        this.logNestOut();
+        this.log(`resolved type: ${ut.inspect()}`);
+      }
       return false;
     });
   }

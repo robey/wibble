@@ -316,10 +316,10 @@ describe("Typecheck expressions", () => {
 
       try {
         typecheck(`{
-            let x = 30
-            let withX = (f: Int -> Int) -> f x
-            let plusOne = (x: $A) -> x + 1
-            withX plusOne
+          let x = 30
+          let withX = (f: Int -> Int) -> f x
+          let plusOne = (x: $A) -> x + 1
+          withX plusOne
         }`, { logger: console.log, parser: parser.code }).type.inspect().should.eql("Int");
       } catch (error) {
         console.log(error);
