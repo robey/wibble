@@ -102,7 +102,8 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
           if (rtype == null) {
             // special-case "Anything", which bails out of type-checking.
             // FIXME: might be better to make Anything be an error too, and require a 'match'.
-            if (!targetType.anything) errors.add("No matching handler found", node.span);
+            const failedMatch = isSymbol ? dumpExpr(message.value) : argType.inspect();
+            if (!targetType.anything) errors.add(`No matching handler found for ${failedMatch}`, node.span);
             rtype = Anything;
           }
         }
