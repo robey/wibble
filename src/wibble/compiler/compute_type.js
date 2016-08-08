@@ -75,7 +75,7 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
       case "PNew": return node.newType;
 
       case "PCall": {
-        const [ targetType, argType ] = node.children.map(n => visit(n, scope, node.typeScope));
+        const [ targetType, argType ] = node.children.map(n => visit(n, scope, typeScope));
         const message = node.children[1];
         const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
         if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
@@ -91,7 +91,7 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
           // let symbol resolution try first.
           if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
           if (rtype == null) {
-            const assignmentChecker = new AssignmentChecker(errors, logger, node.typeScope);
+            const assignmentChecker = new AssignmentChecker(errors, logger, typeScope);
             const handler = targetType.findMatchingHandler(argType, assignmentChecker);
             if (handler != null) {
               expr.coerceType = assignmentChecker.resolve(handler.guard);

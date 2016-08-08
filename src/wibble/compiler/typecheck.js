@@ -206,13 +206,6 @@ export class TypeChecker {
           break;
         }
 
-        case "PCall": {
-          // make a place to record any wildcards we figure out.
-          state.typeScope = new Scope(state.typeScope);
-          node.typeScope = state.typeScope;
-          break;
-        }
-
         case "PAssignment": {
           const name = node.children[0].name;
           const rtype = state.scope.get(name);
@@ -241,7 +234,7 @@ export class TypeChecker {
 
         case "POn": {
           // mark return type as unresolved. we'll figure it out when we shake the bucket later.
-          const rtype = new UnresolvedType(node.children[1], state.scope, node.typeScope);
+          const rtype = new UnresolvedType(node.children[1], state.scope, state.typeScope);
           if (this.logger) this.log(`added unresolved type here: ${rtype.inspect()}`);
           unresolved.push(rtype);
           if (node.children[2] != null) {

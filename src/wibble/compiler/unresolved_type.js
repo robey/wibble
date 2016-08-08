@@ -40,7 +40,7 @@ export default class UnresolvedType extends TypeDescriptor {
     const atype = this.annotatedType ? `[annotated as: ${this.annotatedType.inspect(seen, 9)}] ` : "";
     const variables = this.variables;
     const dependencies = variables.length == 0 ? "none" : variables.map(t => t.id).join(", ");
-    const scopeDump = `scope=${this.scope.inspect()}`;
+    const scopeDump = `scope=${this.scope.inspect()} typeScope=${this.typeScope.inspect()}`;
     return `[unresolved ${this.id} -> depends on ${dependencies}: ${atype}${dumpExpr(this.expr)} / ${scopeDump}]`;
   }
 
