@@ -165,6 +165,15 @@ export class TypeDescriptor {
     const matches = this.typeHandlers.filter(({ guard }) => assignmentChecker.canAssignFrom(guard, type));
     return matches.length == 0 ? null : matches[0];
   }
+
+  // if there's only one handler, and it's a type guard, return it.
+  // (in other words, this is a function.)
+  getFunctionArgType() {
+    if (this.kind == Type.COMPOUND && this.fields.length == 1) return this.fields[0].type.getFunctionArgType();
+    if (Object.keys(this.symbolHandlers).length > 0) return null;
+    if (this.typeHandlers.length != 1) return null;
+    return this.typeHandlers[0].guard;
+  }
 }
 
 
