@@ -75,10 +75,11 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
       case "PNew": return node.newType;
 
       case "PCall": {
-        const [ targetType, argType ] = node.children.map(n => visit(n, scope, node.typeScope));
+        const targetType = visit(node.children[0], scope, node.typeScope);
+        // const [ targetType, argType ] = node.children.map(n => visit(n, scope, node.typeScope));
         const message = node.children[1];
         const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
-        if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${argType.inspect()}`);
+        if (logger) logger(`call: ${targetType.inspect()} ${APPLY_SYMBOL} ${dumpExpr(message)}: ${dumpExpr(node.children[1])}`);
 
         let rtype = null;
         if (targetType.kind == Type.WILDCARD) {
@@ -92,6 +93,22 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
           if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
           if (rtype == null) {
             const assignmentChecker = new AssignmentChecker(errors, logger, node.typeScope);
+
+            // what if this is an anonymous expression?
+            // 1. right side is anonymous function (new on)
+            // 2. left side is a function that takes a function arg.
+            if (message.nodeType == "PNew" && message.children[0].nodeType == "POn") {
+              const leftGuard = targetType.getFunctionArgType();
+              if (leftGuard != null) {
+                const leftGuardArg = leftGuard.getFunctionArgType();
+                console.log(">>> ???", leftGuardArg ? leftGuardArg.inspect() : null);
+                const xyz = assignmentChecker.canAssignFrom(message.newType.getFunctionArgType(), leftGuardArg);
+                // if (xyz) message.newType.
+                console.log(">>>", xyz);
+              }
+            }
+
+            const argType = visit(node.children[1], scope, node.typeScope);
             const handler = targetType.findMatchingHandler(argType, assignmentChecker);
             if (handler != null) {
               expr.coerceType = assignmentChecker.resolve(handler.guard);
