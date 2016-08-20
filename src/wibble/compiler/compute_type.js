@@ -75,7 +75,7 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
       case "PNew": return node.newType;
 
       case "PCall": {
-        const targetType = visit(node.children[0], scope, node.typeScope);
+        const targetType = visit(node.children[0], scope, typeScope);
         // const [ targetType, argType ] = node.children.map(n => visit(n, scope, node.typeScope));
         const message = node.children[1];
         const isSymbol = message.nodeType == "PConstant" && message.type == PConstantType.SYMBOL;
@@ -92,7 +92,7 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
           // let symbol resolution try first.
           if (isSymbol) rtype = targetType.handlerTypeForSymbol(message.value);
           if (rtype == null) {
-            const assignmentChecker = new AssignmentChecker(errors, logger, node.typeScope);
+            const assignmentChecker = new AssignmentChecker(errors, logger, typeScope);
 
             // what if this is an anonymous expression?
             // 1. right side is anonymous function (new on)
@@ -108,20 +108,21 @@ export function computeType(expr, errors, scope, typeScope, logger, assignmentCh
               }
             }
 
-            const argType = visit(node.children[1], scope, node.typeScope);
+            const argType = visit(node.children[1], scope, typeScope);
             const handler = targetType.findMatchingHandler(argType, assignmentChecker);
             if (handler != null) {
               expr.coerceType = assignmentChecker.resolve(handler.guard);
               rtype = assignmentChecker.resolve(handler.type);
               if (logger) logger(`call:   \u21b3 coerce to: ${handler.guard.inspect()}`);
             }
-          }
-          if (rtype == null) {
-            // special-case "Anything", which bails out of type-checking.
-            // FIXME: might be better to make Anything be an error too, and require a 'match'.
-            const failedMatch = isSymbol ? dumpExpr(message.value) : argType.inspect();
-            if (!targetType.anything) errors.add(`No matching handler found for ${failedMatch}`, node.span);
-            rtype = Anything;
+
+            if (rtype == null) {
+              // special-case "Anything", which bails out of type-checking.
+              // FIXME: might be better to make Anything be an error too, and require a 'match'.
+              const failedMatch = isSymbol ? dumpExpr(message.value) : argType.inspect();
+              if (!targetType.anything) errors.add(`No matching handler found for ${failedMatch}`, node.span);
+              rtype = Anything;
+            }
           }
         }
 

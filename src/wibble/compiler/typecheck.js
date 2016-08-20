@@ -120,27 +120,6 @@ export class TypeChecker {
     this.resolveTypes(expr, unresolved);
     this.flattenResolvedTypes(expr);
     return computeType(expr, this.errors, scope, this.typeScope, this.logger, this.assignmentChecker);
-
-    // -----
-    // const wildcardMap = {};
-    //
-    // // keep trying as long as we find new wildcard matches.
-    // // stop if we succeed, or stop making progress.
-    // let mappings, type;
-    // this.errors.mark();
-    // do {
-    //   if (this.logger) this.logger(`typecheck: entering progress loop for ${dumpExpr(expr)}`);
-    //   mappings = Object.keys(wildcardMap).length;
-    //   this.errors.restore();
-    //   unresolved.forEach(t => t.reset());
-    //   this.resolveTypes(expr, unresolved, wildcardMap);
-    //   this.flattenResolvedTypes(expr, wildcardMap);
-    //   type = computeType(expr, this.errors, scope, this.typeScope, this.logger, assignmentChecker);
-    // } while (this.errors.haveIncreased() && Object.keys(wildcardMap).length > mappings);
-    //
-    // // this.flattenResolvedTypes(expr, wildcardMap);
-    // if (this.logger) this.logger(`typecheck: ${dumpExpr(expr)} : ${type.inspect()}`);
-    // return type;
   }
 
   /*
