@@ -27,5 +27,9 @@ call
 ```
 
 - how to determine that ($A -> ??) is compatible with (Int -> Int)
-    - type on right needs to be fully defined, if possible?
-    - what if it depends on another type? need to follow the tree down, if possible
+    - right type must be:
+        - new on
+    - left type must be:
+        - one handler only
+        - that handler is a guard type
+        - that guard type is, itself, a function (a type with one handler)
