@@ -31,7 +31,11 @@ export class PNode {
     this.description = description;
     this.span = span;
     this.children = (children || []).filter(c => c != null);
+    this.children.forEach(c => {
+      c.parent = this;
+    });
     this.precedence = 1;
+    this.parent = null;
     // other common fields: comment, trailingComment
   }
 

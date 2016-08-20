@@ -158,13 +158,6 @@ export class TypeChecker {
         case "PNew": {
           // attach a new (blank) type that we'll fill with handlers.
           node.newType = state.type = newType();
-          if (node.children[0].nodeType == "PBlock") {
-            node.scope = state.scope = new Scope(state.scope);
-            // new -> block: push a new typeScope with "@" defined.
-            state.scope.add("@", new CReference("@", state.type, false));
-            state.typeScope = new Scope(state.typeScope);
-            state.typeScope.add("@", state.type);
-          }
           break;
         }
 
@@ -232,6 +225,12 @@ export class TypeChecker {
 
         case "PBlock": {
           node.scope = state.scope = new Scope(state.scope);
+          if (node.parent && node.parent.nodeType == "PNew") {
+            // new -> block: push a new typeScope with "@" defined.
+            state.scope.add("@", new CReference("@", state.type, false));
+            state.typeScope = new Scope(state.typeScope);
+            state.typeScope.add("@", state.type);
+          }
           break;
         }
       }
