@@ -174,6 +174,15 @@ export class TypeDescriptor {
     if (this.typeHandlers.length != 1) return null;
     return this.typeHandlers[0].guard;
   }
+
+  hasWildcards() {
+    switch (this.kind) {
+      case Type.SIMPLE: return false;
+      case Type.COMPOUND: return this.fields.map(f => f.type.hasWildcards()).reduce((a, b) => a || b);
+      case Type.SUM: return this.types.map(t => t.hasWildcards()).reduce((a, b) => a || b);
+      case Type.WILDCARD: return true;
+    }
+  }
 }
 
 

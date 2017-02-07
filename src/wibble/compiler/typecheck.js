@@ -264,7 +264,26 @@ export class TypeChecker {
       }
 
       if (node.nodeType == "PCall") {
-        if (this.logger) this.log(node.inspect(true));
+        /*
+         * is the right hand side an anonymous expression?
+         */
+        // const target = node.children[1];
+        // if (target.nodeType == "PNew" && target.children[0].nodeType == "POn") {
+        //   const guard = target.children[0];
+        //   if (guard.guardType && guard.guardType.hasWildcards()) {
+        //     // yes. mark it funny-looking.
+        //     const ltype = new UnresolvedType(node.children[0], state.scope, state.typeScope);
+        //     const rtype = new UnresolvedType(node.children[1], state.scope, state.typeScope);
+        //     rtype.addVariable(ltype);
+        //     if (this.logger) {
+        //       this.log(`added left unresolved type here: ${ltype.inspect()}`);
+        //       this.log(`added right unresolved type here: ${rtype.inspect()}`);
+        //     }
+        //     unresolved.push(ltype);
+        //     unresolved.push(rtype);
+        //   }
+        //   if (this.logger) this.log("->>" + guard.guardType.inspect() + " -- " + guard.guardType.hasWildcards());
+        // }
       }
     };
 
@@ -305,6 +324,7 @@ export class TypeChecker {
   resolveTypes(expr, unresolved) {
     if (this.logger) {
       this.log("resolve types:");
+      this.log(expr.inspect(true));
     }
     let stillUnresolved = this.tryProgress(unresolved);
     while (stillUnresolved.length > 0 && stillUnresolved.length < unresolved.length) {
