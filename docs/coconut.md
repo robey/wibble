@@ -96,6 +96,79 @@ def vector(obj: Array(Float) | Vector = []) {
 }
 ```
 
+... What if we didn't require `def`?
+
+```
+type Vector {
+  # Immutable n-vector.
+  points: Array(Float)
+
+  abs {
+    @points.map(-> $0 ** 2).fold(0, -> $0 + $1) ** 0.5
+  }
+
+  add(other: Vector) {
+    assert @points.length == other.points.length
+    @points.zip(other.points).map(-> $0 + $1) |> vector
+  }
+
+  sub(other: Vector) {
+    assert @points.length == other.points.length
+    @points.zip(other.points).map(-> $0 - $1) |> vector
+  }
+
+  neg {
+    @points.map(-> -$0) |> vector
+  }
+
+  equals(other: Vector) {
+    @points == other.points
+  }
+
+  mul(other: Vector | Float) {
+    other match {
+      v: Vector -> {
+        # dot product
+        assert @points.length == v.points.length
+        @points.zip(other.points).map(-> $0 * $1).fold(0, -> $0 + $1)
+      }
+      f: Float -> {
+        # scalar multiply
+        @points.map(-> $0 * f) |> vector
+      }
+    }
+  }
+}
+
+let vector = (obj: Array(Float) | Vector = []) -> {
+  obj match {
+    v: Vector -> v
+    items: Array(Float) -> new Vector { def points = items }
+  }
+}
+```
+
+type := "type" typename "{" field* "}"
+field := name or name(params...) optional(: typename) optional(codeblock)
+
+provide := "provide" typename ":" typename "{" field* "}"
+
+```
+import Collection from collection
+import collection
+import List as XList, Vector as XVector from collection
+import collection as cx
+
+type List($A) is Collection($A) {
+
+}
+
+provide Vector($A): Collection($A) {
+  map(f: $A -> $B) {
+    ...
+  }
+}
+```
 
 
 ## collections
