@@ -23,7 +23,7 @@
 
 ## expressions
 
-    expression := condition | loop | return | break | function | logical
+    expression := condition | loop | return | break | function | match
 
     condition := "if" expression "then" expression ("else" expression)?
 
@@ -36,6 +36,8 @@
     return := "return" expression
 
     break := "break" expression?
+
+    match := logical ("match" "{" matchExpr* "}")?
 
     logical := logicalAnd ("or" logicalAnd)*
 
@@ -51,7 +53,7 @@
 
     call := unary (ws* atom)*
 
-    unary := ("-" | "not") atom
+    unary := ("-" | "not") atom ("as" typedecl)?
 
     atom := constant | reference | array | struct | codeBlock | new
 
@@ -68,6 +70,8 @@
     codeBlock := "{" (code ";"?)* "}"
 
     new := "new" typedecl? codeBlock
+
+    matchExpr := XXX FIXME XXX
 
 ## typedecl
 
@@ -95,12 +99,35 @@
 
 ## code
 
-    code := localLet | localMake | assignment | handler | expression
+    code := localLet | localDef | assignment | handler | expression
 
-    localLet := "let" SYMBOL_NAME "=" expression ("," SYMBOL_NAME "=" expression)*
+    localLet := "let" [ "var" ] SYMBOL_NAME "=" expression ("," [ "var" ] SYMBOL_NAME "=" expression)*
 
-    localMake := "make" SYMBOL_NAME ":=" expression ("," SYMBOL_NAME "=" expression)*
+    # sugar for let A = B (":" C)? -> D
+    localDef := "def" SYMBOL_NAME compoundType (":" typedecl)? codeBlock
 
     assignment := SYMBOL_NAME ":=" expression
 
     handler := "on" (symbol | parameterList) "->" expression
+
+## body
+
+    body := createType | createProvide | localDef
+
+    createType := "type" typedef (":" (typedef ","?)+)? "{" typeField* "}"
+
+    createProvide := "provide" typedef "for" typedef "{" provideField* "}""
+
+    typedef := SYMBOL_NAME ("(" parameterType ("," parameterType)\* ")")?
+
+    typeField := SYMBOL_NAME compoundType? codeBlock?
+
+    provideField := SYMBOL_NAME compoundType? codeBlock
+
+## module
+
+    module := import* body*
+
+    import := "import" importName (("," importName)* "from" SYMBOL_NAME)?
+
+    importName := SYMBOL_NAME ("as" SYMBOL_NAME)
