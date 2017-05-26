@@ -143,13 +143,13 @@ type Vector {
 let vector = (obj: Array(Float) | Vector = []) -> {
   obj match {
     v: Vector -> v
-    items: Array(Float) -> new Vector { def points = items }
+    items: Array(Float) -> new Vector { points = items }
   }
 }
 ```
 
 type := "type" typename "{" field* "}"
-field := name or name(params...) optional(: typename) optional(codeblock)
+field := name or name(params...) optional(: typename) optional(codeblock | "=" expr)
 
 provide := "provide" typename ":" typename "{" field* "}"
 
@@ -159,11 +159,13 @@ import collection
 import List as XList, Vector as XVector from collection
 import collection as cx
 
-type List($A) is Collection($A) {
-
+type List($A) {
+  provide Collection($A) {
+    ...
+  }
 }
 
-provide Vector($A): Collection($A) {
+provide Collection($A) for Vector($A) {
   map(f: $A -> $B) {
     ...
   }

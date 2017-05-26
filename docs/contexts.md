@@ -550,9 +550,54 @@ One fallout of simplifying new object creation is that there doesn't need to be 
 
 To avoid confusion, the compiler should now explicitly forbid local variable name shadowing. If code refers to a variable, there should be exactly one definition in the scope chain.
 
-This doesn't avoid the need for `@` though, sadly. Message handlers will still need to send messages to themselves, like sibling method calls. So we still need `@.name`and similar.
+This doesn't avoid the need for `@` though, sadly. Message handlers will still need to send messages to themselves, like sibling method calls. So we still need `@.name` and similar.
 
 Generic types will need a constructor other than random factory functions. Example: How do I create a new `Buffer(Byte)`?
+
+
+# post rust
+
+flight without internet to NC -- 23 may 2017
+
+After messing with rust for a few months, I think there are two ideas worth stealing, that would change some aspects of wibble.
+
+In rust, unlike java/scala and javascript, mutability is a poison pill that affects the entire object and its references, recursively. It's more like C++'s `const`. In the JVM & JS languages, a "const"/"final" marker applies only to its local binding; there's no way to indicate that an object itself (all of its fields) is immutable, and therefore can be treated like a value. There's also no way for a function signature to promise that it won't mutate one of its arguments.
+
+This seems increasingly like a good idea. My original intent was to put on the sacred vestments and declare that all objects (except locals) are immutable, forever and ever, amen, like a pure FP language. But this is simply not practical for many applications and servers, which will pretty much be defined by their shared global state. I now think it's better to be practical and flexible, and allow mutability, but require it to be marked as part of the "type" of the binding. It also should require this marker on any methods that mutate `self`.
+
+So instead of `let` and `make`, it should always be `let`, with a marker for mutable bindings -- maybe `var`.
+
+```
+def sort(var collection: Collection($A), compare: ($A, $A) -> Boolean): Collection($A)
+
+let count = 3
+let var so_far = 0
+```
+
+Only immutable objects or objects explicitly marked as thread-safe (like a concurrent queue) should be allowed to cross between threads. There will need to be some way for a mutable object to "mark" itself as thread-safe, as an exit hatch for people who know what they're doing. We can probably assume that all immutables are thread-safe, since they can be passed by value/copy.
+
+The other stealable idea is facets. I'm coming around to the idea that facets are an explicit way to mark duck typing, and I like EIBTI. Instead of assuming an object is `Iterable` just because it implements `next()`, you treat each interface's method as unique. It isn't enough to implement a function named `next`; it has to be `Iterable.next`, and the implementation has to be contained in an explicit block. I'm picturing something like
+
+```
+provide Iterable($A) for TreeSet($A) {
+  ...
+}
+```
+
+or
+
+```
+type TreeSet($A) {
+  ...
+  provide Iterable($A) {
+    ...
+  }
+}
+```
+
+
+
+
 
 
 
