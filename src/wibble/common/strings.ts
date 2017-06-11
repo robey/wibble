@@ -1,15 +1,14 @@
-"use strict";
-
 /*
  * common functions for manipulating strings.
  */
 
-export function uncstring(s) {
+export function uncstring(s: string): string {
   return s.replace(/\\(u\{(.*?)\}|u(.{0,4})|.)/g, (match, c, hex1, hex2) => {
     const hex = hex1 || hex2;
+    if (hex2 && hex2.length < 4) throw new Error("Truncated \\uHHHH code");
     if (hex) {
       // uHHHH
-      if (!hex.match(/[0-9a-fA-F]+/)) throw new Error("Illegal \\uHHHH code");
+      if (!hex.match(/^[0-9a-fA-F]+$/)) throw new Error("Illegal \\uHHHH code");
       return String.fromCharCode(parseInt(hex, 16));
     }
     switch (c) {
@@ -23,7 +22,7 @@ export function uncstring(s) {
   });
 }
 
-export function cstring(s) {
+export function cstring(s: string): string {
   return s.replace(/[^\u0020-\u007e]|\"/g, c => {
     if (c == "\"") return "\\\"";
     const n = c.charCodeAt(0);
