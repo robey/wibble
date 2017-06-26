@@ -5,7 +5,7 @@ import "should";
 import "source-map-support/register";
 
 const parse = (s: string, options: EngineOptions = {}) => {
-  return parser.constant.run(parser.tokenizer.run(s), options).inspect();
+  return parser.constant.run(parser.tokenizer.parser.run(s), options).inspect();
 };
 
 describe("Parse constants", () => {

@@ -1,7 +1,46 @@
 // import Enum from "./enum";
 // import { cstring } from "./strings";
 
-import { Span } from "packrattle";
+import { mergeSpan, Span, Token } from "packrattle";
+
+// an item and whatever linespace, separator, and whitespace came after it
+export class AnnotatedItem<A extends PNode> {
+  constructor(
+    public item: A,
+    public gap1: Token | undefined,
+    public separator: Token | undefined,
+    public gap2: Token[]
+  ) {
+    // pass
+  }
+
+  toCode(): string {
+    return this.item.toCode() +
+      (this.gap1 ? this.gap1.value : "") +
+      (this.separator ? this.separator.value : "") +
+      this.gap2.map(t => t.value).join("");
+  }
+}
+
+export class TokenCollection<A extends PNode> {
+  constructor(
+    public open: Token,
+    public gap1: Token[],
+    public list: AnnotatedItem<A>[],
+    public gap2: Token[],
+    public close: Token
+  ) {
+    // pass
+  }
+
+  toCode(): string {
+    return this.open.value +
+      this.gap1.map(t => t.value).join("") +
+      this.list.map(item => item.toCode()).join("") +
+      this.gap2.map(t => t.value).join("") +
+      this.close.value;
+  }
+}
 
 /*
  * AST nodes
@@ -69,6 +108,10 @@ export class PNode {
     });
     return rv;
   }
+
+  toCode(): string {
+    return "";
+  }
 }
 
 export enum PConstantType {
@@ -88,24 +131,34 @@ export class PConstant extends PNode {
       span
     );
   }
+
+  toCode(): string {
+    return this.value;
+  }
 }
 
-// export class PReference extends PNode {
-//   constructor(name, span) {
-//     super(name, span);
-//     this.name = name;
-//   }
-// }
-//
-// export class PArray extends PNode {
-//   // 'trailingComment' is any comment after the final item.
-//   constructor(children, trailingComment, span) {
-//     super("array", span, children);
-//     this.trailingComment = trailingComment;
-//     this.precedence = 100;
-//   }
-// }
-//
+export class PReference extends PNode {
+  constructor(public name: string, span: Span) {
+    super(name, span);
+  }
+
+  toCode(): string {
+    return this.name;
+  }
+}
+
+export class PArray extends PNode {
+  // 'trailingComment' is any comment after the final item.
+  constructor(public items: TokenCollection<PNode>) {
+    super("array", mergeSpan(items.open.span, items.close.span), items.list.map(x => x.item));
+    this.precedence = 100;
+  }
+
+  toCode(): string {
+    return this.items.toCode();
+  }
+}
+
 // // inType, body, [outType]
 // export class PFunction extends PNode {
 //   constructor(inType, outType, body, span) {
@@ -241,39 +294,56 @@ export class PConstant extends PNode {
 //     this.trailingComment = trailingComment;
 //   }
 // }
-//
-//
-// // ----- types
-//
-// export class PType extends PNode {
-//   constructor(description, span, children) {
-//     super(description, span, children);
-//   }
-// }
-//
-// export class PSimpleType extends PType {
-//   constructor(name, span) {
-//     super(`type(${name})`, span);
-//     this.name = name;
-//   }
-// }
-//
-// // used only in compound types: a field name with an optional type and optional default value.
-// export class PTypedField extends PNode {
-//   constructor(name, type, defaultValue, span) {
-//     super(`field(${name})`, span, [ type, defaultValue ]);
-//     this.name = name;
-//     this.type = type;
-//     this.defaultValue = defaultValue;
-//   }
-// }
-//
-// export class PCompoundType extends PType {
-//   constructor(fields, span) {
-//     super("compoundType", span, fields);
-//   }
-// }
-//
+
+
+// ----- types
+
+export class PType extends PNode {
+  constructor(description: string, span: Span, children?: PNode[]) {
+    super(description, span, children);
+  }
+}
+
+export class PSimpleType extends PType {
+  constructor(public name: string, span: Span) {
+    super(`type(${name})`, span);
+  }
+
+  toCode(): string {
+    return this.name;
+  }
+}
+
+// used only in compound types: a field name with an optional type and optional default value.
+export class PTypedField extends PNode {
+  constructor(
+    public name: string,
+    public colon: Token[],
+    public type: PType,
+    span: Span,
+    public bind?: Token[],
+    public defaultValue?: PNode,
+  ) {
+    super(`field(${name})`, span, defaultValue ? [ type, defaultValue ] : [ type ]);
+  }
+
+  toCode(): string {
+    let rv = this.name + this.colon.map(t => t.value).join("") + this.type.toCode();
+    if (this.bind && this.defaultValue) rv += this.bind.map(t => t.value).join("") + this.defaultValue.toCode();
+    return rv;
+  }
+}
+
+export class PCompoundType extends PType {
+  constructor(public fields: TokenCollection<PTypedField>) {
+    super("compoundType", mergeSpan(fields.open.span, fields.close.span), fields.list.map(x => x.item));
+  }
+
+  toCode(): string {
+    return this.fields.toCode();
+  }
+}
+
 // export class PTemplateType extends PType {
 //   constructor(name, params, span) {
 //     super(`templateType(${name})`, span, params);

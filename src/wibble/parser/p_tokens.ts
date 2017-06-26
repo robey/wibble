@@ -1,9 +1,13 @@
-import { makeTokenizer, Parser, Token } from "packrattle";
+import { Parser, Token, Tokenizer } from "packrattle";
 
-export enum Tokens {
+export enum TokenType {
   UNKNOWN,
 
-  // Operator tokens: + - * / % ** == >= <= != < >
+  LF,
+  LINESPACE,
+  COMMENT,
+
+  // Operator TokenType: + - * / % ** == >= <= != < >
   POWER,
   PLUS,
   MINUS,
@@ -17,7 +21,46 @@ export enum Tokens {
   LESS_THAN,
   GREATER_THAN,
 
-  // Operator tokens: ( ) [ ] { } = : -> ; | .
+  // syntax: ( ) [ ] { } = : -> ; | , @
+  OPAREN,
+  CPAREN,
+  OBRACKET,
+  CBRACKET,
+  OBRACE,
+  CBRACE,
+  BIND,
+  COLON,
+  ARROW,
+  SEMICOLON,
+  PIPE,
+  COMMA,
+  AT,
+
+  // reserved words
+  IF,
+  THEN,
+  ELSE,
+  REPEAT,
+  WHILE,
+  DO,
+  RETURN,
+  BREAK,
+  MATCH,
+  AND,
+  OR,
+  NOT,
+  NEW,
+  AS,
+  LET,
+  VAR,
+  DEF,
+  ON,
+  TYPE,
+  PROVIDE,
+  FOR,
+  IMPORT,
+  FROM,
+
   SYMBOL,
 
   // constants
@@ -32,50 +75,124 @@ export enum Tokens {
   IDENTIFIER,
 }
 
-export const OPERATORS = [
-  Tokens.POWER,
-  Tokens.PLUS,
-  Tokens.MINUS,
-  Tokens.MULTIPLY,
-  Tokens.DIVIDE,
-  Tokens.MODULO,
-  Tokens.EQUALS,
-  Tokens.GREATER_EQUALS,
-  Tokens.LESS_EQUALS,
-  Tokens.NOT_EQUALS,
-  Tokens.LESS_THAN,
-  Tokens.GREATER_THAN
+export const WHITESPACE = [
+  TokenType.LF,
+  TokenType.LINESPACE,
+  TokenType.COMMENT
 ];
 
-export const tokenizer = makeTokenizer({
-  tokens: Tokens,
+export const OPERATORS = [
+  TokenType.POWER,
+  TokenType.PLUS,
+  TokenType.MINUS,
+  TokenType.MULTIPLY,
+  TokenType.DIVIDE,
+  TokenType.MODULO,
+  TokenType.EQUALS,
+  TokenType.GREATER_EQUALS,
+  TokenType.LESS_EQUALS,
+  TokenType.NOT_EQUALS,
+  TokenType.LESS_THAN,
+  TokenType.GREATER_THAN
+];
+
+export const RESERVED = [
+  TokenType.TRUE,
+  TokenType.FALSE,
+  TokenType.IF,
+  TokenType.THEN,
+  TokenType.ELSE,
+  TokenType.REPEAT,
+  TokenType.WHILE,
+  TokenType.DO,
+  TokenType.RETURN,
+  TokenType.BREAK,
+  TokenType.MATCH,
+  TokenType.AND,
+  TokenType.OR,
+  TokenType.NOT,
+  TokenType.NEW,
+  TokenType.AS,
+  TokenType.LET,
+  TokenType.VAR,
+  TokenType.DEF,
+  TokenType.ON,
+  TokenType.TYPE,
+  TokenType.PROVIDE,
+  TokenType.FOR,
+  TokenType.IMPORT,
+  TokenType.FROM
+];
+
+export const IDENTIFIER_LIKE = RESERVED.concat([ TokenType.IDENTIFIER ]);
+
+export const tokenizer = new Tokenizer(TokenType, {
   regex: [
-    { token: Tokens.NUMBER_BASE2, regex: /0b[01][01_]*/ },
-    { token: Tokens.NUMBER_BASE16, regex: /0x[0-9a-fA-F][0-9a-fA-F_]*/ },
-    { token: Tokens.NUMBER_BASE10, regex: /[0-9][0-9_]*(\.[0-9][0-9_]*)?([eE][-+]?[0-9][0-9_]*)?/ },
-    { token: Tokens.STRING, regex: /"(([^"\\]|\\.)*)"/ },
+    { token: TokenType.NUMBER_BASE2, regex: /0b[01][01_]*/ },
+    { token: TokenType.NUMBER_BASE16, regex: /0x[0-9a-fA-F][0-9a-fA-F_]*/ },
+    { token: TokenType.NUMBER_BASE10, regex: /[0-9][0-9_]*(\.[0-9][0-9_]*)?([eE][-+]?[0-9][0-9_]*)?/ },
+    { token: TokenType.STRING, regex: /"(([^"\\]|\\.)*)"/ },
 
-    { token: Tokens.IDENTIFIER, regex: /[a-z][A-Za-z_0-9]*/ },
+    { token: TokenType.IDENTIFIER, regex: /[A-Za-z][A-Za-z_0-9]*/ },
 
-
+    // line may be continued with "\"
+    { token: TokenType.LF, regex: /\r?\n/ },
+    { token: TokenType.LINESPACE, regex: /([ \t]+|\\[ \t]*\n)+/ },
+    { token: TokenType.COMMENT, regex: /\#[^\n]*/ },
   ],
   strings: [
-    [ "true", Tokens.TRUE ],
-    [ "false", Tokens.FALSE ],
-    [ "()", Tokens.NOTHING ],
-    [ "**", Tokens.POWER ],
-    [ "+", Tokens.PLUS ],
-    [ "-", Tokens.MINUS ],
-    [ "*", Tokens.MULTIPLY ],
-    [ "/", Tokens.DIVIDE ],
-    [ "%", Tokens.MODULO ],
-    [ "==", Tokens.EQUALS ],
-    [ ">=", Tokens.GREATER_EQUALS ],
-    [ "<=", Tokens.LESS_EQUALS ],
-    [ "!=", Tokens.NOT_EQUALS ],
-    [ "<", Tokens.LESS_THAN ],
-    [ ">", Tokens.GREATER_THAN ],
-    [ ".", Tokens.SYMBOL ],
+    [ "true", TokenType.TRUE ],
+    [ "false", TokenType.FALSE ],
+    [ "if", TokenType.IF ],
+    [ "then", TokenType.THEN ],
+    [ "else", TokenType.ELSE ],
+    [ "repeat", TokenType.REPEAT ],
+    [ "while", TokenType.WHILE ],
+    [ "do", TokenType.DO ],
+    [ "return", TokenType.RETURN ],
+    [ "break", TokenType.BREAK ],
+    [ "match", TokenType.MATCH ],
+    [ "and", TokenType.AND ],
+    [ "or", TokenType.OR ],
+    [ "not", TokenType.NOT ],
+    [ "new", TokenType.NEW ],
+    [ "as", TokenType.AS ],
+    [ "let", TokenType.LET ],
+    [ "var", TokenType.VAR ],
+    [ "def", TokenType.DEF ],
+    [ "on", TokenType.ON ],
+    [ "type", TokenType.TYPE ],
+    [ "provide", TokenType.PROVIDE ],
+    [ "for", TokenType.FOR ],
+    [ "import", TokenType.IMPORT ],
+    [ "from", TokenType.FROM ],
+    [ "()", TokenType.NOTHING ],
+    [ "**", TokenType.POWER ],
+    [ "+", TokenType.PLUS ],
+    [ "->", TokenType.ARROW ],
+    [ "-", TokenType.MINUS ],
+    [ "*", TokenType.MULTIPLY ],
+    [ "/", TokenType.DIVIDE ],
+    [ "%", TokenType.MODULO ],
+    [ "==", TokenType.EQUALS ],
+    [ ">=", TokenType.GREATER_EQUALS ],
+    [ "<=", TokenType.LESS_EQUALS ],
+    [ "!=", TokenType.NOT_EQUALS ],
+    [ "<", TokenType.LESS_THAN ],
+    [ ">", TokenType.GREATER_THAN ],
+    [ ".", TokenType.SYMBOL ],
+    [ "(", TokenType.OPAREN ],
+    [ ")", TokenType.CPAREN ],
+    [ "[", TokenType.OBRACKET ],
+    [ "]", TokenType.CBRACKET ],
+    [ "{", TokenType.OBRACE ],
+    [ "}", TokenType.CBRACE ],
+    [ "=", TokenType.BIND ],
+    [ ":", TokenType.COLON ],
+    [ ";", TokenType.SEMICOLON ],
+    [ "|", TokenType.PIPE ],
+    [ ",", TokenType.COMMA ],
+    [ "@", TokenType.AT ]
   ],
-  fallback: Tokens.UNKNOWN
+  fallback: TokenType.UNKNOWN
 });
