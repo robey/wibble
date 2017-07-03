@@ -124,7 +124,7 @@ export const RESERVED = [
   TokenType.FROM
 ];
 
-export const IDENTIFIER_LIKE = RESERVED.concat([ TokenType.IDENTIFIER ]);
+export const IDENTIFIER_LIKE = [ TokenType.IDENTIFIER ].concat(RESERVED);
 
 export const tokenizer = new Tokenizer(TokenType, {
   regex: [

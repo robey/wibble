@@ -32,16 +32,11 @@ describe("Parse types", () => {
       "compoundType{ field(x){ type(Int)[4:7] }[1:2], field(y){ type(String)[11:17] }[9:10] }[0:18]"
     );
     p3.toCode().should.eql("(x: Int, y:String)");
-    const p4 = parse("(x: Int = 4)", { makeDot, logger: console.log });
+    const p4 = parse("(x: Int = 4)");
     p4.inspect().should.eql(
       "compoundType{ field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:2] }[0:12]"
     );
     p4.toCode().should.eql("(x: Int = 4)");
-    const p5 = parse("()");
-    p5.inspect().should.eql(
-      "compoundType[0:2]"
-    );
-    p5.toCode().should.eql("()");
   });
 
 //   it("function", () => {

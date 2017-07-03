@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import { EngineOptions, Token } from "packrattle";
 import { parser } from "../../wibble";
+import { makeDot } from "./helpers";
 
 import "should";
 import "source-map-support/register";
@@ -10,10 +11,6 @@ const parse = (s: string, options: EngineOptions = {}) => {
 };
 
 // const parseFunc = (s, options) => parser.func.run(s, options).inspect();
-
-function makeDot(s: string) {
-  fs.writeFileSync("debug.dot", Buffer.from(s));
-}
 
 describe("Parse expressions", () => {
   it("reference", () => {

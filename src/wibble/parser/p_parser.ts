@@ -1,5 +1,5 @@
 import {
-  alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, Token
+  alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token
 } from "packrattle";
 import { TokenType, tokenizer, WHITESPACE } from "./p_tokens";
 import { AnnotatedItem, PNode, TokenCollection } from "../common/ast";
@@ -32,14 +32,13 @@ export function repeatSeparated<A extends PNode>(
   p: LazyParser<Token, A>,
   separator: TokenType
 ): Parser<Token, AnnotatedItem<A>[]> {
-  const sep = alt(tokenizer.match(separator), tokenizer.match(TokenType.LF))
-  const element = seq4(p, linespace, tokenizer.match(separator), whitespace).map(([ a, ls, sep, ws ]) => {
+  const sepOrLF = alt(tokenizer.match(separator), tokenizer.match(TokenType.LF));
+  const element = seq4(p, linespace, sepOrLF, whitespace).map(([ a, ls, sep, ws ]) => {
     return new AnnotatedItem(a, ls, sep, ws);
   });
 
   return seq2(repeat(element), optional(p)).map(([ list, last ]) => {
-    if (last) list.push(new AnnotatedItem(last, undefined, undefined, []));
-    return list;
+    return list.concat(last ? [ new AnnotatedItem(last, undefined, undefined, []) ] : []);
   });
 }
 
@@ -51,12 +50,13 @@ export function repeatSurrounded<A extends PNode>(
   close: number,
   name: string
 ): Parser<Token, TokenCollection<A>> {
-  return seq4(
+  return seq5(
     tokenizer.match(open),
-    optional(seq2(whitespace, repeatSeparated(p, separator))),
     whitespace,
-    tokenizer.match(close).named(name)
-  ).map(([ o, inner, ws, c ]) => {
-    return new TokenCollection(o, inner ? inner[0] : [], inner ? inner[1] : [], ws, c);
+    repeatSeparated(p, separator).named(name),
+    whitespace,
+    tokenizer.match(close)
+  ).map(([ o, ws1, inner, ws2, c ]) => {
+    return new TokenCollection(o, ws1, inner, ws2, c);
   });
 }

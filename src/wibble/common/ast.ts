@@ -14,6 +14,10 @@ export class AnnotatedItem<A extends PNode> {
     // pass
   }
 
+  toString(): string {
+    return this.toCode();
+  }
+
   toCode(): string {
     return this.item.toCode() +
       (this.gap1 ? this.gap1.value : "") +
@@ -31,6 +35,10 @@ export class TokenCollection<A extends PNode> {
     public close: Token
   ) {
     // pass
+  }
+
+  toString(): string {
+    return this.toCode();
   }
 
   toCode(): string {
@@ -80,6 +88,10 @@ export class PNode {
 //   get nodeType() {
 //     return this.constructor.name;
 //   }
+
+  toString(): string {
+    return this.inspect();
+  }
 
   inspect(dump: boolean = false): string {
     if (dump) return this.dump().join("\n");
