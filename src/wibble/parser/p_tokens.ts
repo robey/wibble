@@ -21,7 +21,7 @@ export enum TokenType {
   LESS_THAN,
   GREATER_THAN,
 
-  // syntax: ( ) [ ] { } = : -> ; | , @
+  // syntax: ( ) [ ] { } = : -> ; | , @ $
   OPAREN,
   CPAREN,
   OBRACKET,
@@ -35,6 +35,7 @@ export enum TokenType {
   PIPE,
   COMMA,
   AT,
+  DOLLAR,
 
   // reserved words
   IF,
@@ -192,7 +193,8 @@ export const tokenizer = new Tokenizer(TokenType, {
     [ ";", TokenType.SEMICOLON ],
     [ "|", TokenType.PIPE ],
     [ ",", TokenType.COMMA ],
-    [ "@", TokenType.AT ]
+    [ "@", TokenType.AT ],
+    [ "$", TokenType.DOLLAR ]
   ],
   fallback: TokenType.UNKNOWN
 });

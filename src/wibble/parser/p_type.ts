@@ -1,6 +1,17 @@
-import { alt, optional, Parser, seq2, seq4, Token } from "packrattle";
-import { PCompoundType, PNode, PSimpleType, PType, PTypedField } from "../common/ast";
-import { failWithPriority, linespace, linespaceAround, repeatSurrounded } from "./p_parser";
+import { alt, optional, Parser, seq2, seq3, seq4, seq5, Token } from "packrattle";
+import {
+  PCompoundType,
+  PFunctionType,
+  PMergedType,
+  PNestedType,
+  PNode,
+  PParameterType,
+  PSimpleType,
+  PTemplateType,
+  PType,
+  PTypedField
+} from "../common/ast";
+import { failWithPriority, linespace, linespaceAround, repeatSeparatedStrict, repeatSurrounded } from "./p_parser";
 import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 import { expression, reference } from "./p_expr";
 
@@ -46,19 +57,30 @@ export const compoundType = repeatSurrounded(
   return new PCompoundType(items);
 });
 
-// const templateType = $([
-//   $(TYPE_NAME).map(match => match[0]),
-//   repeatSurrounded("(", () => typedecl, ",", ")", $.drop(linespace), "type")
-// ]).map((match, span) => {
-//   return new PTemplateType(match[0], match[1][0], span);
-// });
-//
-// const parameterType = $([ $.drop("$"), $(TYPE_NAME).map(match => match[0]) ]).map((match, span) => {
-//   return new PParameterType(match[0], span);
-// });
-//
-// const nestedType = $([ $.drop("("), () => typedecl, $.drop(")") ]).map(match => match[0]);
-//
+const templateType = seq2(
+  simpleType,
+  repeatSurrounded(
+    TokenType.OPAREN,
+    () => typedecl,
+    TokenType.COMMA,
+    TokenType.CPAREN,
+    "type"
+  )
+).map(([ name, items ]) => new PTemplateType(name, items));
+
+const parameterType = seq2(tokenizer.match(TokenType.DOLLAR), simpleType).map(([ dollar, name ]) => {
+  return new PParameterType(dollar, name);
+})
+
+// just a type with () around it, for precedence
+const nestedType = seq5(
+  tokenizer.match(TokenType.OPAREN),
+  linespace,
+  () => typedecl,
+  linespace,
+  tokenizer.match(TokenType.CPAREN),
+).map(([ open, gap1, inner, gap2, close ]) => new PNestedType(open, gap1, inner, gap2, close));
+
 // const declaration = $([
 //   $.alt(symbolRef, compoundType),
 //   $.drop(linespace),
@@ -81,18 +103,29 @@ export const compoundType = repeatSurrounded(
 // });
 //
 // const componentType = $.alt(inlineType, nestedType, parameterType, templateType, simpleType, compoundType);
-const componentType: Parser<Token, PType> = alt<Token, PType>(simpleType, compoundType);
+const componentType: Parser<Token, PType> = alt<Token, PType>(
+  nestedType,
+  parameterType,
+  templateType,
+  simpleType,
+  compoundType
+);
 
-// const functionType = $([
-//   componentType,
-//   $.drop(linespace),
-//   $.commit("->").drop(),
-//   $.drop(linespace),
-//   () => typedecl
-// ]).map((match, span) => {
-//   return new PFunctionType(match[0], match[1], span);
-// }).or(componentType);
-//
+const functionType = seq3(
+  componentType,
+  linespaceAround(tokenizer.match(TokenType.ARROW)),
+  () => typedecl
+).map(([ left, arrow, right ]) => {
+  return new PFunctionType(left, arrow, right);
+});
+
+const baseType: Parser<Token, PType> = alt(functionType, componentType);
+
+const mergedType = repeatSeparatedStrict(baseType, TokenType.PIPE).map(items => {
+  if (items.length == 1) return items[0].item;
+  return new PMergedType(items);
+});
+
 // const mergedType  = repeatSeparated(
 //   functionType,
 //   $.drop("|"),
@@ -101,8 +134,6 @@ const componentType: Parser<Token, PType> = alt<Token, PType>(simpleType, compou
 //   if (match.length == 1) return match[0];
 //   return new PMergedType(match, span);
 // });
-//
-// export const typedecl = mergedType.named("type");
 
 // FIXME
-export const typedecl = componentType.named("type");
+export const typedecl = mergedType.named("type");

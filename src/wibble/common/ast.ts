@@ -5,13 +5,19 @@ import { mergeSpan, Span, Token } from "packrattle";
 
 // an item and whatever linespace, separator, and whitespace came after it
 export class AnnotatedItem<A extends PNode> {
+  span: Span;
+
   constructor(
     public item: A,
     public gap1: Token | undefined,
     public separator: Token | undefined,
     public gap2: Token[]
   ) {
-    // pass
+    let lastSpan = this.item.span;
+    if (this.gap1 !== undefined) lastSpan = this.gap1.span;
+    if (this.separator !== undefined) lastSpan = this.separator.span;
+    if (this.gap2.length > 0) lastSpan = this.gap2[this.gap2.length - 1].span;
+    this.span = mergeSpan(this.item.span, lastSpan);
   }
 
   toString(): string {
@@ -27,6 +33,8 @@ export class AnnotatedItem<A extends PNode> {
 }
 
 export class TokenCollection<A extends PNode> {
+  span: Span;
+
   constructor(
     public open: Token,
     public gap1: Token[],
@@ -34,7 +42,7 @@ export class TokenCollection<A extends PNode> {
     public gap2: Token[],
     public close: Token
   ) {
-    // pass
+    this.span = mergeSpan(open.span, close.span);
   }
 
   toString(): string {
@@ -348,7 +356,7 @@ export class PTypedField extends PNode {
 
 export class PCompoundType extends PType {
   constructor(public fields: TokenCollection<PTypedField>) {
-    super("compoundType", mergeSpan(fields.open.span, fields.close.span), fields.list.map(x => x.item));
+    super("compoundType", fields.span, fields.list.map(x => x.item));
   }
 
   toCode(): string {
@@ -356,36 +364,68 @@ export class PCompoundType extends PType {
   }
 }
 
-// export class PTemplateType extends PType {
-//   constructor(name, params, span) {
-//     super(`templateType(${name})`, span, params);
-//     this.name = name;
-//   }
-// }
-//
-// export class PParameterType extends PType {
-//   constructor(name, span) {
-//     super(`parameterType(${name})`, span);
-//     this.name = name;
-//   }
-// }
-//
-// export class PFunctionType extends PType {
-//   constructor(argType, resultType, span) {
-//     super("functionType", span, [ argType, resultType ]);
-//     this.argType = argType;
-//     this.resultType = resultType;
-//     this.precedence = 2;
-//   }
-// }
-//
-// export class PMergedType extends PType {
-//   constructor(types, span) {
-//     super("mergedType", span, types);
-//     this.precedence = 3;
-//   }
-// }
-//
+export class PTemplateType extends PType {
+  constructor(public name: PSimpleType, public params: TokenCollection<PType>) {
+    super(`templateType(${name.name})`, mergeSpan(name.span, params.span), params.list.map(x => x.item));
+  }
+
+  toCode(): string {
+    return this.name.toCode() + this.params.toCode();
+  }
+}
+
+export class PParameterType extends PType {
+  constructor(public dollar: Token, public name: PSimpleType) {
+    super(`parameterType(${name.name})`, mergeSpan(dollar.span, name.span));
+  }
+
+  toCode(): string {
+    return this.dollar.value + this.name.toCode();
+  }
+}
+
+export class PFunctionType extends PType {
+  constructor(public argType: PType, public arrow: Token[], public resultType: PType) {
+    super("functionType", mergeSpan(argType.span, resultType.span), [ argType, resultType ]);
+    this.precedence = 2;
+  }
+
+  toCode(): string {
+    return this.argType.toCode() + this.arrow.map(t => t.value).join("") + this.resultType.toCode();
+  }
+}
+
+export class PNestedType extends PType {
+  constructor(
+    public open: Token,
+    public gap1: Token | undefined,
+    public inner: PType,
+    public gap2: Token | undefined,
+    public close: Token
+  ) {
+    super("nestedType", mergeSpan(open.span, close.span), [ inner ]);
+  }
+
+  toCode(): string {
+    return this.open.value +
+      (this.gap1 ? this.gap1.value : "") +
+      this.inner.toCode() +
+      (this.gap2 ? this.gap2.value : "") +
+      this.close.value;
+  }
+}
+
+export class PMergedType extends PType {
+  constructor(public types: AnnotatedItem<PType>[]) {
+    super("mergedType", mergeSpan(types[0].span, types[types.length - 1].span), types.map(x => x.item));
+    this.precedence = 3;
+  }
+
+  toCode(): string {
+    return this.types.map(x => x.toCode()).join("");
+  }
+}
+
 // export class PInlineTypeDeclaration extends PType {
 //   constructor(guard, type, span) {
 //     super("inlineTypeDeclaration", span, [ guard, type ]);

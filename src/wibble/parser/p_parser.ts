@@ -27,6 +27,20 @@ export function linespaceAround(p: LazyParser<Token, Token>): Parser<Token, Toke
   });
 }
 
+// match: (p linespace separator ws)* p
+export function repeatSeparatedStrict<A extends PNode>(
+  p: LazyParser<Token, A>,
+  separator: TokenType
+): Parser<Token, AnnotatedItem<A>[]> {
+  const element = seq4(p, linespace, tokenizer.match(separator), whitespace).map(([ a, ls, sep, ws ]) => {
+    return new AnnotatedItem(a, ls, sep, ws);
+  });
+
+  return seq2(repeat(element), p).map(([ list, last ]) => {
+    return list.concat(last ? [ new AnnotatedItem(last, undefined, undefined, []) ] : []);
+  });
+}
+
 // match: (p linespace separator ws)* p?
 export function repeatSeparated<A extends PNode>(
   p: LazyParser<Token, A>,
