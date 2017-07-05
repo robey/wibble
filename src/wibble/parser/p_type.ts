@@ -1,7 +1,10 @@
 import { alt, optional, Parser, seq2, seq3, seq4, seq5, Token } from "packrattle";
 import {
   PCompoundType,
+  PConstant,
   PFunctionType,
+  PInlineType,
+  PInlineTypeDeclaration,
   PMergedType,
   PNestedType,
   PNode,
@@ -11,6 +14,7 @@ import {
   PType,
   PTypedField
 } from "../common/ast";
+import { symbolRef } from "./p_const";
 import { failWithPriority, linespace, linespaceAround, repeatSeparatedStrict, repeatSurrounded } from "./p_parser";
 import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 import { expression, reference } from "./p_expr";
@@ -81,29 +85,28 @@ const nestedType = seq5(
   tokenizer.match(TokenType.CPAREN),
 ).map(([ open, gap1, inner, gap2, close ]) => new PNestedType(open, gap1, inner, gap2, close));
 
-// const declaration = $([
-//   $.alt(symbolRef, compoundType),
-//   $.drop(linespace),
-//   $.drop("->"),
-//   $.drop(linespace),
-//   () => typedecl
-// ]).map((match, span) => {
-//   return new PInlineTypeDeclaration(match[0], match[1], span);
-// });
-//
-// const inlineType = repeatSurrounded(
-//   "{",
-//   declaration,
-//   lf,
-//   "}",
-//   commentspace,
-//   "type declaration"
-// ).map((match, span) => {
-//   return new PInlineType(match[0], match[1], span);
-// });
-//
-// const componentType = $.alt(inlineType, nestedType, parameterType, templateType, simpleType, compoundType);
+const declaration = seq5(
+  alt<Token, PConstant | PType>(symbolRef, compoundType),
+  linespace,
+  tokenizer.match(TokenType.ARROW),
+  linespace,
+  () => typedecl
+).map(([ argType, gap1, arrow, gap2, resultType ]) => {
+  return new PInlineTypeDeclaration(argType, gap1, arrow, gap2, resultType);
+});
+
+const inlineType = repeatSurrounded(
+  TokenType.OBRACE,
+  declaration,
+  TokenType.SEMICOLON,
+  TokenType.CBRACE,
+  "type declaration"
+).map(items => {
+  return new PInlineType(items);
+})
+
 const componentType: Parser<Token, PType> = alt<Token, PType>(
+  inlineType,
   nestedType,
   parameterType,
   templateType,
@@ -126,14 +129,4 @@ const mergedType = repeatSeparatedStrict(baseType, TokenType.PIPE).map(items => 
   return new PMergedType(items);
 });
 
-// const mergedType  = repeatSeparated(
-//   functionType,
-//   $.drop("|"),
-//   $.drop(linespace)
-// ).map((match, span) => {
-//   if (match.length == 1) return match[0];
-//   return new PMergedType(match, span);
-// });
-
-// FIXME
 export const typedecl = mergedType.named("type");

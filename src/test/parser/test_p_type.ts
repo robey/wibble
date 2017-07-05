@@ -104,36 +104,46 @@ describe("Parse types", () => {
     p2.toCode().should.eql("(Int -> Int) | (Symbol -> Int)");
   });
 
-//   it("inline", () => {
-//     parse("{}").should.eql("inlineType[0:2]");
-//     parse("{ }").should.eql("inlineType[0:3]");
-//     parse("{ .+ -> Int -> Int }").should.eql(
-//       "inlineType(" +
-//         "inlineTypeDeclaration(" +
-//           "const(SYMBOL, +)[2:4], " +
-//           "functionType(type(Int)[8:11], type(Int)[15:18])[8:18]" +
-//         ")[2:18]" +
-//       ")[0:20]"
-//     );
-//     parse("{ (x: Int) -> String }").should.eql(
-//       "inlineType(" +
-//         "inlineTypeDeclaration(" +
-//           "compoundType(field(x)(type(Int)[6:9])[3:4])[2:10], " +
-//           "type(String)[14:20]" +
-//         ")[2:20]" +
-//       ")[0:22]"
-//     );
-//     parse("{ .name -> String; (x: String) -> Boolean }").should.eql(
-//       "inlineType(" +
-//         "inlineTypeDeclaration(" +
-//           "const(SYMBOL, name)[2:7], " +
-//           "type(String)[11:17]" +
-//         ")[2:17], " +
-//         "inlineTypeDeclaration(" +
-//           "compoundType(field(x)(type(String)[23:29])[20:21])[19:30], " +
-//           "type(Boolean)[34:41]" +
-//         ")[19:41]" +
-//       ")[0:43]"
-//     );
-//   });
+  it("inline", () => {
+    const p1 = parse("{}");
+    p1.inspect().should.eql("inlineType[0:2]");
+    p1.toCode().should.eql("{}");
+    const p2 = parse("{ }");
+    p2.inspect().should.eql("inlineType[0:3]");
+    p2.toCode().should.eql("{ }");
+    const p3 = parse("{ .+ -> Int -> Int }");
+    p3.inspect().should.eql(
+      "inlineType{ " +
+        "inlineTypeDeclaration{ " +
+          "const(SYMBOL, +)[2:4], " +
+          "functionType{ type(Int)[8:11], type(Int)[15:18] }[8:18]" +
+        " }[2:18]" +
+      " }[0:20]"
+    );
+    p3.toCode().should.eql("{ .+ -> Int -> Int }");
+    const p4 = parse("{ (x: Int) -> String }");
+    p4.inspect().should.eql(
+      "inlineType{ " +
+        "inlineTypeDeclaration{ " +
+          "compoundType{ field(x){ type(Int)[6:9] }[3:4] }[2:10], " +
+          "type(String)[14:20]" +
+        " }[2:20]" +
+      " }[0:22]"
+    );
+    p4.toCode().should.eql("{ (x: Int) -> String }");
+    const p5 = parse("{ .name -> String; (x: String) -> Boolean }");
+    p5.inspect().should.eql(
+      "inlineType{ " +
+        "inlineTypeDeclaration{ " +
+          "const(SYMBOL, name)[2:7], " +
+          "type(String)[11:17]" +
+        " }[2:17], " +
+        "inlineTypeDeclaration{ " +
+          "compoundType{ field(x){ type(String)[23:29] }[20:21] }[19:30], " +
+          "type(Boolean)[34:41]" +
+        " }[19:41]" +
+      " }[0:43]"
+    );
+    p5.toCode().should.eql("{ .name -> String; (x: String) -> Boolean }");
+  });
 });

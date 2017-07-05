@@ -427,17 +427,34 @@ export class PMergedType extends PType {
   }
 }
 
-// export class PInlineTypeDeclaration extends PType {
-//   constructor(guard, type, span) {
-//     super("inlineTypeDeclaration", span, [ guard, type ]);
-//   }
-// }
-//
-// export class PInlineType extends PType {
-//   constructor(declarations, trailingComment, span) {
-//     super("inlineType", span, declarations);
-//     this.trailingComment = trailingComment;
-//   }
-// }
-//
+export class PInlineTypeDeclaration extends PType {
+  constructor(
+    public argType: PConstant | PType,
+    public gap1: Token | undefined,
+    public arrow: Token,
+    public gap2: Token | undefined,
+    public resultType: PType
+  ) {
+    super("inlineTypeDeclaration", mergeSpan(argType.span, resultType.span), [ argType, resultType ]);
+  }
+
+  toCode(): string {
+    return this.argType.toCode() +
+      (this.gap1 ? this.gap1.value : "") +
+      this.arrow.value +
+      (this.gap2 ? this.gap2.value : "") +
+      this.resultType.toCode();
+  }
+}
+
+export class PInlineType extends PType {
+  constructor(public declarations: TokenCollection<PInlineTypeDeclaration>) {
+    super("inlineType", declarations.span, declarations.list.map(x => x.item));
+  }
+
+  toCode(): string {
+    return this.declarations.toCode();
+  }
+}
+
 // const NO_IN_TYPE = new PCompoundType([]);
