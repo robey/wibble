@@ -1,7 +1,5 @@
-// import Enum from "./enum";
-// import { cstring } from "./strings";
-
 import { mergeSpan, Span, Token } from "packrattle";
+import { cstring } from "./strings";
 
 // an item and whatever linespace, separator, and whitespace came after it
 export class AnnotatedItem<A extends PNode> {
@@ -145,15 +143,18 @@ export enum PConstantType {
 }
 
 export class PConstant extends PNode {
-  constructor(public type: PConstantType, public value: string, span: Span) {
+  value: string;
+
+  constructor(public type: PConstantType, public tokens: Token[], value?: string) {
     super(
-      type == PConstantType.NOTHING ? "const(NOTHING)" : `const(${PConstantType[type]}, ${value})`,
-      span
+      `const(${PConstantType[type]}, ${value !== undefined ? value : tokens.map(t => t.value).join("")})`,
+      mergeSpan(tokens[0].span, tokens[tokens.length - 1].span)
     );
+    this.value = value !== undefined ? value : tokens.map(t => t.value).join("");
   }
 
   toCode(): string {
-    return this.value;
+    return this.tokens.map(t => t.value).join("");
   }
 }
 
