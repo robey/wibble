@@ -37,6 +37,9 @@ describe("Parse types", () => {
       "compoundType{ field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:2] }[0:12]"
     );
     p4.toCode().should.eql("(x: Int = 4)");
+    const p5 = parse("()");
+    p5.inspect().should.eql("emptyType[0:2]");
+    p5.toCode().should.eql("()");
   });
 
   it("function", () => {

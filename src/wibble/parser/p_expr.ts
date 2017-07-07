@@ -1,8 +1,10 @@
-import { alt, Parser, Token } from "packrattle";
-import { PArray, PNode, PReference } from "../common/ast";
+import { alt, optional, Parser, seq3, seq4, Token } from "packrattle";
+import { PArray, PFunction, PNode, PReference } from "../common/ast";
+import { code } from "./p_code";
 import { constant } from "./p_const";
-import { failWithPriority, repeatSurrounded } from "./p_parser";
+import { failWithPriority, linespace, repeatSurrounded } from "./p_parser";
 import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
+import { compoundType, typedecl } from "./p_type";
 
 // import {
 //   PArray, PBinary, PCall, PFunction, PIf, PNew, PReference, PRepeat, PStruct,
@@ -10,8 +12,6 @@ import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 // } from "../common/ast";
 // import { code, codeBlock } from "./p_code";
 // import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan } from "./p_common";
-// import { constant } from "./p_const";
-// import { compoundType, typedecl } from "./p_type";
 
 /*
  * parse expressions
@@ -20,7 +20,7 @@ import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 const ReservedError = "Reserved word can't be used as identifier";
 const LowercaseError = "Variable name must start with lowercase letter";
 
-export const reference = alt(...IDENTIFIER_LIKE.map(t => tokenizer.match(t))).named("identifier").map(token => {
+export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identifier").map(token => {
   if (token.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
   if (!token.value.match(/^[a-z]/)) throw failWithPriority(LowercaseError);
   return new PReference(token.value, token.span);
@@ -35,6 +35,37 @@ const array: Parser<Token, PNode> = repeatSurrounded(
 ).map(items => {
   return new PArray(items);
 }).named("array");
+
+export const func = seq4(
+  optional(seq3(
+    compoundType,
+    linespace,
+    optional(seq4(
+      tokenizer.match(TokenType.COLON),
+      linespace,
+      typedecl,
+      linespace
+    ))
+  )),
+  tokenizer.match(TokenType.ARROW),
+  linespace,
+  () => code
+).named("function").map(([ args, arrow, space4, body ]) => {
+  const gap2 = [ arrow ];
+  if (space4 !== undefined) gap2.push(space4);
+  if (args === undefined) return new PFunction(undefined, [], undefined, gap2, body, arrow.span);
+
+  const [ argType, space1, results ] = args;
+  const gap1 = [];
+  if (space1 !== undefined) gap1.push(space1);
+  if (results === undefined) return new PFunction(argType, gap1, undefined, gap2, body, arrow.span);
+
+  const [ colon, space2, resultType, space3 ] = results;
+  gap1.push(colon);
+  if (space2 !== undefined) gap1.push(space2);
+  if (space3 !== undefined) gap2.unshift(space3);
+  return new PFunction(argType, gap1, resultType, gap2, body, arrow.span);
+});
 
 // export const func = $([
 //   $.optional([
@@ -155,9 +186,6 @@ const atom = alt(
 // ]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
 //
 // const baseExpression = $.alt(condition, repeatLoop, whileLoop, func, logical);
-//
-// export const expression = baseExpression;
-export const expression = atom;
+const baseExpression: Parser<Token, PNode> = alt(func, atom);
 
-// FIXME
-export const code = expression;
+export const expression = baseExpression;

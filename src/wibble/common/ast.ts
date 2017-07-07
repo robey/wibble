@@ -169,7 +169,6 @@ export class PReference extends PNode {
 }
 
 export class PArray extends PNode {
-  // 'trailingComment' is any comment after the final item.
   constructor(public items: TokenCollection<PNode>) {
     super("array", mergeSpan(items.open.span, items.close.span), items.list.map(x => x.item));
     this.precedence = 100;
@@ -180,6 +179,33 @@ export class PArray extends PNode {
   }
 }
 
+export class PFunction extends PNode {
+  constructor(
+    public argType: PType | undefined,
+    public gap1: Token[],
+    public resultType: PType | undefined,
+    public gap2: Token[],
+    public body: PNode,
+    span: Span
+  ) {
+    super(
+      "function",
+      span,
+      argType !== undefined ?
+        (resultType !== undefined ? [ body, argType, resultType ] : [ body, argType ]) :
+        [ body ]
+    );
+    this.precedence = 100;
+  }
+
+  toCode(): string {
+    return (this.argType !== undefined ? this.argType.toCode() : "") +
+      this.gap1.map(t => t.value).join("") +
+      (this.resultType !== undefined ? this.resultType.toCode() : "") +
+      this.gap2.map(t => t.value).join("") +
+      this.body.toCode();
+  }
+}
 // // inType, body, [outType]
 // export class PFunction extends PNode {
 //   constructor(inType, outType, body, span) {
@@ -325,6 +351,16 @@ export class PType extends PNode {
   }
 }
 
+export class PEmptyType extends PNode {
+  constructor(public token: Token) {
+    super("emptyType", token.span);
+  }
+
+  toCode(): string {
+    return this.token.value;
+  }
+}
+
 export class PSimpleType extends PType {
   constructor(public name: string, span: Span) {
     super(`type(${name})`, span);
@@ -456,5 +492,3 @@ export class PInlineType extends PType {
     return this.declarations.toCode();
   }
 }
-
-// const NO_IN_TYPE = new PCompoundType([]);

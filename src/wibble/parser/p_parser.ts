@@ -15,7 +15,7 @@ export function failWithPriority(message: string): Error {
 }
 
 export const linespace = optional(tokenizer.match(TokenType.LINESPACE));
-export const whitespace = repeat(alt(...WHITESPACE.map(t => tokenizer.match(t))));
+export const whitespace = repeat(tokenizer.matchOneOf(...WHITESPACE));
 
 export function linespaceAround(p: LazyParser<Token, Token>): Parser<Token, Token[]> {
   return seq3(linespace, p, linespace).map(([ gap1, token, gap2 ]) => {
@@ -67,9 +67,9 @@ export function repeatSurrounded<A extends PNode>(
   return seq5(
     tokenizer.match(open),
     whitespace,
-    repeatSeparated(p, separator).named(name),
+    repeatSeparated(p, separator),
     whitespace,
-    tokenizer.match(close)
+    tokenizer.match(close).named(name)
   ).map(([ o, ws1, inner, ws2, c ]) => {
     return new TokenCollection(o, ws1, inner, ws2, c);
   });

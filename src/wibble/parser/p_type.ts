@@ -2,6 +2,7 @@ import { alt, optional, Parser, seq2, seq3, seq4, seq5, Token } from "packrattle
 import {
   PCompoundType,
   PConstant,
+  PEmptyType,
   PFunctionType,
   PInlineType,
   PInlineTypeDeclaration,
@@ -25,6 +26,8 @@ import { expression, reference } from "./p_expr";
 
 const ReservedError = "Reserved word can't be used as identifier";
 const UppercaseError = "Type name must start with uppercase letter";
+
+const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new PEmptyType(token));
 
 export const simpleType = alt(
   tokenizer.match(TokenType.AT),
@@ -106,6 +109,7 @@ const inlineType = repeatSurrounded(
 })
 
 const componentType: Parser<Token, PType> = alt<Token, PType>(
+  emptyType,
   inlineType,
   nestedType,
   parameterType,

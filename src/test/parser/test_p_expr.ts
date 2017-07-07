@@ -10,7 +10,9 @@ const parse = (s: string, options: EngineOptions = {}) => {
   return parser.expression.run(parser.tokenizer.parser.run(s), options);
 };
 
-// const parseFunc = (s, options) => parser.func.run(s, options).inspect();
+const parseFunc = (s: string, options: EngineOptions = {}) => {
+  return parser.func.run(parser.tokenizer.parser.run(s), options);
+};
 
 describe("Parse expressions", () => {
   it("reference", () => {
@@ -70,77 +72,95 @@ describe("Parse expressions", () => {
     });
   });
 
-//   describe("function", () => {
-//     it("empty", () => {
-//       parseFunc("-> ()").should.eql("function(compoundType, const(NOTHING)[3:5])[0:2]");
-//     });
-//
-//     it("simple expression", () => {
-//       parseFunc("(x: Int) -> x * 2").should.eql(
-//         "function(" +
-//           "compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
-//           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
-//         ")[9:11]"
-//       );
-//     });
-//
-//     it("with return type", () => {
-//       parseFunc("(x: Int): Int -> x").should.eql(
-//         "function(" +
-//           "compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
-//           "x[17:18], " +
-//           "type(Int)[10:13]" +
-//         ")[14:16]"
-//       );
-//     });
-//
-//     it("complex parameters", () => {
-//       parseFunc("(a: Map(String, Int), b: String -> Int) -> false").should.eql(
-//         "function(" +
-//           "compoundType(" +
-//             "field(a)(templateType(Map)(" +
-//               "type(String)[8:14], type(Int)[16:19]" +
-//             ")[4:20])[1:2], " +
-//             "field(b)(functionType(type(String)[25:31], type(Int)[35:38])[25:38])[22:23]" +
-//           ")[0:39], " +
-//           "const(BOOLEAN, false)[43:48]" +
-//         ")[40:42]"
-//       );
-//     });
-//
-//     it("default values", () => {
-//       parseFunc("(x: Int = 4, y: Int = 5) -> x + y").should.eql(
-//         "function(" +
-//           "compoundType(" +
-//             "field(x)(type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11])[1:2], " +
-//             "field(y)(type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23])[13:14]" +
-//           ")[0:24], " +
-//           "binary(+)(x[28:29], y[32:33])[28:33]" +
-//         ")[25:27]"
-//       );
-//     });
-//
-//     it("nested", () => {
-//       parseFunc("-> -> 69").should.eql(
-//         "function(compoundType, function(compoundType, const(NUMBER_BASE10, 69)[6:8])[3:5])[0:2]"
-//       );
-//     });
-//
-//     it("via expression", () => {
-//       parse("-> 3").should.eql(
-//         "function(compoundType, const(NUMBER_BASE10, 3)[3:4])[0:2]"
-//       );
-//       parse("(x: Int) -> 3").should.eql(
-//         "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], const(NUMBER_BASE10, 3)[12:13])[9:11]"
-//       );
-//       parse("(x: Int) -> x * 2").should.eql(
-//         "function(compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
-//           "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
-//         ")[9:11]"
-//       );
-//     });
-//   });
-//
+  describe("function", () => {
+    it("empty", () => {
+      parseFunc("-> ()").inspect().should.eql("function{ const(NOTHING, ())[3:5] }[0:2]");
+      parseFunc("-> ()").toCode().should.eql("-> ()");
+    });
+
+    it("simple expression", () => {
+      const p1 = parseFunc("(x: Int) -> x * 2");
+      p1.inspect().should.eql(
+        "function{ " +
+          "compoundType(field(x)(type(Int)[4:7])[1:2])[0:8], " +
+          "binary(*)(x[12:13], const(NUMBER_BASE10, 2)[16:17])[12:17]" +
+        " }[9:11]"
+      );
+      p1.toCode().should.eql("x");
+    });
+
+    it("with return type", () => {
+      const p1 = parseFunc("(x: Int): Int -> x");
+      p1.inspect().should.eql(
+        "function{ " +
+          "x[17:18], " +
+          "compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8], " +
+          "type(Int)[10:13]" +
+        " }[14:16]"
+      );
+      p1.toCode().should.eql("(x: Int): Int -> x");
+    });
+
+    it("complex parameters", () => {
+      const p1 = parseFunc("(a: Map(String, Int), b: String -> Int) -> false");
+      p1.inspect().should.eql(
+        "function{ " +
+          "const(BOOLEAN, false)[43:48], " +
+          "compoundType{ " +
+            "field(a){ templateType(Map){ " +
+              "type(String)[8:14], type(Int)[16:19]" +
+            " }[4:20] }[1:2], " +
+            "field(b){ functionType{ type(String)[25:31], type(Int)[35:38] }[25:38] }[22:23]" +
+          " }[0:39]" +
+        " }[40:42]"
+      );
+      p1.toCode().should.eql("(a: Map(String, Int), b: String -> Int) -> false");
+    });
+
+    it("default values", () => {
+      const p1 = parseFunc("(x: Int = 4, y: Int = 5) -> x + y");
+      p1.inspect().should.eql(
+        "function{ " +
+          "binary(+){ x[28:29], y[32:33] }[28:33], " +
+          "compoundType{ " +
+            "field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:2], " +
+            "field(y){ type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23] }[13:14]" +
+          " }[0:24]" +
+        " }[25:27]"
+      );
+      p1.toCode().should.eql("(x: Int = 4, y: Int = 5) -> x + y");
+    });
+
+    it("nested", () => {
+      const p1 = parseFunc("-> -> 69");
+      p1.inspect().should.eql(
+        "function{ function{ const(NUMBER_BASE10, 69)[6:8] }[3:5] }[0:2]"
+      );
+      p1.toCode().should.eql("-> -> 69");
+    });
+
+    it("via expression", () => {
+      const p1 = parse("-> 3");
+      p1.inspect().should.eql(
+        "function{ const(NUMBER_BASE10, 3)[3:4] }[0:2]"
+      );
+      p1.toCode().should.eql("-> 3");
+      const p2 = parse("(x: Int) -> 3");
+      p2.inspect().should.eql(
+        "function{ const(NUMBER_BASE10, 3)[12:13], compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8] }[9:11]"
+      );
+      p2.toCode().should.eql("(x: Int) -> 3");
+      const p3 = parse("(x: Int) -> x * 2");
+      p3.inspect().should.eql(
+        "function{ " +
+          "binary(*){ x[12:13], const(NUMBER_BASE10, 2)[16:17] }[12:17], " +
+          "compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8]" +
+        " }[9:11]"
+      );
+      p3.toCode().should.eql("(x: Int) -> x * 2");
+    });
+  });
+
 //   describe("struct", () => {
 //     it("without names", () => {
 //       parse("(x, y)").should.eql("struct(field(x[1:2])[1:2], field(y[4:5])[4:5])[0:6]");

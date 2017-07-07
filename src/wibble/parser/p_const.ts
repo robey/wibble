@@ -18,10 +18,7 @@ const boolean = alt(tokenizer.match(TokenType.TRUE), tokenizer.match(TokenType.F
 
 export const symbolRef = seq2(
   tokenizer.match(TokenType.SYMBOL),
-  alt(
-    tokenizer.match(TokenType.IDENTIFIER),
-    ...OPERATORS.map(op => tokenizer.match(op)),
-  ).mapError("Invalid symbol name after .")
+  tokenizer.matchOneOf(...OPERATORS.concat(TokenType.IDENTIFIER)).mapError("Invalid symbol name after .")
 ).map(tokens => new PConstant(PConstantType.SYMBOL, tokens, tokens[1].value));
 
 const numberBase2 = tokenizer.match(TokenType.NUMBER_BASE2).map(token => {
