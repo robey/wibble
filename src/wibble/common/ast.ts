@@ -206,53 +206,96 @@ export class PFunction extends PNode {
       this.body.toCode();
   }
 }
-// // inType, body, [outType]
-// export class PFunction extends PNode {
-//   constructor(inType, outType, body, span) {
-//     super("function", span, [ inType || NO_IN_TYPE, body, outType ]);
-//     this.inType = inType;
-//     this.outType = outType;
-//     this.precedence = 100;
-//   }
-// }
-//
-// export class PStructField extends PNode {
-//   constructor(name, value, span) {
-//     super("field" + (name ? `(${name})` : ""), span, [ value ]);
-//     this.name = name;
-//   }
-// }
-//
-// export class PStruct extends PNode {
-//   constructor(children, trailingComment, span) {
-//     super("struct", span, children);
-//     this.trailingComment = trailingComment;
-//     this.precedence = 100;
-//   }
-// }
-//
-// export class PNew extends PNode {
-//   constructor(code, type, span) {
-//     super("new", span, [ code, type ]);
-//     this.precedence = 100;
-//   }
-// }
-//
-// export class PUnary extends PNode {
-//   constructor(op, expr, span) {
-//     super("unary(" + op + ")", span, [ expr ]);
-//     this.op = op;
-//     this.precedence = 1;
-//   }
-// }
-//
-// export class PCall extends PNode {
-//   constructor(left, right, span) {
-//     super("call", span, [ left, right ]);
-//     this.precedence = 2;
-//   }
-// }
-//
+
+export class PStructField extends PNode {
+  constructor(public name: PReference | undefined, public gap: Token[], public value: PNode) {
+    super(
+      name === undefined ? "field" : `field(${name.name})`,
+      name === undefined ? value.span : mergeSpan(name.span, value.span),
+      [ value ]
+    );
+  }
+
+  toCode(): string {
+    return (this.name !== undefined ? this.name.toCode() : "") +
+      this.gap.map(t => t.value).join("") +
+      this.value.toCode();
+  }
+}
+
+export class PStruct extends PNode {
+  constructor(public items: TokenCollection<PStructField>) {
+    super("struct", mergeSpan(items.open.span, items.close.span), items.list.map(x => x.item));
+    this.precedence = 100;
+  }
+
+  toCode(): string {
+    return this.items.toCode();
+  }
+}
+
+export class PNested extends PNode {
+  constructor(
+    public open: Token,
+    public gap1: Token[],
+    public inner: PNode,
+    public gap2: Token[],
+    public close: Token
+  ) {
+    super("nested", mergeSpan(open.span, close.span), [ inner ]);
+  }
+
+  toCode(): string {
+    return this.open.value +
+      this.gap1.map(t => t.value).join("") +
+      this.inner.toCode() +
+      this.gap2.map(t => t.value).join("") +
+      this.close.value;
+  }
+}
+
+export class PNew extends PNode {
+  constructor(
+    public token: Token,
+    public gap1: Token | undefined,
+    public type: PType | undefined,
+    public gap2: Token | undefined,
+    public code: PNode
+  ) {
+    super("new", token.span, type === undefined ? [ code ] : [ code, type ]);
+    this.precedence = 100;
+  }
+
+  toCode(): string {
+    return this.token.value +
+      (this.gap1 === undefined ? "" : this.gap1.value) +
+      (this.type === undefined ? "" : this.type.toCode()) +
+      (this.gap2 === undefined ? "" : this.gap2.value) +
+      this.code.toCode();
+  }
+}
+
+export class PUnary extends PNode {
+  constructor(public op: Token, public gap: Token | undefined, public expr: PNode) {
+    super(`unary(${op.value})`, op.span, [ expr ]);
+  }
+
+  toCode(): string {
+    return this.op.value + (this.gap === undefined ? "" : this.gap.value) + this.expr.toCode();
+  }
+}
+
+export class PCall extends PNode {
+  constructor(public left: PNode, public gap: Token | undefined, public right: PNode) {
+    super("call", mergeSpan(left.span, right.span), [ left, right ]);
+    this.precedence = 2;
+  }
+
+  toCode(): string {
+    return this.left.toCode() + (this.gap === undefined ? "" : this.gap.value) + this.right.toCode();
+  }
+}
+
 // export class PBinary extends PNode {
 //   constructor(left, op, right, span) {
 //     super("binary(" + op + ")", span, [ left, right ]);
@@ -334,13 +377,16 @@ export class PFunction extends PNode {
 //     this.precedence = 100;
 //   }
 // }
-//
-// export class PBlock extends PNode {
-//   constructor(codes, trailingComment, span) {
-//     super("block", span, codes);
-//     this.trailingComment = trailingComment;
-//   }
-// }
+
+export class PBlock extends PNode {
+  constructor(public code: TokenCollection<PNode>) {
+    super("block", code.span, code.list.map(x => x.item));
+  }
+
+  toCode(): string {
+    return this.code.toString();
+  }
+}
 
 
 // ----- types

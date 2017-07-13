@@ -62,14 +62,14 @@ export function repeatSurrounded<A extends PNode>(
   p: LazyParser<Token, A>,
   separator: number,
   close: number,
-  name: string
+  name?: string
 ): Parser<Token, TokenCollection<A>> {
   return seq5(
     tokenizer.match(open),
     whitespace,
     repeatSeparated(p, separator),
     whitespace,
-    tokenizer.match(close).named(name)
+    name ? tokenizer.match(close).named(name, 1) : tokenizer.match(close)
   ).map(([ o, ws1, inner, ws2, c ]) => {
     return new TokenCollection(o, ws1, inner, ws2, c);
   });

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { EngineOptions, Token } from "packrattle";
 import { parser } from "../../wibble";
-import { makeDot } from "./helpers";
+import { makeDot, saveParser } from "./helpers";
 
 import "should";
 import "source-map-support/register";
@@ -68,7 +68,7 @@ describe("Parse expressions", () => {
     });
 
     it("failing", () => {
-      (() => parse("[ ??? ]")).should.throw(/Expected array item/);
+      (() => parse("[ ??? ]")).should.throw(/Expected expression/);
     });
   });
 
@@ -161,35 +161,41 @@ describe("Parse expressions", () => {
     });
   });
 
-//   describe("struct", () => {
-//     it("without names", () => {
-//       parse("(x, y)").should.eql("struct(field(x[1:2])[1:2], field(y[4:5])[4:5])[0:6]");
-//     });
-//
-//     it("with names", () => {
-//       parse("(  x=3,y = 4)").should.eql("struct(" +
-//         "field(x)(const(NUMBER_BASE10, 3)[5:6])[3:6], " +
-//         "field(y)(const(NUMBER_BASE10, 4)[11:12])[7:12]" +
-//       ")[0:13]");
-//     });
-//
-//     it("single-valued", () => {
-//       parse("(true)").should.eql("const(BOOLEAN, true)[1:5]");
-//     });
-//
-//     it("failing", () => {
-//       (() => parse("(???)")).should.throw(/Expected struct member/);
-//       (() => parse("(x = ???)")).should.throw(/Expected struct member/);
-//     });
-//   });
-//
-//   describe("new", () => {
-//     it("simple", () => {
-//       parse("new { true }").should.eql(
-//         "new(block(const(BOOLEAN, true)[6:10])[4:12])[0:3]"
-//       );
-//     });
-//
+  describe("struct", () => {
+    it("without names", () => {
+      const p1 = parse("(x, y)");
+      p1.inspect().should.eql("struct{ field{ x[1:2] }[1:2], field{ y[4:5] }[4:5] }[0:6]");
+      p1.toCode().should.eql("(x, y)");
+    });
+
+    it("with names", () => {
+      const p1 = parse("(  x=3,y = 4)");
+      p1.inspect().should.eql("struct{ " +
+        "field(x){ const(NUMBER_BASE10, 3)[5:6] }[3:6], " +
+        "field(y){ const(NUMBER_BASE10, 4)[11:12] }[7:12]" +
+      " }[0:13]");
+      p1.toCode().should.eql("(  x=3,y = 4)");
+    });
+
+    it("single-valued", () => {
+      parse("(true)").inspect().should.eql("nested{ const(BOOLEAN, true)[1:5] }[0:6]");
+    });
+
+    it("failing", () => {
+      (() => parse("(???)")).should.throw(/Expected expression/);
+      (() => parse("(x = ???)")).should.throw(/Expected expression/);
+    });
+  });
+
+  describe("new", () => {
+    it("simple", () => {
+      const p1 = parse("new { true }");
+      p1.inspect().should.eql(
+        "new{ block{ const(BOOLEAN, true)[6:10] }[4:12] }[0:3]"
+      );
+      p1.toCode().should.eql("new { true }");
+    });
+
 //     it("part of a call", () => {
 //       parse("new { on .foo -> 3 } .foo").should.eql(
 //         "call(" +
@@ -204,20 +210,30 @@ describe("Parse expressions", () => {
 //         "new(block(const(BOOLEAN, true)[16:20])[14:22], templateType(List)(type(Int)[9:12])[4:13])[0:3]"
 //       );
 //     });
-//   });
-//
-//   it("unary", () => {
-//     parse("not true").should.eql("unary(not)(const(BOOLEAN, true)[4:8])[0:8]");
-//     parse("-  5").should.eql("unary(-)(const(NUMBER_BASE10, 5)[3:4])[0:4]");
-//     parse("not not true").should.eql("unary(not)(unary(not)(const(BOOLEAN, true)[8:12])[4:12])[0:12]");
-//   });
-//
-//   describe("call", () => {
-//     it("simple", () => {
-//       parse("a b").should.eql("call(a[0:1], b[2:3])[0:3]");
-//       parse("3 .+").should.eql("call(const(NUMBER_BASE10, 3)[0:1], const(SYMBOL, +)[2:4])[0:4]");
-//     });
-//
+  });
+
+  it("unary", () => {
+    const p1 = parse("not true");
+    p1.inspect().should.eql("unary(not){ const(BOOLEAN, true)[4:8] }[0:3]");
+    p1.toCode().should.eql("not true");
+    const p2 = parse("-  5");
+    p2.inspect().should.eql("unary(-){ const(NUMBER_BASE10, 5)[3:4] }[0:1]");
+    p2.toCode().should.eql("-  5");
+    const p3 = parse("not not true");
+    p3.inspect().should.eql("unary(not){ unary(not){ const(BOOLEAN, true)[8:12] }[4:7] }[0:3]");
+    p3.toCode().should.eql("not not true");
+  });
+
+  describe("call", () => {
+    it("simple", () => {
+      const p1 = parse("a b");
+      p1.inspect().should.eql("call{ a[0:1], b[2:3] }[0:3]");
+      p1.toCode().should.eql("a b");
+      const p2 = parse("3 .+");
+      p2.inspect().should.eql("call{ const(NUMBER_BASE10, 3)[0:1], const(SYMBOL, +)[2:4] }[0:4]");
+      p2.toCode().should.eql("3 .+");
+    });
+
 //     it("compound", () => {
 //       parse("widget.draw()").should.eql("call(" +
 //         "call(widget[0:6], const(SYMBOL, draw)[6:11])[0:11], " +
@@ -245,8 +261,8 @@ describe("Parse expressions", () => {
 //         "const(SYMBOL, c)[9:11]" +
 //       ")[0:11]");
 //     });
-//   });
-//
+  });
+
 //   describe("binary", () => {
 //     it("**", () => {
 //       parse("2 ** 3 ** 4").should.eql("binary(**)(" +

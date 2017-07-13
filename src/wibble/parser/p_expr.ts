@@ -1,8 +1,10 @@
-import { alt, optional, Parser, seq3, seq4, Token } from "packrattle";
-import { PArray, PFunction, PNode, PReference } from "../common/ast";
-import { code } from "./p_code";
+import { alt, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token } from "packrattle";
+import {
+  PArray, PCall, PFunction, PNested, PNew, PNode, PReference, PStruct, PStructField, PUnary
+} from "../common/ast";
+import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
-import { failWithPriority, linespace, repeatSurrounded } from "./p_parser";
+import { failWithPriority, linespace, linespaceAround, repeatSurrounded } from "./p_parser";
 import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 import { compoundType, typedecl } from "./p_type";
 
@@ -67,63 +69,59 @@ export const func = seq4(
   return new PFunction(argType, gap1, resultType, gap2, body, arrow.span);
 });
 
-// export const func = $([
-//   $.optional([
-//     compoundType,
-//     $.drop(linespace),
-//     $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ])
-//   ], []),
-//   toSpan("->"),
-//   $.drop(linespace),
-//   () => code
-// ]).named("function").map(match => {
-//   return new PFunction(match[0][0], match[0][1] ? match[0][1][0] : null, match[2], match[1]);
-// });
-//
-// const structMember = $([
-//   $.optional([ SYMBOL_NAME, linespace, "=", linespace ], []),
-//   () => code
-// ]).map(([ prefix, value ], span) => {
-//   return new PStructField(prefix.length > 0 ? prefix[0][0] : null, value, span);
-// });
-//
-// const struct = repeatSurrounded(
-//   $.commit("("),
-//   structMember,
-//   /[\n,]+/,
-//   $.commit(")"),
-//   commentspace,
-//   "struct member"
-// ).map(([ items, comment ], span) => {
-//   // AST optimization: "(expr)" is just a precedence-bumped expression.
-//   if (items.length == 1 && items[0].name == null) return items[0].children[0];
-//   return new PStruct(items, comment, span);
-// }).named("struct");
-//
-// const newObject = $([
-//   toSpan("new"),
-//   $.optional([ $.drop(linespace), typedecl ], []),
-//   $.drop(linespace),
-//   () => codeBlock
-// ]).map(([ span, type, code ]) => new PNew(code, type[0], span));
+const structMember = seq2(
+  optional(seq2(reference, linespaceAround(tokenizer.match(TokenType.BIND)))),
+  () => code
+).map(([ prefix, value ]) => {
+  if (prefix !== undefined) {
+    const [ ref, gap ] = prefix;
+    return new PStructField(ref, gap, value);
+  } else {
+    return new PStructField(undefined, [], value);
+  }
+});
+
+const struct = repeatSurrounded(
+  TokenType.OPAREN,
+  structMember,
+  TokenType.COMMA,
+  TokenType.CPAREN,
+  "struct member"
+).map(items => {
+  // AST optimization: "(expr)" is just a precedence-bumped expression.
+  if (items.list.length == 1 && items.list[0].item.name === undefined) {
+    return new PNested(items.open, items.gap1, items.list[0].item.value, items.gap2, items.close);
+  }
+  return new PStruct(items);
+});
+
+const newObject = seq5(
+  tokenizer.match(TokenType.NEW),
+  linespace,
+  optional(typedecl),
+  linespace,
+  () => codeBlock
+).map(([ token, gap1, type, gap2, code ]) => new PNew(token, gap1, type, gap2, code));
 
 const atom = alt(
   constant,
   reference,
   array,
-  // struct,
-  // () => codeBlock,
-  // newObject
+  struct,
+  () => codeBlock,
+  newObject
 ).named("atom");
 
-// const unary = $.alt(
-//   [ $.commit(/(-(?!>)|not)/), $.drop(linespace), () => unary ],
-//   [ atom ]
-// ).named("unary").map(([ op, expr ], span) => {
-//   if (!expr) return op;
-//   return new PUnary(op[0], expr, span);
-// });
-//
+const unary: Parser<Token, PNode> = seq3(
+  tokenizer.matchOneOf(TokenType.NOT, TokenType.MINUS),
+  linespace,
+  alt(() => unary, atom)
+).map(([ token, gap, inner ]) => new PUnary(token, gap, inner));
+
+const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first, rest ]) => {
+  return rest.reduce((left, [ gap, right ]) => new PCall(left, gap, right), first);
+});
+
 // const call = $([
 //   unary,
 //   $.repeatIgnore(atom, linespace)
@@ -186,6 +184,6 @@ const atom = alt(
 // ]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
 //
 // const baseExpression = $.alt(condition, repeatLoop, whileLoop, func, logical);
-const baseExpression: Parser<Token, PNode> = alt(func, atom);
+const baseExpression: Parser<Token, PNode> = alt(func, call);
 
 export const expression = baseExpression;
