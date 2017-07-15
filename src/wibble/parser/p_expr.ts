@@ -1,19 +1,12 @@
-import { alt, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token } from "packrattle";
+import { alt, optional, Parser, reduce, repeat, seq2, seq3, seq4, seq5, Token } from "packrattle";
 import {
-  PArray, PCall, PFunction, PNested, PNew, PNode, PReference, PStruct, PStructField, PUnary
+  PArray, PBinary, PCall, PFunction, PNested, PNew, PNode, PReference, PStruct, PStructField, PUnary
 } from "../common/ast";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
-import { failWithPriority, linespace, linespaceAround, repeatSurrounded } from "./p_parser";
+import { failWithPriority, linespace, linespaceAround, repeatSurrounded, whitespace } from "./p_parser";
 import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 import { compoundType, typedecl } from "./p_type";
-
-// import {
-//   PArray, PBinary, PCall, PFunction, PIf, PNew, PReference, PRepeat, PStruct,
-//   PStructField, PUnary, PWhile
-// } from "../common/ast";
-// import { code, codeBlock } from "./p_code";
-// import { SYMBOL_NAME, commentspace, isReserved, linespace, repeatSurrounded, toSpan } from "./p_common";
 
 /*
  * parse expressions
@@ -122,33 +115,32 @@ const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first,
   return rest.reduce((left, [ gap, right ]) => new PCall(left, gap, right), first);
 });
 
-// const call = $([
-//   unary,
-//   $.repeatIgnore(atom, linespace)
-// ]).map(([ first, rest ]) => {
-//   return [ first ].concat(rest).reduce((x, y) => new PCall(x, y, x.span.merge(y.span)));
-// });
-//
-// // helper
-// function binary(subexpr, op) {
-//   const sep = $.commit([ $.drop(linespace), op, commentspace ]);
-//   return $.reduce($(subexpr).named("operand"), sep, {
-//     first: x => x,
-//     next: (left, [ op, comment ], right) => {
-//       const binary = new PBinary(left, op, right, left.span.merge(right.span));
-//       if (comment) binary.comment = comment;
-//       return binary;
-//     }
-//   }).named("binary(" + op + ")");
-// }
-//
-// const power = binary(call, "**");
-// const factor = binary(power, $.alt("*", "/", "%"));
-// const term = binary(factor, $.alt("+", "-"));
-// const comparison = binary(term, $.alt("==", ">=", "<=", "!=", "<", ">"));
-// const logicalAnd = binary(comparison, "and");
-// const logical = binary(logicalAnd, "or");
-//
+// helper
+function binary(subexpr: Parser<Token, PNode>, ...ops: TokenType[]): Parser<Token, PNode> {
+  const sep = seq3(linespace, tokenizer.matchOneOf(...ops), whitespace);
+  return reduce<Token, PNode, [ Token | undefined, Token, Token[] ], PNode>(sep, subexpr, {
+    first: x => x,
+    next: (left, [ gap1, op, gap2 ], right) => {
+      return new PBinary(left, gap1, op, gap2, right);
+    }
+  });
+}
+
+const power = binary(call, TokenType.POWER);
+const factor = binary(power, TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO);
+const term = binary(factor, TokenType.PLUS, TokenType.MINUS);
+const comparison = binary(
+  term,
+  TokenType.EQUALS,
+  TokenType.NOT_EQUALS,
+  TokenType.GREATER_THAN,
+  TokenType.LESS_THAN,
+  TokenType.GREATER_EQUALS,
+  TokenType.LESS_EQUALS
+);
+const logicalAnd = binary(comparison, TokenType.AND);
+const logical = binary(logicalAnd, TokenType.OR);
+
 // const condition = $([
 //   toSpan("if"),
 //   $.drop(linespace),
@@ -184,6 +176,6 @@ const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first,
 // ]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
 //
 // const baseExpression = $.alt(condition, repeatLoop, whileLoop, func, logical);
-const baseExpression: Parser<Token, PNode> = alt(func, call);
+const baseExpression: Parser<Token, PNode> = alt(func, logical);
 
 export const expression = baseExpression;

@@ -60,24 +60,24 @@ export class TokenCollection<A extends PNode> {
  * AST nodes
  */
 
-// export const OPERATOR_PRECEDENCE = {
-//   // 1: unary
-//   // 2: call
-//   "**": 3,
-//   "*": 4,
-//   "/": 4,
-//   "%": 4,
-//   "+": 5,
-//   "-": 5,
-//   "<": 6,
-//   ">": 6,
-//   "==": 6,
-//   "!=": 6,
-//   "<=": 6,
-//   ">=": 6,
-//   "and": 7,
-//   "or": 8
-// };
+export const OPERATOR_PRECEDENCE: { [key: string]: number } = {
+  // 1: unary
+  // 2: call
+  "**": 3,
+  "*": 4,
+  "/": 4,
+  "%": 4,
+  "+": 5,
+  "-": 5,
+  "<": 6,
+  ">": 6,
+  "==": 6,
+  "!=": 6,
+  "<=": 6,
+  ">=": 6,
+  "and": 7,
+  "or": 8
+};
 
 export class PNode {
   public precedence = 1;
@@ -296,15 +296,28 @@ export class PCall extends PNode {
   }
 }
 
-// export class PBinary extends PNode {
-//   constructor(left, op, right, span) {
-//     super("binary(" + op + ")", span, [ left, right ]);
-//     this.op = op;
-//     this.precedence = OPERATOR_PRECEDENCE[op];
-//     if (!this.precedence) throw new Error("No precedence for " + op);
-//   }
-// }
-//
+export class PBinary extends PNode {
+  constructor(
+    public left: PNode,
+    public gap1: Token | undefined,
+    public op: Token,
+    public gap2: Token[],
+    public right: PNode
+  ) {
+    super(`binary(${op.value})`, op.span, [ left, right ]);
+    this.precedence = OPERATOR_PRECEDENCE[op.value];
+    if (this.precedence === undefined) throw new Error(`No precedence for ${op.value}`);
+  }
+
+  toCode(): string {
+    return this.left.toCode() +
+      (this.gap1 === undefined ? "" : this.gap1.value) +
+      this.op.value +
+      this.gap2.map(t => t.value).join("") +
+      this.right.toCode();
+  }
+}
+
 // // added by the desugar phase to mark nodes where shortcut-logic should apply (and, or).
 // export class PLogic extends PNode {
 //   constructor(left, op, right, span) {
