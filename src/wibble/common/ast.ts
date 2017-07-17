@@ -351,13 +351,41 @@ export class PIf extends PNode {
   }
 }
 
-// export class PRepeat extends PNode {
-//   constructor(expr, span) {
-//     super("repeat", span, [ expr ]);
-//     this.precedence = 9;
-//   }
-// }
-//
+export class PRepeat extends PNode {
+  constructor(public token: Token, public gap: Token | undefined, public expr: PNode) {
+    super("repeat", token.span, [ expr ]);
+    this.precedence = 9;
+  }
+
+  toCode(): string {
+    return this.token.value + (this.gap === undefined ? "" : this.gap.value) + this.expr.toCode();
+  }
+}
+
+export class PWhile extends PNode {
+  constructor(
+    public token1: Token,
+    public gap1: Token | undefined,
+    public condition: PNode,
+    public gap2: Token | undefined,
+    public token2: Token,
+    public gap3: Token | undefined,
+    public expr: PNode
+  ) {
+    super("while", token1.span, [ condition, expr ]);
+  }
+
+  toCode(): string {
+    return this.token1.value +
+      (this.gap1 === undefined ? "" : this.gap1.value) +
+      this.condition.toCode() +
+      (this.gap2 === undefined ? "" : this.gap2.value) +
+      this.token2.value +
+      (this.gap3 === undefined ? "" : this.gap3.value) +
+      this.expr.toCode();
+  }
+}
+
 // export class PWhile extends PNode {
 //   constructor(condition, expr, span) {
 //     super("while", span, [ condition, expr ]);

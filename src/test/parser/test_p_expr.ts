@@ -372,48 +372,61 @@ describe("Parse expressions", () => {
       p1.toCode().should.eql("if x < 0 then x");
     });
 
-//     it("if _ then _ else _", () => {
-//       parse("if x < 0 then -x else x").should.eql("if(" +
-//         "binary(<)(x[3:4], const(NUMBER_BASE10, 0)[7:8])[3:8], " +
-//         "unary(-)(x[15:16])[14:16], " +
-//         "x[22:23]" +
-//       ")[0:2]");
-//     });
-//
-//     it("if {block} then _ else _", () => {
-//       parse("if { 3; true } then 1 else 2").should.eql("if(" +
-//         "block(" +
-//           "const(NUMBER_BASE10, 3)[5:6], " +
-//           "const(BOOLEAN, true)[8:12]" +
-//         ")[3:14], " +
-//         "const(NUMBER_BASE10, 1)[20:21], " +
-//         "const(NUMBER_BASE10, 2)[27:28]" +
-//       ")[0:2]");
-//     });
-//
-//     it("nested", () => {
-//       parse("if a then (if b then 3) else 9").should.eql("if(" +
-//         "a[3:4], " +
-//         "if(b[14:15], const(NUMBER_BASE10, 3)[21:22])[11:13], " +
-//         "const(NUMBER_BASE10, 9)[29:30]" +
-//       ")[0:2]");
-//     });
-//
-//     it("failing", () => {
-//       (() => parse("if ???")).should.throw(/Expected expression/);
-//       (() => parse("if 3 then ???")).should.throw(/Expected expression/);
-//       (() => parse("if 3 then 3 else ???")).should.throw(/Expected else/);
-//     });
+    it("if _ then _ else _", () => {
+      const p1 = parse("if x < 0 then -x else x");
+      p1.inspect().should.eql("if{ " +
+        "binary(<){ x[3:4], const(NUMBER_BASE10, 0)[7:8] }[5:6], " +
+        "unary(-){ x[15:16] }[14:15], " +
+        "x[22:23]" +
+      " }[0:2]");
+      p1.toCode().should.eql("if x < 0 then -x else x");
+    });
+
+    it("if {block} then _ else _", () => {
+      const p1 = parse("if { 3; true } then 1 else 2");
+      p1.inspect().should.eql("if{ " +
+        "block{ " +
+          "const(NUMBER_BASE10, 3)[5:6], " +
+          "const(BOOLEAN, true)[8:12]" +
+        " }[3:14], " +
+        "const(NUMBER_BASE10, 1)[20:21], " +
+        "const(NUMBER_BASE10, 2)[27:28]" +
+      " }[0:2]");
+      p1.toCode().should.eql("if { 3; true } then 1 else 2");
+    });
+
+    it("nested", () => {
+      const p1 = parse("if a then (if b then 3) else 9");
+      p1.inspect().should.eql("if{ " +
+        "a[3:4], nested{ " +
+          "if{ b[14:15], const(NUMBER_BASE10, 3)[21:22] }[11:13]" +
+        " }[10:23], " +
+        "const(NUMBER_BASE10, 9)[29:30]" +
+      " }[0:2]");
+      p1.toCode().should.eql("if a then (if b then 3) else 9");
+    });
+
+    it("failing", () => {
+      (() => parse("if ???")).should.throw(/Expected expression/);
+      (() => parse("if 3 then ???")).should.throw(/Expected expression/);
+      (() => parse("if 3 then 3 else ???")).should.throw(/Expected expression/);
+    });
   });
 
-//   it("repeat", () => {
-//     parse("repeat 3").should.eql("repeat(const(NUMBER_BASE10, 3)[7:8])[0:6]");
-//     parse("repeat { if true then break }").should.eql(
-//       "repeat(block(if(const(BOOLEAN, true)[12:16], break[22:27])[9:11])[7:29])[0:6]"
-//     );
-//   });
-//
-//   it("while", () => {
-//     parse("while true do false").should.eql("while(const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19])[0:5]");
-//   });
+  it("repeat", () => {
+    const p1 = parse("repeat 3");
+    p1.inspect().should.eql("repeat{ const(NUMBER_BASE10, 3)[7:8] }[0:6]");
+    p1.toCode().should.eql("repeat 3");
+    const p2 = parse("repeat { if true then break }");
+    p2.inspect().should.eql(
+      "repeat{ block{ if{ const(BOOLEAN, true)[12:16], break[22:27] }[9:11] }[7:29] }[0:6]"
+    );
+    p2.toCode().should.eql("repeat { if true then break }");
+  });
+
+  it("while", () => {
+    const p1 = parse("while true do false");
+    p1.inspect().should.eql("while{ const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19] }[0:5]");
+    p1.toCode().should.eql("while true do false");
+  });
 });

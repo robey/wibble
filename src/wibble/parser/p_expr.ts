@@ -1,6 +1,19 @@
-import { alt, optional, Parser, reduce, repeat, seq2, seq3, seq4, seq5, seq8, Token } from "packrattle";
+import { alt, optional, Parser, repeat, seq2, seq3, seq4, seq5, seq7, seq8, Token } from "packrattle";
 import {
-  PArray, PBinary, PCall, PFunction, PIf, PNested, PNew, PNode, PReference, PStruct, PStructField, PUnary
+  PArray,
+  PBinary,
+  PCall,
+  PFunction,
+  PIf,
+  PNested,
+  PNew,
+  PNode,
+  PReference,
+  PRepeat,
+  PStruct,
+  PStructField,
+  PUnary,
+  PWhile
 } from "../common/ast";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
@@ -118,12 +131,13 @@ const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first,
 // helper
 function binary(subexpr: Parser<Token, PNode>, ...ops: TokenType[]): Parser<Token, PNode> {
   const sep = seq3(linespace, tokenizer.matchOneOf(...ops), whitespace);
-  return reduce<Token, PNode, [ Token | undefined, Token, Token[] ], PNode>(sep, subexpr, {
-    first: x => x,
-    next: (left, [ gap1, op, gap2 ], right) => {
+  const p: Parser<Token, PNode> = alt(
+    subexpr,
+    seq3(() => p, sep, subexpr.named("operand")).map(([ left, [ gap1, op, gap2 ], right]) => {
       return new PBinary(left, gap1, op, gap2, right);
-    }
-  });
+    })
+  );
+  return p;
 }
 
 const power = binary(call, TokenType.POWER).named("power");
@@ -183,41 +197,26 @@ const condition = seq8(
   return new PIf(gap1, condition, gap2, onTrue, gap3, onFalse);
 });
 
-// const condition = $([
-//   toSpan("if"),
-//   $.drop(linespace),
-//   () => code,
-//   $.drop(linespace),
-//   toSpan("then"),
-//   $.drop(linespace),
-//   () => code,
-//   $.optional([
-//     $.drop(linespace),
-//     toSpan("else"),
-//     $.drop(linespace),
-//     () => code
-//   ], []).named("else clause")
-// ]).named("condition").map(match => {
-//   return new PIf(match[1], match[3], (match[4].length > 0) ? match[4][1] : null, match[0]);
-// });
-//
-// const repeatLoop = $([
-//   toSpan("repeat"),
-//   $.drop(linespace),
-//   () => code
-// ]).named("repeat").map(match => new PRepeat(match[1], match[0]));
-//
-// const whileLoop = $([
-//   toSpan("while"),
-//   $.drop(linespace),
-//   () => code,
-//   $.drop(linespace),
-//   $.commit("do").drop(),
-//   $.drop(linespace),
-//   () => code
-// ]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
-//
-// const baseExpression = $.alt(condition, repeatLoop, whileLoop, func, logical);
-const baseExpression: Parser<Token, PNode> = alt(condition, func, binaries);
+const repeatLoop = seq3(
+  tokenizer.match(TokenType.REPEAT),
+  linespace,
+  () => code
+).map(([ token, gap, expr ]) => {
+  return new PRepeat(token, gap, expr);
+})
+
+const whileLoop = seq7(
+  tokenizer.match(TokenType.WHILE),
+  linespace,
+  () => code,
+  linespace,
+  tokenizer.match(TokenType.DO),
+  linespace,
+  () => code
+).map(([ token1, gap1, condition, gap2, token2, gap3, expr ]) => {
+  return new PWhile(token1, gap1, condition, gap2, token2, gap3, expr);
+});
+
+const baseExpression: Parser<Token, PNode> = alt(condition, repeatLoop, whileLoop, func, logical);
 
 export const expression = baseExpression;
