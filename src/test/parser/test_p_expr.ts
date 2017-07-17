@@ -306,60 +306,72 @@ describe("Parse expressions", () => {
       p1.toCode().should.eql("a + b - c");
     });
 
-//     it("* vs + precedence", () => {
-//       parse("a + b * c + d").should.eql("binary(+)(" +
-//         "binary(+)(a[0:1], binary(*)(b[4:5], c[8:9])[4:9])[0:9], " +
-//         "d[12:13]" +
-//       ")[0:13]");
-//     });
-//
-//     it("+, ==, and precedence", () => {
-//       parse("a and b + c == d").should.eql("binary(and)(" +
-//         "a[0:1], " +
-//         "binary(==)(binary(+)(b[6:7], c[10:11])[6:11], d[15:16])[6:16]" +
-//       ")[0:16]");
-//     });
-//
-//     it("and, or", () => {
-//       parse("true or 3 == 1 and false").should.eql(
-//         "binary(or)(" +
-//           "const(BOOLEAN, true)[0:4], " +
-//           "binary(and)(" +
-//             "binary(==)(const(NUMBER_BASE10, 3)[8:9], const(NUMBER_BASE10, 1)[13:14])[8:14], " +
-//             "const(BOOLEAN, false)[19:24]" +
-//           ")[8:24]" +
-//         ")[0:24]"
-//       );
-//     });
-//
-//     it("can span multiple lines", () => {
-//       parse("3 + \n  4").should.eql("binary(+)(" +
-//         "const(NUMBER_BASE10, 3)[0:1], " +
-//         "const(NUMBER_BASE10, 4)[7:8]" +
-//       ")[0:8]");
-//     });
-//
-//     it("with comment", () => {
-//       parse("3 + # add numbers\n  4").should.eql("binary(+)(" +
-//         "const(NUMBER_BASE10, 3)[0:1], " +
-//         "const(NUMBER_BASE10, 4)[20:21]" +
-//       ")#\"# add numbers\"[0:21]");
-//     });
-//
-//     it("notices a missing argument", () => {
-//       (() => parse("3 +")).should.throw(/Expected operand/);
-//       (() => parse("3 + 6 *")).should.throw(/Expected operand/);
-//     });
+    it("* vs + precedence", () => {
+      const p1 = parse("a + b * c + d");
+      p1.inspect().should.eql("binary(+){ " +
+        "binary(+){ a[0:1], binary(*){ b[4:5], c[8:9] }[6:7] }[2:3], " +
+        "d[12:13]" +
+      " }[10:11]");
+      p1.toCode().should.eql("a + b * c + d");
+    });
+
+    it("+, ==, and precedence", () => {
+      const p1 = parse("a and b + c == d");
+      p1.inspect().should.eql("binary(and){ " +
+        "a[0:1], " +
+        "binary(==){ binary(+){ b[6:7], c[10:11] }[8:9], d[15:16] }[12:14]" +
+      " }[2:5]");
+      p1.toCode().should.eql("a and b + c == d");
+    });
+
+    it("and, or", () => {
+      const p1 = parse("true or 3 == 1 and false");
+      p1.inspect().should.eql(
+        "binary(or){ " +
+          "const(BOOLEAN, true)[0:4], " +
+          "binary(and){ " +
+            "binary(==){ const(NUMBER_BASE10, 3)[8:9], const(NUMBER_BASE10, 1)[13:14] }[10:12], " +
+            "const(BOOLEAN, false)[19:24]" +
+          " }[15:18]" +
+        " }[5:7]"
+      );
+      p1.toCode().should.eql("true or 3 == 1 and false");
+    });
+
+    it("can span multiple lines", () => {
+      const p1 = parse("3 + \n  4");
+      p1.inspect().should.eql("binary(+){ " +
+        "const(NUMBER_BASE10, 3)[0:1], " +
+        "const(NUMBER_BASE10, 4)[7:8]" +
+      " }[2:3]");
+      p1.toCode().should.eql("3 + \n  4");
+    });
+
+    it("with comment", () => {
+      const p1 = parse("3 + # add numbers\n  4");
+      p1.inspect().should.eql("binary(+){ " +
+        "const(NUMBER_BASE10, 3)[0:1], " +
+        "const(NUMBER_BASE10, 4)[20:21]" +
+      " }[2:3]");
+      p1.toCode().should.eql("3 + # add numbers\n  4");
+    });
+
+    it("notices a missing argument", () => {
+      (() => parse("3 +")).should.throw(/Expected operand/);
+      (() => parse("3 + 6 *")).should.throw(/Expected operand/);
+    });
   });
 
-//   describe("if", () => {
-//     it("if _ then _", () => {
-//       parse("if x < 0 then x").should.eql("if(" +
-//         "binary(<)(x[3:4], const(NUMBER_BASE10, 0)[7:8])[3:8], " +
-//         "x[14:15]" +
-//       ")[0:2]");
-//     });
-//
+  describe("if", () => {
+    it("if _ then _", () => {
+      const p1 = parse("if x < 0 then x");
+      p1.inspect().should.eql("if{ " +
+        "binary(<){ x[3:4], const(NUMBER_BASE10, 0)[7:8] }[5:6], " +
+        "x[14:15]" +
+      " }[0:2]");
+      p1.toCode().should.eql("if x < 0 then x");
+    });
+
 //     it("if _ then _ else _", () => {
 //       parse("if x < 0 then -x else x").should.eql("if(" +
 //         "binary(<)(x[3:4], const(NUMBER_BASE10, 0)[7:8])[3:8], " +
@@ -392,8 +404,8 @@ describe("Parse expressions", () => {
 //       (() => parse("if 3 then ???")).should.throw(/Expected expression/);
 //       (() => parse("if 3 then 3 else ???")).should.throw(/Expected else/);
 //     });
-//   });
-//
+  });
+
 //   it("repeat", () => {
 //     parse("repeat 3").should.eql("repeat(const(NUMBER_BASE10, 3)[7:8])[0:6]");
 //     parse("repeat { if true then break }").should.eql(

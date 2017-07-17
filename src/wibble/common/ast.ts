@@ -327,14 +327,30 @@ export class PBinary extends PNode {
 //     if (!this.precedence) throw new Error("No precedence for " + op);
 //   }
 // }
-//
-// export class PIf extends PNode {
-//   constructor(condition, onTrue, onFalse, span) {
-//     super("if", span, (onFalse != null) ? [ condition, onTrue, onFalse ] : [ condition, onTrue ]);
-//     this.precedence = 9;
-//   }
-// }
-//
+
+export class PIf extends PNode {
+  constructor(
+    public gap1: Token[],
+    public condition: PNode,
+    public gap2: Token[],
+    public onTrue: PNode,
+    public gap3: Token[],
+    public onFalse?: PNode
+  ) {
+    super("if", gap1[0].span, onFalse === undefined ? [ condition, onTrue ] : [ condition, onTrue, onFalse ]);
+    this.precedence = 9;
+  }
+
+  toCode(): string {
+    return this.gap1.map(t => t.value).join("") +
+      this.condition.toCode() +
+      this.gap2.map(t => t.value).join("") +
+      this.onTrue.toCode() +
+      this.gap3.map(t => t.value).join("") +
+      (this.onFalse === undefined ? "" : this.onFalse.toCode());
+  }
+}
+
 // export class PRepeat extends PNode {
 //   constructor(expr, span) {
 //     super("repeat", span, [ expr ]);

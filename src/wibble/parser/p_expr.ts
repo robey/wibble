@@ -1,11 +1,11 @@
-import { alt, optional, Parser, reduce, repeat, seq2, seq3, seq4, seq5, Token } from "packrattle";
+import { alt, optional, Parser, reduce, repeat, seq2, seq3, seq4, seq5, seq8, Token } from "packrattle";
 import {
-  PArray, PBinary, PCall, PFunction, PNested, PNew, PNode, PReference, PStruct, PStructField, PUnary
+  PArray, PBinary, PCall, PFunction, PIf, PNested, PNew, PNode, PReference, PStruct, PStructField, PUnary
 } from "../common/ast";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
 import { failWithPriority, linespace, linespaceAround, repeatSurrounded, whitespace } from "./p_parser";
-import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
+import { IDENTIFIER_LIKE, OPERATORS, tokenizer, TokenType } from "./p_tokens";
 import { compoundType, typedecl } from "./p_type";
 
 /*
@@ -126,9 +126,9 @@ function binary(subexpr: Parser<Token, PNode>, ...ops: TokenType[]): Parser<Toke
   });
 }
 
-const power = binary(call, TokenType.POWER);
-const factor = binary(power, TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO);
-const term = binary(factor, TokenType.PLUS, TokenType.MINUS);
+const power = binary(call, TokenType.POWER).named("power");
+const factor = binary(power, TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO).named("factor");
+const term = binary(factor, TokenType.PLUS, TokenType.MINUS).named("term");
 const comparison = binary(
   term,
   TokenType.EQUALS,
@@ -137,9 +137,51 @@ const comparison = binary(
   TokenType.LESS_THAN,
   TokenType.GREATER_EQUALS,
   TokenType.LESS_EQUALS
+).named("comparison");
+const logicalAnd = binary(comparison, TokenType.AND).named("logicalAnd");
+const logical = binary(logicalAnd, TokenType.OR).named("logical");
+
+const binaries = alt(
+  logical,
+  // fake alt to provide a good error message for missing right-side operands in binaries
+  seq4(
+    logical,
+    linespace,
+    tokenizer.matchOneOf(TokenType.AND, TokenType.OR, ...OPERATORS),
+    atom.named("operand")
+  ).map(([ x, _a, _b, _c ]) => x)
 );
-const logicalAnd = binary(comparison, TokenType.AND);
-const logical = binary(logicalAnd, TokenType.OR);
+
+const condition = seq8(
+  tokenizer.match(TokenType.IF),
+  linespace,
+  () => code,
+  linespace,
+  tokenizer.match(TokenType.THEN),
+  linespace,
+  () => code,
+  optional(seq4(
+    linespace,
+    tokenizer.match(TokenType.ELSE),
+    linespace,
+    () => code
+  ))
+).named("condition").map(([ token1, space1, condition, space2, token2, space3, onTrue, elseBlock ]) => {
+  const gap1 = [ token1 ];
+  if (space1 !== undefined) gap1.push(space1);
+  const gap2 = (space2 == undefined ? [] : [ space2 ]).concat(token2);
+  if (space3 !== undefined) gap2.push(space3);
+  const gap3 = [];
+  let onFalse: PNode | undefined = undefined;
+  if (elseBlock !== undefined) {
+    const [ space4, token3, space5, node ] = elseBlock;
+    if (space4 !== undefined) gap3.push(space4);
+    gap3.push(token3);
+    if (space5 !== undefined) gap3.push(space5);
+    onFalse = node;
+  }
+  return new PIf(gap1, condition, gap2, onTrue, gap3, onFalse);
+});
 
 // const condition = $([
 //   toSpan("if"),
@@ -176,6 +218,6 @@ const logical = binary(logicalAnd, TokenType.OR);
 // ]).named("while").map(match => new PWhile(match[1], match[2], match[0]));
 //
 // const baseExpression = $.alt(condition, repeatLoop, whileLoop, func, logical);
-const baseExpression: Parser<Token, PNode> = alt(func, logical);
+const baseExpression: Parser<Token, PNode> = alt(condition, func, binaries);
 
 export const expression = baseExpression;
