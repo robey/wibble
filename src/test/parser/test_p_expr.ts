@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import { EngineOptions, Token } from "packrattle";
 import { parser } from "../../wibble";
 import { makeDot, saveParser } from "./helpers";

@@ -330,23 +330,23 @@ export class PBinary extends PNode {
 
 export class PIf extends PNode {
   constructor(
-    public gap1: Token[],
+    public ifToken: Token[],
     public condition: PNode,
-    public gap2: Token[],
+    public thenToken: Token[],
     public onTrue: PNode,
-    public gap3: Token[],
+    public elseToken: Token[],
     public onFalse?: PNode
   ) {
-    super("if", gap1[0].span, onFalse === undefined ? [ condition, onTrue ] : [ condition, onTrue, onFalse ]);
+    super("if", ifToken[0].span, onFalse === undefined ? [ condition, onTrue ] : [ condition, onTrue, onFalse ]);
     this.precedence = 9;
   }
 
   toCode(): string {
-    return this.gap1.map(t => t.value).join("") +
+    return this.ifToken.map(t => t.value).join("") +
       this.condition.toCode() +
-      this.gap2.map(t => t.value).join("") +
+      this.thenToken.map(t => t.value).join("") +
       this.onTrue.toCode() +
-      this.gap3.map(t => t.value).join("") +
+      this.elseToken.map(t => t.value).join("") +
       (this.onFalse === undefined ? "" : this.onFalse.toCode());
   }
 }
@@ -386,48 +386,65 @@ export class PWhile extends PNode {
   }
 }
 
-// export class PWhile extends PNode {
-//   constructor(condition, expr, span) {
-//     super("while", span, [ condition, expr ]);
-//     this.precedence = 9;
-//   }
-// }
-//
-// export class PAssignment extends PNode {
-//   constructor(name, expr, span) {
-//     super("assign", span, [ name, expr ]);
-//     this.precedence = 10;
-//   }
-// }
-//
-// export class PReturn extends PNode {
-//   constructor(expr, span) {
-//     super("return", span, [ expr ]);
-//   }
-// }
-//
-// export class PBreak extends PNode {
-//   constructor(expr, span) {
-//     super("break", span, expr ? [ expr ] : null);
-//   }
-// }
-//
-// export class PLocal extends PNode {
-//   constructor(name, expr, span, mutable) {
-//     super(`local(${name})`, span, [ expr ]);
-//     this.name = name;
-//     // redundant but handy to have nearby:
-//     this.mutable = mutable;
-//   }
-// }
-//
-// export class PLocals extends PNode {
-//   constructor(span, locals, mutable) {
-//     super(mutable ? "make" : "let", span, locals);
-//     this.mutable = mutable;
-//   }
-// }
-//
+export class PAssignment extends PNode {
+  constructor(public name: PNode, public assign: Token[], public expr: PNode) {
+    super("assign", name.span, [ name, expr ]);
+    this.precedence = 10;
+  }
+
+  toCode(): string {
+    return this.name.toCode() + this.assign.map(t => t.value).join("") + this.expr.toCode();
+  }
+}
+
+export class PReturn extends PNode {
+  constructor(public tokens: Token[], public expr: PNode) {
+    super("return", tokens[0].span, [ expr ]);
+  }
+
+  toCode(): string {
+    return this.tokens.map(t => t.value).join("") + this.expr.toCode();
+  }
+}
+
+export class PBreak extends PNode {
+  constructor(public tokens: Token[], public expr?: PNode) {
+    super("break", tokens[0].span, (expr === undefined) ? [] : [ expr ]);
+  }
+
+  toCode(): string {
+    return this.tokens.map(t => t.value).join("") + (this.expr === undefined ? "" : this.expr.toCode());
+  }
+}
+
+export class PLocal extends PNode {
+  constructor(
+    public isVar: Token[],
+    public name: PReference,
+    public tokens: Token[],
+    public expr: PNode
+  ) {
+    super(`local${isVar.length == 0 ? "" : "-var"}(${name.name})`, name.span, [ expr ]);
+  }
+
+  toCode() {
+    return this.isVar.map(t => t.value).join("") +
+      this.name.toCode() +
+      this.tokens.map(t => t.value).join("") +
+      this.expr.toCode();
+  }
+}
+
+export class PLocals extends PNode {
+  constructor(public tokens: Token[], public locals: AnnotatedItem<PLocal>[]) {
+    super("let", tokens[0].span, locals.map(x => x.item));
+  }
+
+  toCode(): string {
+    return this.tokens.map(t => t.value).join("") + this.locals.map(x => x.toCode()).join("");
+  }
+}
+
 // export class POn extends PNode {
 //   constructor(receiver, expr, outType, span) {
 //     super("on", span, [ receiver, expr, outType ]);

@@ -16,7 +16,7 @@ import {
   PTypedField
 } from "../common/ast";
 import { symbolRef } from "./p_const";
-import { failWithPriority, linespace, linespaceAround, repeatSeparatedStrict, repeatSurrounded } from "./p_parser";
+import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded } from "./p_parser";
 import { IDENTIFIER_LIKE, tokenizer, TokenType } from "./p_tokens";
 import { expression, reference } from "./p_expr";
 
@@ -128,7 +128,7 @@ const functionType = seq3(
 
 const baseType: Parser<Token, PType> = alt(functionType, componentType);
 
-const mergedType = repeatSeparatedStrict(baseType, TokenType.PIPE).map(items => {
+const mergedType = repeatSeparated(baseType, TokenType.PIPE).map(items => {
   if (items.length == 1) return items[0].item;
   return new PMergedType(items);
 });

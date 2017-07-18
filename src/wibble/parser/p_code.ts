@@ -1,35 +1,79 @@
-import { alt, Parser, Token } from "packrattle";
-import { PBlock, PNode } from "../common/ast";
-// import { PAssignment, PBlock, PBreak, PLocal, PLocals, POn, PReturn } from "../common/ast";
+import { alt, optional, Parser, seq2, seq3, seq5, seq6, Token } from "packrattle";
+import { PAssignment, PBlock, PBreak, PLocal, PLocals, PNode, PReturn } from "../common/ast";
 // import { commentspace, lf, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
 // import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
-import { repeatSurrounded } from "./p_parser";
+import { linespace, repeatSeparated, repeatSurrounded } from "./p_parser";
 // import { compoundType, typedecl } from "./p_type";
-import { TokenType } from "./p_tokens";
+import { tokenizer, TokenType } from "./p_tokens";
 
-// /*
-//  * parse expressions which can only be in a code block.
-//  */
-//
-// const assignment = $([
-//   reference,
-//   $.drop(linespace),
-//   toSpan(":="),
-//   $.drop(linespace),
-//   () => code
-// ]).named("assignment").map(match => {
-//   return new PAssignment(match[0], match[2], match[1]);
-// });
-//
-// const returnEarly = $([ toSpan("return"), $.drop(linespace), () => code ]).named("return").map(match => {
-//   return new PReturn(match[1], match[0]);
-// });
-//
-// const breakEarly = $([ toSpan("break"), $.drop(linespace), $.optional(() => code) ]).named("break").map(match => {
-//   return new PBreak(match[1], match[0]);
-// });
-//
+/*
+ * parse expressions which can only be in a code block.
+ */
+
+const assignment = seq5(
+  reference,
+  linespace,
+  tokenizer.match(TokenType.ASSIGN),
+  linespace,
+  () => code
+).named("assignment").map(([ name, gap1, token, gap2, expr ]) => {
+  const tokens = (gap1 === undefined ? [] : [ gap1 ]).concat(token);
+  if (gap2 !== undefined) tokens.push(gap2);
+  return new PAssignment(name, tokens, expr);
+});
+
+const returnEarly = seq3(
+  tokenizer.match(TokenType.RETURN),
+  linespace,
+  () => code
+).named("return").map(([ token, gap, expr ]) => {
+  const tokens = [ token ];
+  if (gap !== undefined) tokens.push(gap);
+  return new PReturn(tokens, expr);
+});
+
+const breakEarly = seq2(
+  tokenizer.match(TokenType.BREAK),
+  optional(seq2(linespace, () => code))
+).map(([ token, optionalExpr ]) => {
+  const tokens = [ token ];
+  if (optionalExpr === undefined) return new PBreak(tokens);
+  const [ gap, expr ] = optionalExpr;
+  if (gap !== undefined) tokens.push(gap);
+  return new PBreak(tokens, expr);
+});
+
+const localDeclaration = seq6(
+  optional(seq2(tokenizer.match(TokenType.VAR), linespace)),
+  reference,
+  linespace,
+  tokenizer.match(TokenType.BIND),
+  linespace,
+  () => expression
+).map(([ optionalVar, name, gap1, op, gap2, expr ]) => {
+  const isVar: Token[] = [];
+  if (optionalVar !== undefined) {
+    const [ a, b ] = optionalVar;
+    isVar.push(a);
+    if (b !== undefined) isVar.push(b);
+  }
+  const tokens = (gap1 === undefined ? [] : [ gap1 ]).concat(op);
+  if (gap2 !== undefined) tokens.push(gap2);
+  return new PLocal(isVar, name, tokens, expr);
+});
+
+const localLet = seq3(
+  tokenizer.match(TokenType.LET),
+  linespace,
+  repeatSeparated(localDeclaration, TokenType.COMMA)
+).map(([ token, gap, items ]) => {
+  const tokens = [ token ];
+  if (gap !== undefined) tokens.push(gap);
+  return new PLocals(tokens, items);
+})
+
+
 // function localDeclaration(operator, mutable) {
 //   return $([
 //     reference.named("identifier"),
@@ -94,7 +138,13 @@ import { TokenType } from "./p_tokens";
 //   return new PBlock(match[0], match[1], span);
 // });
 
-export const code = alt(() => expression).named("expression", 2);
+export const code: Parser<Token, PNode> = alt(
+  localLet,
+  assignment,
+  returnEarly,
+  breakEarly,
+  () => expression
+).named("expression", 2);
 
 export const codeBlock = repeatSurrounded(
   TokenType.OBRACE,

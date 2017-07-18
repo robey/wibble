@@ -27,27 +27,12 @@ export function linespaceAround(p: LazyParser<Token, Token>): Parser<Token, Toke
   });
 }
 
-// match: (p linespace separator ws)* p
-export function repeatSeparatedStrict<A extends PNode>(
-  p: LazyParser<Token, A>,
-  separator: TokenType
-): Parser<Token, AnnotatedItem<A>[]> {
-  const element = seq4(p, linespace, tokenizer.match(separator), whitespace).map(([ a, ls, sep, ws ]) => {
-    return new AnnotatedItem(a, ls, sep, ws);
-  });
-
-  return seq2(repeat(element), p).map(([ list, last ]) => {
-    return list.concat(last ? [ new AnnotatedItem(last, undefined, undefined, []) ] : []);
-  });
-}
-
 // match: (p linespace separator ws)* p?
 export function repeatSeparated<A extends PNode>(
   p: LazyParser<Token, A>,
-  separator: TokenType
+  ...separators: TokenType[]
 ): Parser<Token, AnnotatedItem<A>[]> {
-  const sepOrLF = alt(tokenizer.match(separator), tokenizer.match(TokenType.LF));
-  const element = seq4(p, linespace, sepOrLF, whitespace).map(([ a, ls, sep, ws ]) => {
+  const element = seq4(p, linespace, tokenizer.matchOneOf(...separators), whitespace).map(([ a, ls, sep, ws ]) => {
     return new AnnotatedItem(a, ls, sep, ws);
   });
 
@@ -58,16 +43,16 @@ export function repeatSeparated<A extends PNode>(
 
 // open (ws repeatSeparated)? ws close
 export function repeatSurrounded<A extends PNode>(
-  open: number,
+  open: TokenType,
   p: LazyParser<Token, A>,
-  separator: number,
-  close: number,
+  separator: TokenType,
+  close: TokenType,
   name?: string
 ): Parser<Token, TokenCollection<A>> {
   return seq5(
     tokenizer.match(open),
     whitespace,
-    repeatSeparated(p, separator),
+    repeatSeparated(p, separator, TokenType.LF),
     whitespace,
     name ? tokenizer.match(close).named(name, 1) : tokenizer.match(close)
   ).map(([ o, ws1, inner, ws2, c ]) => {
