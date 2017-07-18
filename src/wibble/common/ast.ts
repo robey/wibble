@@ -445,12 +445,28 @@ export class PLocals extends PNode {
   }
 }
 
-// export class POn extends PNode {
-//   constructor(receiver, expr, outType, span) {
-//     super("on", span, [ receiver, expr, outType ]);
-//     this.precedence = 100;
-//   }
-// }
+export class POn extends PNode {
+  constructor(
+    public onTokens: Token[],
+    public receiver: PNode,
+    public typeTokens: Token[],
+    public type: PNode | undefined,
+    public arrowTokens: Token[],
+    public expr: PNode
+  ) {
+    super("on", onTokens[0].span, type === undefined ? [ receiver, expr ] : [ receiver, expr, type ]);
+    this.precedence = 100;
+  }
+
+  toCode(): string {
+    return this.onTokens.map(t => t.value).join("") +
+      this.receiver.toCode() +
+      this.typeTokens.map(t => t.value).join("") +
+      (this.type === undefined ? "" : this.type.toCode()) +
+      this.arrowTokens.map(t => t.value).join("") +
+      this.expr.toCode();
+  }
+}
 
 export class PBlock extends PNode {
   constructor(public code: TokenCollection<PNode>) {

@@ -1,11 +1,10 @@
-import { alt, optional, Parser, seq2, seq3, seq5, seq6, Token } from "packrattle";
-import { PAssignment, PBlock, PBreak, PLocal, PLocals, PNode, PReturn } from "../common/ast";
-// import { commentspace, lf, linespace, repeatSeparated, repeatSurrounded, toSpan } from "./p_common";
-// import { symbolRef } from "./p_const";
+import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
+import { PAssignment, PBlock, PBreak, PLocal, PLocals, PNode, POn, PReturn } from "../common/ast";
+import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
 import { linespace, repeatSeparated, repeatSurrounded } from "./p_parser";
-// import { compoundType, typedecl } from "./p_type";
 import { tokenizer, TokenType } from "./p_tokens";
+import { compoundType, emptyType, typedecl } from "./p_type";
 
 /*
  * parse expressions which can only be in a code block.
@@ -73,76 +72,39 @@ const localLet = seq3(
   return new PLocals(tokens, items);
 })
 
-
-// function localDeclaration(operator, mutable) {
-//   return $([
-//     reference.named("identifier"),
-//     $.drop(linespace),
-//     $.drop(operator),
-//     $.drop(linespace),
-//     () => expression
-//   ]).map(match => {
-//     return new PLocal(match[0].name, match[1], match[0].span, mutable);
-//   });
-// }
-//
-// const localLet = $([
-//   toSpan("let"),
-//   $.drop(linespace),
-//   repeatSeparated(localDeclaration("=", false), ",", $.drop(linespace))
-// ]).map(match => {
-//   return new PLocals(match[0], match[1], false);
-// });
-//
-// const localMake = $([
-//   toSpan("make"),
-//   $.drop(linespace),
-//   repeatSeparated(localDeclaration(":=", true), ",", $.drop(linespace))
-// ]).map(match => {
-//   return new PLocals(match[0], match[1], true);
-// });
-//
-// const handlerReceiver = $.alt(symbolRef, compoundType).named("symbol or parameters");
-// const handler = $([
-//   toSpan("on"),
-//   $.drop(linespace),
-//   handlerReceiver,
-//   $.drop(linespace),
-//   $.optional([ $.drop(":"), $.drop(linespace), typedecl, $.drop(linespace) ], ""),
-//   $.drop("->"),
-//   $.drop(linespace),
-//   () => expression
-// ]).map(match => {
-//   if (match[2] == "") match[2] = [ null ];
-//   return new POn(match[1], match[3], match[2][0], match[0]);
-// });
-//
-// export const code = $.alt(
-//   localLet,
-//   localMake,
-//   assignment,
-//   returnEarly,
-//   breakEarly,
-//   handler,
-//   () => expression
-// ).named("expression");
-//
-// export const codeBlock = repeatSurrounded(
-//   $.commit("{"),
-//   code,
-//   lf,
-//   "}",
-//   commentspace,
-//   "declaration or expression"
-// ).map((match, span) => {
-//   return new PBlock(match[0], match[1], span);
-// });
+const handler = seq8(
+  tokenizer.match(TokenType.ON),
+  linespace,
+  alt<Token, PNode>(emptyType, symbolRef, compoundType).named("symbol or parameters"),
+  optional(seq3(tokenizer.match(TokenType.COLON), linespace, typedecl)),
+  linespace,
+  tokenizer.match(TokenType.ARROW),
+  linespace,
+  () => expression
+).map(([ onToken, gap1, receiver, optionalType, gap2, arrow, gap3, expr ]) => {
+  const onTokens = [ onToken ];
+  if (gap1 !== undefined) onTokens.push(gap1);
+  const typeTokens = [];
+  let type: PNode | undefined = undefined;
+  if (optionalType !== undefined) {
+    const [ colon, gap, t ] = optionalType;
+    typeTokens.push(colon);
+    if (gap !== undefined) typeTokens.push(gap);
+    type = t;
+  }
+  const arrowTokens = [];
+  if (gap2 !== undefined) arrowTokens.push(gap2);
+  arrowTokens.push(arrow);
+  if (gap3 !== undefined) arrowTokens.push(gap3);
+  return new POn(onTokens, receiver, typeTokens, type, arrowTokens, expr);
+})
 
 export const code: Parser<Token, PNode> = alt(
   localLet,
   assignment,
   returnEarly,
   breakEarly,
+  handler,
   () => expression
 ).named("expression", 2);
 
