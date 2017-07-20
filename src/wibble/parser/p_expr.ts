@@ -31,7 +31,7 @@ const LowercaseError = "Variable name must start with lowercase letter";
 export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identifier").map(token => {
   if (token.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
   if (!token.value.match(/^[a-z]/)) throw failWithPriority(LowercaseError);
-  return new PReference(token.value, token.span);
+  return new PReference(token);
 });
 
 const array: Parser<Token, PNode> = repeatSurrounded(
@@ -61,18 +61,18 @@ export const func = seq4(
 ).named("function").map(([ args, arrow, space4, body ]) => {
   const gap2 = [ arrow ];
   if (space4 !== undefined) gap2.push(space4);
-  if (args === undefined) return new PFunction(undefined, [], undefined, gap2, body, arrow.span);
+  if (args === undefined) return new PFunction(undefined, [], undefined, gap2, body);
 
   const [ argType, space1, results ] = args;
   const gap1 = [];
   if (space1 !== undefined) gap1.push(space1);
-  if (results === undefined) return new PFunction(argType, gap1, undefined, gap2, body, arrow.span);
+  if (results === undefined) return new PFunction(argType, gap1, undefined, gap2, body);
 
   const [ colon, space2, resultType, space3 ] = results;
   gap1.push(colon);
   if (space2 !== undefined) gap1.push(space2);
   if (space3 !== undefined) gap2.unshift(space3);
-  return new PFunction(argType, gap1, resultType, gap2, body, arrow.span);
+  return new PFunction(argType, gap1, resultType, gap2, body);
 });
 
 const structMember = seq2(

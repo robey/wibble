@@ -19,22 +19,22 @@ describe("Parse types", () => {
   it("compound", () => {
     const p1 = parse("(n:Int,s:String)");
     p1.inspect().should.eql(
-      "compoundType{ field(n){ type(Int)[3:6] }[1:2], field(s){ type(String)[9:15] }[7:8] }[0:16]"
+      "compoundType{ field(n){ type(Int)[3:6] }[1:6], field(s){ type(String)[9:15] }[7:15] }[0:16]"
     );
     p1.toCode().should.eql("(n:Int,s:String)");
     const p2 = parse("( n: Int, s: String )");
     p2.inspect().should.eql(
-      "compoundType{ field(n){ type(Int)[5:8] }[2:3], field(s){ type(String)[13:19] }[10:11] }[0:21]"
+      "compoundType{ field(n){ type(Int)[5:8] }[2:8], field(s){ type(String)[13:19] }[10:19] }[0:21]"
     );
     p2.toCode().should.eql("( n: Int, s: String )");
     const p3 = parse("(x: Int, y:String)");
     p3.inspect().should.eql(
-      "compoundType{ field(x){ type(Int)[4:7] }[1:2], field(y){ type(String)[11:17] }[9:10] }[0:18]"
+      "compoundType{ field(x){ type(Int)[4:7] }[1:7], field(y){ type(String)[11:17] }[9:17] }[0:18]"
     );
     p3.toCode().should.eql("(x: Int, y:String)");
     const p4 = parse("(x: Int = 4)");
     p4.inspect().should.eql(
-      "compoundType{ field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:2] }[0:12]"
+      "compoundType{ field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:11] }[0:12]"
     );
     p4.toCode().should.eql("(x: Int = 4)");
     const p5 = parse("()");
@@ -83,8 +83,8 @@ describe("Parse types", () => {
           "functionType{ " +
             "type(Int)[17:20], " +
             "compoundType{ " +
-              "field(real){ type(Float)[31:36] }[25:29], " +
-              "field(imaginary){ type(Float)[49:54] }[38:47]" +
+              "field(real){ type(Float)[31:36] }[25:36], " +
+              "field(imaginary){ type(Float)[49:54] }[38:54]" +
             " }[24:55]" +
           " }[17:55]" +
         " }[12:56]" +
@@ -128,7 +128,7 @@ describe("Parse types", () => {
     p4.inspect().should.eql(
       "inlineType{ " +
         "inlineTypeDeclaration{ " +
-          "compoundType{ field(x){ type(Int)[6:9] }[3:4] }[2:10], " +
+          "compoundType{ field(x){ type(Int)[6:9] }[3:9] }[2:10], " +
           "type(String)[14:20]" +
         " }[2:20]" +
       " }[0:22]"
@@ -142,7 +142,7 @@ describe("Parse types", () => {
           "type(String)[11:17]" +
         " }[2:17], " +
         "inlineTypeDeclaration{ " +
-          "compoundType{ field(x){ type(String)[23:29] }[20:21] }[19:30], " +
+          "compoundType{ field(x){ type(String)[23:29] }[20:29] }[19:30], " +
           "type(Boolean)[34:41]" +
         " }[19:41]" +
       " }[0:43]"

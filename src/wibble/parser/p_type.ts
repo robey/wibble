@@ -37,7 +37,7 @@ export const simpleType = alt(
     if (token.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
     if (!token.value.match(/^[A-Z]/)) throw failWithPriority(UppercaseError);
   }
-  return new PSimpleType(token.value, token.span);
+  return new PSimpleType(token);
 });
 
 const typedField: Parser<Token, PTypedField> = seq4(
@@ -47,10 +47,10 @@ const typedField: Parser<Token, PTypedField> = seq4(
   optional(seq2(linespaceAround(tokenizer.match(TokenType.BIND)), () => expression))
 ).map(([ name, colon, type, value ]) => {
   if (value === undefined) {
-    return new PTypedField(name.name, colon, type, name.span);
+    return new PTypedField(name.token, colon, type);
   } else {
     const [ bind, defaultValue ] = value;
-    return new PTypedField(name.name, colon, type, name.span, bind, defaultValue);
+    return new PTypedField(name.token, colon, type, bind, defaultValue);
   }
 });
 

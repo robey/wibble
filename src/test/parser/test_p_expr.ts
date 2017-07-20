@@ -73,7 +73,7 @@ describe("Parse expressions", () => {
 
   describe("function", () => {
     it("empty", () => {
-      parseFunc("-> ()").inspect().should.eql("function{ const(NOTHING, ())[3:5] }[0:2]");
+      parseFunc("-> ()").inspect().should.eql("function{ const(NOTHING, ())[3:5] }[0:5]");
       parseFunc("-> ()").toCode().should.eql("-> ()");
     });
 
@@ -81,9 +81,9 @@ describe("Parse expressions", () => {
       const p1 = parseFunc("(x: Int) -> x * 2");
       p1.inspect().should.eql(
         "function{ " +
-          "binary(*){ x[12:13], const(NUMBER_BASE10, 2)[16:17] }[14:15], " +
-          "compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8]" +
-        " }[9:11]"
+          "binary(*){ x[12:13], const(NUMBER_BASE10, 2)[16:17] }[12:17], " +
+          "compoundType{ field(x){ type(Int)[4:7] }[1:7] }[0:8]" +
+        " }[0:17]"
       );
       p1.toCode().should.eql("(x: Int) -> x * 2");
     });
@@ -93,9 +93,9 @@ describe("Parse expressions", () => {
       p1.inspect().should.eql(
         "function{ " +
           "x[17:18], " +
-          "compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8], " +
+          "compoundType{ field(x){ type(Int)[4:7] }[1:7] }[0:8], " +
           "type(Int)[10:13]" +
-        " }[14:16]"
+        " }[0:18]"
       );
       p1.toCode().should.eql("(x: Int): Int -> x");
     });
@@ -108,10 +108,10 @@ describe("Parse expressions", () => {
           "compoundType{ " +
             "field(a){ templateType(Map){ " +
               "type(String)[8:14], type(Int)[16:19]" +
-            " }[4:20] }[1:2], " +
-            "field(b){ functionType{ type(String)[25:31], type(Int)[35:38] }[25:38] }[22:23]" +
+            " }[4:20] }[1:20], " +
+            "field(b){ functionType{ type(String)[25:31], type(Int)[35:38] }[25:38] }[22:38]" +
           " }[0:39]" +
-        " }[40:42]"
+        " }[0:48]"
       );
       p1.toCode().should.eql("(a: Map(String, Int), b: String -> Int) -> false");
     });
@@ -120,12 +120,12 @@ describe("Parse expressions", () => {
       const p1 = parseFunc("(x: Int = 4, y: Int = 5) -> x + y");
       p1.inspect().should.eql(
         "function{ " +
-          "binary(+){ x[28:29], y[32:33] }[30:31], " +
+          "binary(+){ x[28:29], y[32:33] }[28:33], " +
           "compoundType{ " +
-            "field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:2], " +
-            "field(y){ type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23] }[13:14]" +
+            "field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:11], " +
+            "field(y){ type(Int)[16:19], const(NUMBER_BASE10, 5)[22:23] }[13:23]" +
           " }[0:24]" +
-        " }[25:27]"
+        " }[0:33]"
       );
       p1.toCode().should.eql("(x: Int = 4, y: Int = 5) -> x + y");
     });
@@ -133,7 +133,7 @@ describe("Parse expressions", () => {
     it("nested", () => {
       const p1 = parseFunc("-> -> 69");
       p1.inspect().should.eql(
-        "function{ function{ const(NUMBER_BASE10, 69)[6:8] }[3:5] }[0:2]"
+        "function{ function{ const(NUMBER_BASE10, 69)[6:8] }[3:8] }[0:8]"
       );
       p1.toCode().should.eql("-> -> 69");
     });
@@ -141,20 +141,20 @@ describe("Parse expressions", () => {
     it("via expression", () => {
       const p1 = parse("-> 3");
       p1.inspect().should.eql(
-        "function{ const(NUMBER_BASE10, 3)[3:4] }[0:2]"
+        "function{ const(NUMBER_BASE10, 3)[3:4] }[0:4]"
       );
       p1.toCode().should.eql("-> 3");
       const p2 = parse("(x: Int) -> 3");
       p2.inspect().should.eql(
-        "function{ const(NUMBER_BASE10, 3)[12:13], compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8] }[9:11]"
+        "function{ const(NUMBER_BASE10, 3)[12:13], compoundType{ field(x){ type(Int)[4:7] }[1:7] }[0:8] }[0:13]"
       );
       p2.toCode().should.eql("(x: Int) -> 3");
       const p3 = parse("(x: Int) -> x * 2");
       p3.inspect().should.eql(
         "function{ " +
-          "binary(*){ x[12:13], const(NUMBER_BASE10, 2)[16:17] }[14:15], " +
-          "compoundType{ field(x){ type(Int)[4:7] }[1:2] }[0:8]" +
-        " }[9:11]"
+          "binary(*){ x[12:13], const(NUMBER_BASE10, 2)[16:17] }[12:17], " +
+          "compoundType{ field(x){ type(Int)[4:7] }[1:7] }[0:8]" +
+        " }[0:17]"
       );
       p3.toCode().should.eql("(x: Int) -> x * 2");
     });
@@ -190,7 +190,7 @@ describe("Parse expressions", () => {
     it("simple", () => {
       const p1 = parse("new { true }");
       p1.inspect().should.eql(
-        "new{ block{ const(BOOLEAN, true)[6:10] }[4:12] }[0:3]"
+        "new{ block{ const(BOOLEAN, true)[6:10] }[4:12] }[0:12]"
       );
       p1.toCode().should.eql("new { true }");
     });
@@ -199,7 +199,7 @@ describe("Parse expressions", () => {
       const p1 = parse("new { on .foo -> 3 } .foo");
       p1.inspect().should.eql(
         "call{ " +
-          "new{ block{ on{ const(SYMBOL, foo)[9:13], const(NUMBER_BASE10, 3)[17:18] }[6:8] }[4:20] }[0:3], " +
+          "new{ block{ on{ const(SYMBOL, foo)[9:13], const(NUMBER_BASE10, 3)[17:18] }[6:18] }[4:20] }[0:20], " +
           "const(SYMBOL, foo)[21:25]" +
         " }[0:25]"
       );
@@ -209,7 +209,7 @@ describe("Parse expressions", () => {
     it("explicit type", () => {
       const p1 = parse("new List(Int) { true }");
       p1.inspect().should.eql(
-        "new{ block{ const(BOOLEAN, true)[16:20] }[14:22], templateType(List){ type(Int)[9:12] }[4:13] }[0:3]"
+        "new{ block{ const(BOOLEAN, true)[16:20] }[14:22], templateType(List){ type(Int)[9:12] }[4:13] }[0:22]"
       );
       p1.toCode().should.eql("new List(Int) { true }");
     });
@@ -217,13 +217,13 @@ describe("Parse expressions", () => {
 
   it("unary", () => {
     const p1 = parse("not true");
-    p1.inspect().should.eql("unary(not){ const(BOOLEAN, true)[4:8] }[0:3]");
+    p1.inspect().should.eql("unary(not){ const(BOOLEAN, true)[4:8] }[0:8]");
     p1.toCode().should.eql("not true");
     const p2 = parse("-  5");
-    p2.inspect().should.eql("unary(-){ const(NUMBER_BASE10, 5)[3:4] }[0:1]");
+    p2.inspect().should.eql("unary(-){ const(NUMBER_BASE10, 5)[3:4] }[0:4]");
     p2.toCode().should.eql("-  5");
     const p3 = parse("not not true");
-    p3.inspect().should.eql("unary(not){ unary(not){ const(BOOLEAN, true)[8:12] }[4:7] }[0:3]");
+    p3.inspect().should.eql("unary(not){ unary(not){ const(BOOLEAN, true)[8:12] }[4:12] }[0:12]");
     p3.toCode().should.eql("not not true");
   });
 
@@ -278,9 +278,9 @@ describe("Parse expressions", () => {
     it("**", () => {
       const p1 = parse("2 ** 3 ** 4");
       p1.inspect().should.eql("binary(**){ " +
-        "binary(**){ const(NUMBER_BASE10, 2)[0:1], const(NUMBER_BASE10, 3)[5:6] }[2:4], " +
+        "binary(**){ const(NUMBER_BASE10, 2)[0:1], const(NUMBER_BASE10, 3)[5:6] }[0:6], " +
         "const(NUMBER_BASE10, 4)[10:11]" +
-      " }[7:9]");
+      " }[0:11]");
       p1.toCode().should.eql("2 ** 3 ** 4");
     });
 
@@ -288,29 +288,29 @@ describe("Parse expressions", () => {
       const p1 = parse("a * b / c % d");
       p1.inspect().should.eql("binary(%){ " +
         "binary(/){ " +
-          "binary(*){ a[0:1], b[4:5] }[2:3], " +
+          "binary(*){ a[0:1], b[4:5] }[0:5], " +
           "c[8:9]" +
-        " }[6:7], " +
+        " }[0:9], " +
         "d[12:13]" +
-      " }[10:11]");
+      " }[0:13]");
       p1.toCode().should.eql("a * b / c % d");
     });
 
     it("+ -", () => {
       const p1 = parse("a + b - c");
       p1.inspect().should.eql("binary(-){ " +
-        "binary(+){ a[0:1], b[4:5] }[2:3], " +
+        "binary(+){ a[0:1], b[4:5] }[0:5], " +
         "c[8:9]" +
-      " }[6:7]");
+      " }[0:9]");
       p1.toCode().should.eql("a + b - c");
     });
 
     it("* vs + precedence", () => {
       const p1 = parse("a + b * c + d");
       p1.inspect().should.eql("binary(+){ " +
-        "binary(+){ a[0:1], binary(*){ b[4:5], c[8:9] }[6:7] }[2:3], " +
+        "binary(+){ a[0:1], binary(*){ b[4:5], c[8:9] }[4:9] }[0:9], " +
         "d[12:13]" +
-      " }[10:11]");
+      " }[0:13]");
       p1.toCode().should.eql("a + b * c + d");
     });
 
@@ -318,8 +318,8 @@ describe("Parse expressions", () => {
       const p1 = parse("a and b + c == d");
       p1.inspect().should.eql("binary(and){ " +
         "a[0:1], " +
-        "binary(==){ binary(+){ b[6:7], c[10:11] }[8:9], d[15:16] }[12:14]" +
-      " }[2:5]");
+        "binary(==){ binary(+){ b[6:7], c[10:11] }[6:11], d[15:16] }[6:16]" +
+      " }[0:16]");
       p1.toCode().should.eql("a and b + c == d");
     });
 
@@ -329,10 +329,10 @@ describe("Parse expressions", () => {
         "binary(or){ " +
           "const(BOOLEAN, true)[0:4], " +
           "binary(and){ " +
-            "binary(==){ const(NUMBER_BASE10, 3)[8:9], const(NUMBER_BASE10, 1)[13:14] }[10:12], " +
+            "binary(==){ const(NUMBER_BASE10, 3)[8:9], const(NUMBER_BASE10, 1)[13:14] }[8:14], " +
             "const(BOOLEAN, false)[19:24]" +
-          " }[15:18]" +
-        " }[5:7]"
+          " }[8:24]" +
+        " }[0:24]"
       );
       p1.toCode().should.eql("true or 3 == 1 and false");
     });
@@ -342,7 +342,7 @@ describe("Parse expressions", () => {
       p1.inspect().should.eql("binary(+){ " +
         "const(NUMBER_BASE10, 3)[0:1], " +
         "const(NUMBER_BASE10, 4)[7:8]" +
-      " }[2:3]");
+      " }[0:8]");
       p1.toCode().should.eql("3 + \n  4");
     });
 
@@ -351,7 +351,7 @@ describe("Parse expressions", () => {
       p1.inspect().should.eql("binary(+){ " +
         "const(NUMBER_BASE10, 3)[0:1], " +
         "const(NUMBER_BASE10, 4)[20:21]" +
-      " }[2:3]");
+      " }[0:21]");
       p1.toCode().should.eql("3 + # add numbers\n  4");
     });
 
@@ -365,19 +365,19 @@ describe("Parse expressions", () => {
     it("if _ then _", () => {
       const p1 = parse("if x < 0 then x");
       p1.inspect().should.eql("if{ " +
-        "binary(<){ x[3:4], const(NUMBER_BASE10, 0)[7:8] }[5:6], " +
+        "binary(<){ x[3:4], const(NUMBER_BASE10, 0)[7:8] }[3:8], " +
         "x[14:15]" +
-      " }[0:2]");
+      " }[0:15]");
       p1.toCode().should.eql("if x < 0 then x");
     });
 
     it("if _ then _ else _", () => {
       const p1 = parse("if x < 0 then -x else x");
       p1.inspect().should.eql("if{ " +
-        "binary(<){ x[3:4], const(NUMBER_BASE10, 0)[7:8] }[5:6], " +
-        "unary(-){ x[15:16] }[14:15], " +
+        "binary(<){ x[3:4], const(NUMBER_BASE10, 0)[7:8] }[3:8], " +
+        "unary(-){ x[15:16] }[14:16], " +
         "x[22:23]" +
-      " }[0:2]");
+      " }[0:23]");
       p1.toCode().should.eql("if x < 0 then -x else x");
     });
 
@@ -390,7 +390,7 @@ describe("Parse expressions", () => {
         " }[3:14], " +
         "const(NUMBER_BASE10, 1)[20:21], " +
         "const(NUMBER_BASE10, 2)[27:28]" +
-      " }[0:2]");
+      " }[0:28]");
       p1.toCode().should.eql("if { 3; true } then 1 else 2");
     });
 
@@ -398,10 +398,10 @@ describe("Parse expressions", () => {
       const p1 = parse("if a then (if b then 3) else 9");
       p1.inspect().should.eql("if{ " +
         "a[3:4], nested{ " +
-          "if{ b[14:15], const(NUMBER_BASE10, 3)[21:22] }[11:13]" +
+          "if{ b[14:15], const(NUMBER_BASE10, 3)[21:22] }[11:22]" +
         " }[10:23], " +
         "const(NUMBER_BASE10, 9)[29:30]" +
-      " }[0:2]");
+      " }[0:30]");
       p1.toCode().should.eql("if a then (if b then 3) else 9");
     });
 
@@ -414,18 +414,18 @@ describe("Parse expressions", () => {
 
   it("repeat", () => {
     const p1 = parse("repeat 3");
-    p1.inspect().should.eql("repeat{ const(NUMBER_BASE10, 3)[7:8] }[0:6]");
+    p1.inspect().should.eql("repeat{ const(NUMBER_BASE10, 3)[7:8] }[0:8]");
     p1.toCode().should.eql("repeat 3");
     const p2 = parse("repeat { if true then break }");
     p2.inspect().should.eql(
-      "repeat{ block{ if{ const(BOOLEAN, true)[12:16], break[22:27] }[9:11] }[7:29] }[0:6]"
+      "repeat{ block{ if{ const(BOOLEAN, true)[12:16], break[22:27] }[9:27] }[7:29] }[0:29]"
     );
     p2.toCode().should.eql("repeat { if true then break }");
   });
 
   it("while", () => {
     const p1 = parse("while true do false");
-    p1.inspect().should.eql("while{ const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19] }[0:5]");
+    p1.inspect().should.eql("while{ const(BOOLEAN, true)[6:10], const(BOOLEAN, false)[14:19] }[0:19]");
     p1.toCode().should.eql("while true do false");
   });
 });
