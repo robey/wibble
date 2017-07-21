@@ -1,5 +1,5 @@
 import { mergeSpan, Span, Token } from "packrattle";
-import { AnnotatedItem, PNode, Source, TokenCollection } from "./ast_core";
+import { AnnotatedItem, PNode, PNodeType, Source, TokenCollection } from "./ast_core";
 import { PConstant } from "./ast_expr";
 
 export class PType extends PNode {
@@ -9,6 +9,8 @@ export class PType extends PNode {
 }
 
 export class PEmptyType extends PType {
+  nodeType = PNodeType.EMPTY_TYPE;
+
   constructor(public token: Token) {
     super("emptyType");
     this.source.push(token);
@@ -16,6 +18,8 @@ export class PEmptyType extends PType {
 }
 
 export class PSimpleType extends PType {
+  nodeType = PNodeType.SIMPLE_TYPE;
+
   constructor(public token: Token) {
     super(`type(${token.value})`);
     this.source.push(token);
@@ -24,6 +28,8 @@ export class PSimpleType extends PType {
 
 // used only in compound types: a field name with an optional type and optional default value.
 export class PTypedField extends PNode {
+  nodeType = PNodeType.TYPED_FIELD;
+
   constructor(
     public name: Token,
     public colon: Token[],
@@ -38,6 +44,8 @@ export class PTypedField extends PNode {
 }
 
 export class PCompoundType extends PType {
+  nodeType = PNodeType.COMPOUND_TYPE;
+
   constructor(public fields: TokenCollection<PTypedField>) {
     super("compoundType", fields.list.map(x => x.item));
     this.source = fields.source;
@@ -45,6 +53,8 @@ export class PCompoundType extends PType {
 }
 
 export class PTemplateType extends PType {
+  nodeType = PNodeType.TEMPLATE_TYPE;
+
   constructor(public name: PSimpleType, public params: TokenCollection<PType>) {
     super(`templateType(${name.token.value})`, params.list.map(x => x.item));
     this.source = this.source.concat(name, params.source);
@@ -52,6 +62,8 @@ export class PTemplateType extends PType {
 }
 
 export class PParameterType extends PType {
+  nodeType = PNodeType.PARAMETER_TYPE;
+
   constructor(public dollar: Token, public name: PSimpleType) {
     super(`parameterType(${name.token.value})`);
     this.source.push(dollar);
@@ -60,6 +72,8 @@ export class PParameterType extends PType {
 }
 
 export class PFunctionType extends PType {
+  nodeType = PNodeType.FUNCTION_TYPE;
+
   constructor(public argType: PType, public arrow: Token[], public resultType: PType) {
     super("functionType", [ argType, resultType ]);
     this.source = this.source.concat(argType, arrow, resultType);
@@ -67,6 +81,8 @@ export class PFunctionType extends PType {
 }
 
 export class PNestedType extends PType {
+  nodeType = PNodeType.NESTED_TYPE;
+
   constructor(
     public open: Token,
     public gap1: Token | undefined,
@@ -84,6 +100,8 @@ export class PNestedType extends PType {
 }
 
 export class PMergedType extends PType {
+  nodeType = PNodeType.MERGED_TYPE;
+
   constructor(public types: AnnotatedItem<PType>[]) {
     super("mergedType", types.map(x => x.item));
     this.source = types;
@@ -91,6 +109,8 @@ export class PMergedType extends PType {
 }
 
 export class PInlineTypeDeclaration extends PType {
+  nodeType = PNodeType.INLINE_TYPE_DECLARATION;
+
   constructor(
     public argType: PConstant | PType,
     public gap1: Token | undefined,
@@ -108,6 +128,8 @@ export class PInlineTypeDeclaration extends PType {
 }
 
 export class PInlineType extends PType {
+  nodeType = PNodeType.INLINE_TYPE;
+
   constructor(public declarations: TokenCollection<PInlineTypeDeclaration>) {
     super("inlineType", declarations.list.map(x => x.item));
     this.source = declarations.source;

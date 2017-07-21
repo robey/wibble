@@ -1,5 +1,5 @@
 import { mergeSpan, Token } from "packrattle";
-import { AnnotatedItem, PNode, TokenCollection } from "./ast_core";
+import { AnnotatedItem, HasValue, PNode, PNodeType, Source, sourceToCode, TokenCollection } from "./ast_core";
 import { PType } from "./ast_type";
 
 export enum PConstantType {
@@ -13,17 +13,21 @@ export enum PConstantType {
 }
 
 export class PConstant extends PNode {
+  nodeType = PNodeType.CONSTANT;
+
   value: string;
 
-  constructor(public type: PConstantType, public source: Token[], value?: string) {
+  constructor(public type: PConstantType, public source: Source, value?: string) {
     super(
-      `const(${PConstantType[type]}, ${value !== undefined ? value : source.map(t => t.value).join("")})`
+      `const(${PConstantType[type]}, ${value !== undefined ? value : sourceToCode(source)})`
     );
-    this.value = value !== undefined ? value : source.map(t => t.value).join("");
+    this.value = value !== undefined ? value : sourceToCode(source);
   }
 }
 
 export class PReference extends PNode {
+  nodeType = PNodeType.REFERENCE;
+
   constructor(public token: Token) {
     super(token.value);
     this.source.push(token);
@@ -31,6 +35,8 @@ export class PReference extends PNode {
 }
 
 export class PArray extends PNode {
+  nodeType = PNodeType.ARRAY;
+
   constructor(public items: TokenCollection<PNode>) {
     super("array", items.list.map(x => x.item));
     this.source = items.source;
@@ -38,6 +44,8 @@ export class PArray extends PNode {
 }
 
 export class PFunction extends PNode {
+  nodeType = PNodeType.FUNCTION;
+
   constructor(
     public argType: PType | undefined,
     public gap1: Token[],
@@ -60,6 +68,8 @@ export class PFunction extends PNode {
 }
 
 export class PStructField extends PNode {
+  nodeType = PNodeType.STRUCT_FIELD;
+
   constructor(public name: PReference | undefined, public gap: Token[], public value: PNode) {
     super(
       name === undefined ? "field" : `field(${name.token.value})`,
@@ -71,6 +81,8 @@ export class PStructField extends PNode {
 }
 
 export class PStruct extends PNode {
+  nodeType = PNodeType.STRUCT;
+
   constructor(public items: TokenCollection<PStructField>) {
     super("struct", items.list.map(x => x.item));
     this.source = items.source;
@@ -78,12 +90,14 @@ export class PStruct extends PNode {
 }
 
 export class PNested extends PNode {
+  nodeType = PNodeType.NESTED;
+
   constructor(
-    public open: Token,
+    public open: HasValue,
     public gap1: Token[],
     public inner: PNode,
     public gap2: Token[],
-    public close: Token
+    public close: HasValue
   ) {
     super("nested", [ inner ]);
     this.source = this.source.concat(open, gap1, inner, gap2, close);
@@ -91,6 +105,8 @@ export class PNested extends PNode {
 }
 
 export class PNew extends PNode {
+  nodeType = PNodeType.NEW;
+
   constructor(
     public token: Token,
     public gap1: Token | undefined,
@@ -108,6 +124,8 @@ export class PNew extends PNode {
 }
 
 export class PUnary extends PNode {
+  nodeType = PNodeType.UNARY;
+
   constructor(public op: Token, public gap: Token | undefined, public expr: PNode) {
     super(`unary(${op.value})`, [ expr ]);
     this.source.push(op);
@@ -117,7 +135,9 @@ export class PUnary extends PNode {
 }
 
 export class PCall extends PNode {
-  constructor(public left: PNode, public gap: Token | undefined, public right: PNode) {
+  nodeType = PNodeType.CALL;
+
+  constructor(public left: PNode, public gap: HasValue | undefined, public right: PNode) {
     super("call", [ left, right ]);
     this.source.push(left);
     if (gap !== undefined) this.source.push(gap);
@@ -126,6 +146,8 @@ export class PCall extends PNode {
 }
 
 export class PBinary extends PNode {
+  nodeType = PNodeType.BINARY;
+
   constructor(
     public left: PNode,
     public gap1: Token | undefined,
@@ -140,17 +162,27 @@ export class PBinary extends PNode {
   }
 }
 
-// // added by the desugar phase to mark nodes where shortcut-logic should apply (and, or).
-// export class PLogic extends PNode {
-//   constructor(left, op, right, span) {
-//     super("logic(" + op + ")", span, [ left, right ]);
-//     this.op = op;
-//     this.precedence = OPERATOR_PRECEDENCE[op];
-//     if (!this.precedence) throw new Error("No precedence for " + op);
-//   }
-// }
+// added by the desugar phase to mark nodes where shortcut-logic should apply (and, or).
+export class PLogic extends PNode {
+  nodeType = PNodeType.LOGIC;
+
+  constructor(
+    public left: PNode,
+    public gap1: Token | undefined,
+    public op: Token,
+    public gap2: Token[],
+    public right: PNode
+  ) {
+    super(`logic(${op.value})`, [ left, right ]);
+    this.source.push(left);
+    if (gap1 !== undefined) this.source.push(gap1);
+    this.source = this.source.concat(op, gap2, right);
+  }
+}
 
 export class PIf extends PNode {
+  nodeType = PNodeType.IF;
+
   constructor(
     public ifToken: Token[],
     public condition: PNode,
@@ -166,6 +198,8 @@ export class PIf extends PNode {
 }
 
 export class PRepeat extends PNode {
+  nodeType = PNodeType.REPEAT;
+
   constructor(public token: Token, public gap: Token | undefined, public expr: PNode) {
     super("repeat", [ expr ]);
     this.source.push(token);
@@ -175,6 +209,8 @@ export class PRepeat extends PNode {
 }
 
 export class PWhile extends PNode {
+  nodeType = PNodeType.WHILE;
+
   constructor(
     public token1: Token,
     public gap1: Token | undefined,
@@ -196,6 +232,8 @@ export class PWhile extends PNode {
 }
 
 export class PAssignment extends PNode {
+  nodeType = PNodeType.ASSIGNMENT;
+
   constructor(public name: PNode, public assign: Token[], public expr: PNode) {
     super("assign", [ name, expr ]);
     this.source = this.source.concat(name, assign, expr);
@@ -203,6 +241,8 @@ export class PAssignment extends PNode {
 }
 
 export class PReturn extends PNode {
+  nodeType = PNodeType.RETURN;
+
   constructor(public tokens: Token[], public expr: PNode) {
     super("return", [ expr ]);
     this.source = this.source.concat(tokens, expr);
@@ -210,6 +250,8 @@ export class PReturn extends PNode {
 }
 
 export class PBreak extends PNode {
+  nodeType = PNodeType.BREAK;
+
   constructor(public tokens: Token[], public expr?: PNode) {
     super("break", (expr === undefined) ? [] : [ expr ]);
     this.source = this.source.concat(tokens);
@@ -218,6 +260,8 @@ export class PBreak extends PNode {
 }
 
 export class PLocal extends PNode {
+  nodeType = PNodeType.LOCAL;
+
   constructor(
     public isVar: Token[],
     public name: PReference,
@@ -230,6 +274,8 @@ export class PLocal extends PNode {
 }
 
 export class PLocals extends PNode {
+  nodeType = PNodeType.LOCALS;
+
   constructor(public tokens: Token[], public locals: AnnotatedItem<PLocal>[]) {
     super("let", locals.map(x => x.item));
     this.source = this.source.concat(tokens, locals);
@@ -237,6 +283,8 @@ export class PLocals extends PNode {
 }
 
 export class POn extends PNode {
+  nodeType = PNodeType.ON;
+
   constructor(
     public onTokens: Token[],
     public receiver: PNode,
@@ -253,6 +301,8 @@ export class POn extends PNode {
 }
 
 export class PBlock extends PNode {
+  nodeType = PNodeType.BLOCK;
+
   constructor(public code: TokenCollection<PNode>) {
     super("block", code.list.map(x => x.item));
     this.source = code.source;

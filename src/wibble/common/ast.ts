@@ -2,7 +2,7 @@
  * AST nodes
  */
 
-export { AnnotatedItem, HasSource, PNode, Source, TokenCollection } from "./ast_core";
+export { AnnotatedItem, HasSource, PNode, PNodeType, Source, TokenCollection } from "./ast_core";
 export {
   PArray,
   PAssignment,
@@ -15,6 +15,7 @@ export {
   PFunction,
   PIf,
   PLocal,
+  PLogic,
   PLocals,
   PNested,
   PNew,

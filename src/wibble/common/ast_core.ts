@@ -1,16 +1,62 @@
 import { mergeSpan, Span, Token } from "packrattle";
 
-export type Source = (Token | HasSource)[];
+export type Source = (HasValue | HasSource)[];
+
 export interface HasSource {
   source: Source;
   span: Span;
 }
 
-function sourceToCode(source: Source): string {
-  return source.map(t => (t instanceof Token) ? t.value : sourceToCode(t.source)).join("");
+export interface HasValue {
+  value: string;
+  span: Span;
+}
+
+export function sourceToCode(source: Source): string {
+  return source.map(t => {
+    if ((t as HasSource).source !== undefined) return sourceToCode((t as HasSource).source);
+    return (t as HasValue).value;
+  }).join("");
+}
+
+export enum PNodeType {
+  EMPTY_TYPE = 1,
+  SIMPLE_TYPE,
+  TYPED_FIELD,
+  COMPOUND_TYPE,
+  TEMPLATE_TYPE,
+  PARAMETER_TYPE,
+  FUNCTION_TYPE,
+  NESTED_TYPE,
+  MERGED_TYPE,
+  INLINE_TYPE_DECLARATION,
+  INLINE_TYPE,
+  CONSTANT,
+  REFERENCE,
+  ARRAY,
+  FUNCTION,
+  STRUCT_FIELD,
+  STRUCT,
+  NESTED,
+  NEW,
+  UNARY,
+  CALL,
+  BINARY,
+  LOGIC,
+  IF,
+  REPEAT,
+  WHILE,
+  ASSIGNMENT,
+  RETURN,
+  BREAK,
+  LOCAL,
+  LOCALS,
+  ON,
+  BLOCK
 }
 
 export class PNode {
+  public nodeType: PNodeType;
   public precedence = 1;
   public parent?: PNode;
   private _span: Span;
@@ -25,10 +71,6 @@ export class PNode {
     });
 //     // other common fields: comment, trailingComment
   }
-
-//   get nodeType() {
-//     return this.constructor.name;
-//   }
 
   overrideSpan(span: Span) {
     this._span = span;
