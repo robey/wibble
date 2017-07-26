@@ -1,5 +1,5 @@
 import { mergeSpan, Token } from "packrattle";
-import { AnnotatedItem, PChildNode, PNode, PNodeType, sourceCode, TokenCollection } from "./ast_core";
+import { AnnotatedItem, PNode, PNodeExpr, PNodeType, TokenCollection } from "./ast_core";
 import { PType } from "./ast_type";
 
 export enum PConstantType {
@@ -12,203 +12,203 @@ export enum PConstantType {
   STRING
 }
 
-export class PConstant extends PNode {
+export class PConstant extends PNodeExpr {
   value: string;
 
-  constructor(public type: PConstantType, public source: PChildNode[], value?: string) {
+  constructor(public type: PConstantType, tokens: PNode[], value?: string) {
     super(
       PNodeType.CONSTANT,
-      `const(${PConstantType[type]}, ${value !== undefined ? value : sourceCode(source)})`,
-      source
+      `const(${PConstantType[type]}, ${value !== undefined ? value : tokens.map(x => x.source).join("")})`,
+      tokens
     );
-    this.value = value !== undefined ? value : sourceCode(source);
+    this.value = value !== undefined ? value : tokens.map(x => x.source).join("");
   }
 }
 
-export class PReference extends PNode {
+export class PReference extends PNodeExpr {
   constructor(public token: Token) {
     super(PNodeType.REFERENCE, token.value, token);
   }
 }
 
-export class PArray extends PNode {
-  constructor(public items: TokenCollection<PNode>) {
+export class PArray extends PNodeExpr {
+  constructor(items: TokenCollection<PNodeExpr>) {
     super(PNodeType.ARRAY, "array", items);
   }
 }
 
-export class PFunction extends PNode {
+export class PFunction extends PNodeExpr {
   constructor(
-    public argType: PType | undefined,
-    public gap1: Token[],
-    public resultType: PType | undefined,
-    public gap2: Token[],
-    public body: PNode
+    argType: PType | undefined,
+    gap1: Token[],
+    resultType: PType | undefined,
+    gap2: Token[],
+    body: PNodeExpr
   ) {
     super(PNodeType.FUNCTION, "function", argType, gap1, resultType, gap2, body);
   }
 }
 
-export class PStructField extends PNode {
-  constructor(public name: PReference | undefined, public gap: Token[], public value: PNode) {
-    super(PNodeType.STRUCT_FIELD, name === undefined ? "field" : `field(${name.token.value})`, name, gap, value);
+export class PStructField extends PNodeExpr {
+  constructor(name: Token | undefined, gap: Token[], value: PNodeExpr) {
+    super(PNodeType.STRUCT_FIELD, name === undefined ? "field" : `field(${name.value})`, name, gap, value);
   }
 }
 
-export class PStruct extends PNode {
-  constructor(public items: TokenCollection<PStructField>) {
+export class PStruct extends PNodeExpr {
+  constructor(items: TokenCollection<PStructField>) {
     super(PNodeType.STRUCT, "struct", items);
   }
 }
 
-export class PNested extends PNode {
+export class PNested extends PNodeExpr {
   constructor(
-    public open: PChildNode,
-    public gap1: Token[],
-    public inner: PNode,
-    public gap2: Token[],
-    public close: PChildNode
+    open: PNode,
+    gap1: Token[],
+    inner: PNode,
+    gap2: Token[],
+    close: PNode
   ) {
     super(PNodeType.NESTED, "nested", open, gap1, inner, gap2, close);
   }
 }
 
-export class PNew extends PNode {
+export class PNew extends PNodeExpr {
   constructor(
     public token: Token,
     public gap1: Token | undefined,
     public type: PType | undefined,
     public gap2: Token | undefined,
-    public code: PNode
+    public code: PNodeExpr
   ) {
     super(PNodeType.NEW, "new", token, gap1, type, gap2, code);
   }
 }
 
-export class PUnary extends PNode {
-  constructor(public op: Token, public gap: Token | undefined, public expr: PNode) {
+export class PUnary extends PNodeExpr {
+  constructor(public op: Token, gap: Token | undefined, expr: PNodeExpr) {
     super(PNodeType.UNARY, `unary(${op.value})`, op, gap, expr);
   }
 }
 
-export class PCall extends PNode {
-  constructor(public left: PNode, public gap: PChildNode | undefined, public right: PNode) {
+export class PCall extends PNodeExpr {
+  constructor(left: PNodeExpr, gap: PNode | undefined, right: PNodeExpr) {
     super(PNodeType.CALL, "call", left, gap, right);
   }
 }
 
-export class PBinary extends PNode {
+export class PBinary extends PNodeExpr {
   constructor(
-    public left: PNode,
+    left: PNode,
     public gap1: Token | undefined,
     public op: Token,
     public gap2: Token[],
-    public right: PNode
+    right: PNode
   ) {
     super(PNodeType.BINARY, `binary(${op.value})`, left, gap1, op, gap2, right);
   }
 }
 
 // added by the desugar phase to mark nodes where shortcut-logic should apply (and, or).
-export class PLogic extends PNode {
+export class PLogic extends PNodeExpr {
   constructor(
-    public left: PNode,
-    public gap1: Token | undefined,
+    left: PNode,
+    gap1: Token | undefined,
     public op: Token,
-    public gap2: Token[],
-    public right: PNode
+    gap2: Token[],
+    right: PNode
   ) {
     super(PNodeType.LOGIC, `logic(${op.value})`, left, gap1, op, gap2, right);
   }
 }
 
-export class PIf extends PNode {
+export class PIf extends PNodeExpr {
   constructor(
-    public ifToken: Token[],
-    public condition: PNode,
-    public thenToken: Token[],
-    public onTrue: PNode,
-    public elseToken: Token[],
-    public onFalse?: PNode
+    ifToken: Token[],
+    condition: PNode,
+    thenToken: Token[],
+    onTrue: PNode,
+    elseToken: Token[],
+    onFalse?: PNode
   ) {
     super(PNodeType.IF, "if", ifToken, condition, thenToken, onTrue, elseToken, onFalse);
   }
 }
 
-export class PRepeat extends PNode {
-  constructor(public token: Token, public gap: Token | undefined, public expr: PNode) {
+export class PRepeat extends PNodeExpr {
+  constructor(token: Token, gap: Token | undefined, expr: PNode) {
     super(PNodeType.REPEAT, "repeat", token, gap, expr);
   }
 }
 
-export class PWhile extends PNode {
+export class PWhile extends PNodeExpr {
   constructor(
-    public token1: Token,
-    public gap1: Token | undefined,
-    public condition: PNode,
-    public gap2: Token | undefined,
-    public token2: Token,
-    public gap3: Token | undefined,
-    public expr: PNode
+    token1: Token,
+    gap1: Token | undefined,
+    condition: PNode,
+    gap2: Token | undefined,
+    token2: Token,
+    gap3: Token | undefined,
+    expr: PNode
   ) {
     super(PNodeType.WHILE, "while", token1, gap1, condition, gap2, token2, gap3, expr);
   }
 }
 
-export class PAssignment extends PNode {
-  constructor(public name: PNode, public assign: Token[], public expr: PNode) {
+export class PAssignment extends PNodeExpr {
+  constructor(name: PNode, assign: Token[], expr: PNode) {
     super(PNodeType.ASSIGNMENT, "assign", name, assign, expr);
   }
 }
 
-export class PReturn extends PNode {
-  constructor(public tokens: Token[], public expr: PNode) {
+export class PReturn extends PNodeExpr {
+  constructor(tokens: Token[], expr: PNode) {
     super(PNodeType.RETURN, "return", tokens, expr);
   }
 }
 
-export class PBreak extends PNode {
-  constructor(public tokens: Token[], public expr?: PNode) {
+export class PBreak extends PNodeExpr {
+  constructor(tokens: Token[], expr?: PNode) {
     super(PNodeType.BREAK, "break", tokens, expr);
   }
 }
 
-export class PLocal extends PNode {
+export class PLocal extends PNodeExpr {
   constructor(
-    public isVar: Token[],
-    public name: PReference,
-    public tokens: Token[],
-    public expr: PNode
+    isVar: Token[],
+    name: Token,
+    tokens: Token[],
+    expr: PNode
   ) {
     super(
       PNodeType.LOCAL,
-      `local${isVar.length == 0 ? "" : "-var"}(${name.token.value})`,
+      `local${isVar.length == 0 ? "" : "-var"}(${name.value})`,
       isVar, name, tokens, expr
     );
   }
 }
 
-export class PLocals extends PNode {
-  constructor(public tokens: Token[], public locals: AnnotatedItem<PLocal>[]) {
-    super(PNodeType.LOCALS, "let", locals);
+export class PLocals extends PNodeExpr {
+  constructor(token: Token, gap: Token | undefined, locals: AnnotatedItem<PLocal>[]) {
+    super(PNodeType.LOCALS, "let", token, gap, locals);
   }
 }
 
-export class POn extends PNode {
+export class POn extends PNodeExpr {
   constructor(
-    public onTokens: Token[],
-    public receiver: PNode,
-    public typeTokens: Token[],
-    public type: PNode | undefined,
-    public arrowTokens: Token[],
-    public expr: PNode
+    onTokens: Token[],
+    receiver: PNode,
+    typeTokens: Token[],
+    type: PNode | undefined,
+    arrowTokens: Token[],
+    expr: PNode
   ) {
     super(PNodeType.ON, "on", onTokens, receiver, typeTokens, type, arrowTokens, expr);
   }
 }
 
-export class PBlock extends PNode {
-  constructor(public code: TokenCollection<PNode>) {
+export class PBlock extends PNodeExpr {
+  constructor(code: TokenCollection<PNodeExpr>) {
     super(PNodeType.BLOCK, "block", code);
   }
 }

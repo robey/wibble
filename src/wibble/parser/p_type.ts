@@ -73,10 +73,10 @@ const templateType = seq2(
     TokenType.CPAREN,
     "type"
   )
-).map(([ name, items ]) => new PTemplateType(name, items));
+).map(([ name, items ]) => new PTemplateType(name.token, items));
 
 const parameterType = seq2(tokenizer.match(TokenType.DOLLAR), simpleType).map(([ dollar, name ]) => {
-  return new PParameterType(dollar, name);
+  return new PParameterType(dollar, name.token);
 })
 
 // just a type with () around it, for precedence

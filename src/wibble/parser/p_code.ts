@@ -1,5 +1,5 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
-import { PAssignment, PBlock, PBreak, PLocal, PLocals, PNode, POn, PReturn } from "../common/ast";
+import { PAssignment, PBlock, PBreak, PLocal, PLocals, PNodeExpr, POn, PReturn, PType } from "../common/ast";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
 import { linespace, repeatSeparated, repeatSurrounded } from "./p_parser";
@@ -59,7 +59,7 @@ const localDeclaration = seq6(
   }
   const tokens = (gap1 === undefined ? [] : [ gap1 ]).concat(op);
   if (gap2 !== undefined) tokens.push(gap2);
-  return new PLocal(isVar, name, tokens, expr);
+  return new PLocal(isVar, name.token, tokens, expr);
 });
 
 const localLet = seq3(
@@ -67,15 +67,13 @@ const localLet = seq3(
   linespace,
   repeatSeparated(localDeclaration, TokenType.COMMA)
 ).map(([ token, gap, items ]) => {
-  const tokens = [ token ];
-  if (gap !== undefined) tokens.push(gap);
-  return new PLocals(tokens, items);
+  return new PLocals(token, gap, items);
 })
 
 const handler = seq8(
   tokenizer.match(TokenType.ON),
   linespace,
-  alt<Token, PNode>(emptyType, symbolRef, compoundType).named("symbol or parameters"),
+  alt<Token, PNodeExpr>(emptyType, symbolRef, compoundType).named("symbol or parameters"),
   optional(seq3(tokenizer.match(TokenType.COLON), linespace, typedecl)),
   linespace,
   tokenizer.match(TokenType.ARROW),
@@ -85,7 +83,7 @@ const handler = seq8(
   const onTokens = [ onToken ];
   if (gap1 !== undefined) onTokens.push(gap1);
   const typeTokens = [];
-  let type: PNode | undefined = undefined;
+  let type: PType | undefined = undefined;
   if (optionalType !== undefined) {
     const [ colon, gap, t ] = optionalType;
     typeTokens.push(colon);
@@ -99,7 +97,7 @@ const handler = seq8(
   return new POn(onTokens, receiver, typeTokens, type, arrowTokens, expr);
 })
 
-export const code: Parser<Token, PNode> = alt(
+export const code: Parser<Token, PNodeExpr> = alt(
   localLet,
   assignment,
   returnEarly,

@@ -2,7 +2,7 @@ import {
   alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token
 } from "packrattle";
 import { TokenType, tokenizer, WHITESPACE } from "./p_tokens";
-import { AnnotatedItem, PNode, TokenCollection } from "../common/ast";
+import { AnnotatedItem, PNodeExpr, TokenCollection } from "../common/ast";
 
 interface Prioritized {
   priority?: number;
@@ -28,7 +28,7 @@ export function linespaceAround(p: LazyParser<Token, Token>): Parser<Token, Toke
 }
 
 // match: (p linespace separator ws)* p?
-export function repeatSeparated<A extends PNode>(
+export function repeatSeparated<A extends PNodeExpr>(
   p: LazyParser<Token, A>,
   ...separators: TokenType[]
 ): Parser<Token, AnnotatedItem<A>[]> {
@@ -42,7 +42,7 @@ export function repeatSeparated<A extends PNode>(
 }
 
 // open (ws repeatSeparated)? ws close
-export function repeatSurrounded<A extends PNode>(
+export function repeatSurrounded<A extends PNodeExpr>(
   open: TokenType,
   p: LazyParser<Token, A>,
   separator: TokenType,

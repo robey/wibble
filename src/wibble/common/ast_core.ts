@@ -36,169 +36,152 @@ export enum PNodeType {
   BLOCK
 }
 
-// could be a Token or PNode (or fake Token)
-export interface PChildNode {
-  span: Span;
+/*
+ * An AST node may be:
+ *   - a raw token (syntax span of the source with no other meaning, like ",")
+ *   - an expression (like `BINARY`) with child nodes (some tokens, some nested expressions)
+ *   - a collection (like a list of comma-separated expressions and their whitespace tokens)
+ */
+export abstract class PNode {
+    span: Span;
+    children: PNode[] = [];
+    parent?: PNode;
 
-  // tokens have:
-  value?: string;
-  children?: PChildNode[];
+    // selective list of only the PNodeExpr children:
+    expr: PNodeExpr[];
+
+    constructor(...list: ImplicitNode[]) {
+      this.replaceChildren(list);
+    }
+
+    replaceChildren(list: ImplicitNode[]) {
+      this.children = flattenNodes(list);
+      this.children.forEach(n => n.parent = this);
+      if (this.children.length > 0) {
+        this.span = mergeSpan(this.children[0].span, this.children[this.children.length - 1].span);
+      }
+      this.expr = flattenNodes(this.children.map(n => n.expressions())) as PNodeExpr[];
+    }
+
+    get parentExpr(): PNodeExpr | undefined {
+      if (this.parent === undefined) return undefined;
+      if (this.parent instanceof PNodeExpr) return this.parent;
+      return this.parent.parentExpr;
+    }
+
+    // default implementation assumes children; Token will override
+    get source(): string {
+      return this.children.map(n => n.source).join("");
+    }
+
+    // friendly debug-view of this tree
+    abstract debug(): string | undefined;
+
+    // for collections: flatten out the list of nested expressions
+    abstract expressions(): PNodeExpr[];
+
+    inspect(): string {
+      return this.debug() || "";
+    }
 }
 
-export type ImplicitChildNode = PChildNode | PChildNode[] | undefined;
-
-export function sourceCode(nodes: PChildNode[]): string {
-  return nodes.map(t => {
-    if (t.children !== undefined) return sourceCode(t.children);
-    return t.value;
-  }).join("");
-}
-
-function flattenNodes(...list: ImplicitChildNode[]): PChildNode[] {
-  let rv: PChildNode[] = [];
+// make it easy for parser classes to generate their trees
+export type ImplicitNode = PNode | PNode[] | Token | Token[] | undefined;
+function flattenNodes(list: ImplicitNode[]): PNode[] {
+  let rv: PNode[] = [];
   list.forEach(x => {
     if (x === undefined) return;
     if (Array.isArray(x)) {
-      rv = rv.concat(x);
+      if (x.length > 0) rv = rv.concat(flattenNodes(x));
     } else {
-      rv.push(x);
+      if (x instanceof Token) {
+        rv.push(new PNodeToken(x));
+      } else {
+        rv.push(x);
+      }
     }
   });
   return rv;
 }
 
-function computeSpan(nodes: PChildNode[]): Span {
-  if (nodes.length == 0) return new Span(0, 0);
-  return mergeSpan(nodes[0].span, nodes[nodes.length - 1].span);
-}
 
-/*
- * Ignoring raw tokens, return the list of AST nodes from a list of
- * children. If any child is a collection, flatten it in.
- */
-function computeChildNodes(nodes: PChildNode[]): PNode[] {
-  return flattenNodes(...nodes.map(x => {
-    if (x instanceof PNode) return x;
-    if (x instanceof TokenCollection) return x.childNodes;
-    if (x instanceof AnnotatedItem) return x.item;
-    return undefined;
-  })) as PNode[];
-}
-
-  // // fill in 'parent' fields.
-  // this.children.forEach(x => {
-  //   if (x instanceof PNode && this instanceof PNode) {
-  //     (x as PNode).parent = this as PNode;
-  //   }
-  // });
-
-class NodeSpan {
-  // sequence of PNode or token-like objects that make up this expression tree
-  public children: PChildNode[] = [];
-
-  private _span: Span;
-
-  constructor(...list: ImplicitChildNode[]) {
-    this.replaceChildren(...list);
+// PNode wrapper for a token
+export class PNodeToken extends PNode {
+  constructor(public token: Token) {
+    super();
   }
-
-  replaceChildren(...list: ImplicitChildNode[]) {
-    this.children = flattenNodes()
-    this._span = computeSpan(this.children);
-
-    this.children = [];
-    list.forEach(x => {
-      if (x === undefined) return;
-      if (Array.isArray(x)) {
-        this.children = this.children.concat(x);
-      } else {
-        this.children.push(x);
-      }
-    });
-
-    // fill in 'parent' fields.
-    this.children.forEach(x => {
-      if (x instanceof PNode && this instanceof PNode) {
-        (x as PNode).parent = this as PNode;
-      }
-    });
-  }
-
-  // override this in intermediate containers
 
   get span(): Span {
-    if (this._span !== undefined) return this._span;
-    if (this.children.length == 0) return new Span(0, 0);
-    const span = this._span = mergeSpan(this.children[0].span, this.children[this.children.length - 1].span);
-    return span;
+    return this.token.span;
+  }
+
+  get source(): string {
+    return this.token.value;
+  }
+
+  debug(): string | undefined {
+    return undefined;
+  }
+
+  expressions(): PNodeExpr[] {
+    return [];
   }
 }
 
-/*
- * An AST node which contains a node type, a covering span, and possibly a
- * sequence of children (which may be tokens or nested PNodes).
- */
-export class PNode {
-  public parent?: PNode;
-  public children: PChildNode[];
-  public span: Span;
-  public nodes: PNode[];
+// PNode wrapper for some injected text (done during the simplify transforms)
+export class PNodeInjected extends PNode {
+  span = new Span(0, 0);
 
-  constructor(public nodeType: PNodeType, public description: string, ...list: ImplicitChildNode[]) {
-    this.replaceChildren(...list);
+  constructor(public _source: string) {
+    super();
   }
 
-  replaceChildren(...list: ImplicitChildNode[]) {
-    this.children = flattenNodes(...list);
-    this.span = computeSpan(this.children);
-    this.nodes = computeChildNodes(this.children);
-    this.nodes.forEach(n => n.parent = this);
+  get source() {
+    return this._source;
   }
 
-  toString(): string {
-    return this.inspect();
+  debug(): string | undefined {
+    return undefined;
   }
 
-  inspect(): string {
-    const spanString = "[" + this.span.start + ":" + this.span.end + "]";
-    const vals = this.nodes.map(n => n.inspect()).filter(x => x.length > 0);
-    const nested = (vals.length == 0) ? "" : ("{ " + vals.join(", ") + " }");
-    return this.description + nested + spanString;
-  }
-
-  dump(): string[] {
-    const rv = [ this.description ];
-    // if (this.scope) rv.push("scope=" + this.scope.inspect());
-    // if (this.computedType) rv.push("type=" + this.computedType.inspect());
-    // if (this.newType) rv.push("newType=" + this.newType.inspect());
-    const children = this.nodes.map(c => c.dump());
-    children.forEach((lines, i) => {
-      const [ branch, tail ] = (i == children.length - 1) ? [ "`-", "  " ] : [ "|-", "| " ];
-      rv.push(branch + lines[0]);
-      lines.slice(1).forEach(line => rv.push(tail + line));
-    });
-    return rv;
-  }
-
-  toCode(): string {
-    return sourceCode(this.children);
+  expressions(): PNodeExpr[] {
+    return [];
   }
 }
 
+// PNode for expression subtrees
+export class PNodeExpr extends PNode {
+  constructor(public nodeType: PNodeType, public description: string, ...list: ImplicitNode[]) {
+    super(...list);
+  }
+
+  debug(): string | undefined {
+    const nested = this.children.map(n => n.debug()).filter(n => n !== undefined) as string[];
+    return this.description + (nested.length == 0 ? "" : `{ ${nested.join(", ")} }`) + this.span.toString();
+  }
+
+  expressions(): PNodeExpr[] {
+    return [ this ];
+  }
+}
 
 // an item and whatever linespace, separator, and whitespace came after it
-export class AnnotatedItem<A extends PNode> implements PChildNode {
-  public span: Span;
-  public children: PChildNode[];
-
+export class AnnotatedItem<A extends PNodeExpr> extends PNode {
   constructor(
     public item: A,
     public gap1: Token | undefined,
     public separator: Token | undefined,
     public gap2: Token[]
   ) {
-    this.children = flattenNodes(item, gap1, separator, gap2);
-    this.span = computeSpan(this.children);
+    super(item, gap1, separator, gap2);
+  }
+
+  debug(): string | undefined {
+    return this.item.debug();
+  }
+
+  expressions(): PNodeExpr[] {
+    return [ this.item ];
   }
 }
 
@@ -208,10 +191,7 @@ export class AnnotatedItem<A extends PNode> implements PChildNode {
  * where the open/close parens and the comma could be any tokens. Each item
  * is attached to its follow-on separator and whitespace, if any.
  */
-export class TokenCollection<A extends PNode> implements PChildNode {
-  public span: Span;
-  public children: PChildNode[];
-
+export class TokenCollection<A extends PNodeExpr> extends PNode {
   constructor(
     public open: Token,
     public gap1: Token[],
@@ -219,11 +199,37 @@ export class TokenCollection<A extends PNode> implements PChildNode {
     public gap2: Token[],
     public close: Token
   ) {
-    this.children = flattenNodes(open, gap1, list, gap2, close);
-    this.span = computeSpan(this.children);
+    super(open, gap1, list, gap2, close);
   }
 
-  get childNodes(): A[] {
+  debug(): string | undefined {
+    const list = this.list.map(x => x.debug()).filter(x => x !== undefined);
+    return list.length == 0 ? undefined : list.join(", ");
+  }
+
+  expressions(): PNodeExpr[] {
     return this.list.map(x => x.item);
   }
 }
+
+
+
+
+
+
+
+
+
+   // dump(): string[] {
+  //   const rv = [ this.description ];
+  //   // if (this.scope) rv.push("scope=" + this.scope.inspect());
+  //   // if (this.computedType) rv.push("type=" + this.computedType.inspect());
+  //   // if (this.newType) rv.push("newType=" + this.newType.inspect());
+  //   const children = this.nodes.map(c => c.dump());
+  //   children.forEach((lines, i) => {
+  //     const [ branch, tail ] = (i == children.length - 1) ? [ "`-", "  " ] : [ "|-", "| " ];
+  //     rv.push(branch + lines[0]);
+  //     lines.slice(1).forEach(line => rv.push(tail + line));
+  //   });
+  //   return rv;
+  // }
