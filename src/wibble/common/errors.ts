@@ -1,21 +1,23 @@
-"use strict";
+import { PNode } from "./ast";
 
 export class CompileError extends Error {
-  constructor(message, span) {
+  constructor(public message: string, public node: PNode) {
     super(message);
-    this.span = span;
   }
 
   // don't bother adding methods here. seems to be a js bug.
 }
 
 export class Errors {
+  public list: CompileError[] = [];
+  private _mark: number;
+
   constructor() {
-    this.list = [];
+    // pass
   }
 
-  add(message, span) {
-    this.list.push(new CompileError(message, span));
+  add(message: string, node: PNode) {
+    this.list.push(new CompileError(message, node));
   }
 
   get length() {
@@ -24,12 +26,12 @@ export class Errors {
 
   inspect() {
     return this.list.map(error => {
-      if (!error.span) return error.message;
-      return `[${error.span.start}:${error.span.end}] ${error.message}`;
+      if (!error.node) return error.message;
+      return `[${error.node.span.start}:${error.node.span.end}] ${error.message}`;
     }).join(", ");
   }
 
-  // remember the set of errors we have so far, in cas we want to backtrack later.
+  // remember the set of errors we have so far, in case we want to backtrack later.
   mark() {
     this._mark = this.list.length;
   }
