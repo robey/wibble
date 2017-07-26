@@ -9,6 +9,7 @@ import {
   PMergedType,
   PNestedType,
   PNode,
+  PNodeToken,
   PParameterType,
   PSimpleType,
   PTemplateType,
@@ -47,10 +48,16 @@ const typedField: Parser<Token, PTypedField> = seq4(
   optional(seq2(linespaceAround(tokenizer.match(TokenType.BIND)), () => expression))
 ).map(([ name, colon, type, value ]) => {
   if (value === undefined) {
-    return new PTypedField(name.token, colon, type);
+    return new PTypedField(name.token, colon.map(t => new PNodeToken(t)), type);
   } else {
     const [ bind, defaultValue ] = value;
-    return new PTypedField(name.token, colon, type, bind, defaultValue);
+    return new PTypedField(
+      name.token,
+      colon.map(t => new PNodeToken(t)),
+      type,
+      bind.map(t => new PNodeToken(t)),
+      defaultValue
+    );
   }
 });
 

@@ -169,9 +169,9 @@ export class PNodeExpr extends PNode {
 export class AnnotatedItem<A extends PNodeExpr> extends PNode {
   constructor(
     public item: A,
-    public gap1: Token | undefined,
-    public separator: Token | undefined,
-    public gap2: Token[]
+    public gap1: PNode | undefined,
+    public separator: PNode | undefined,
+    public gap2: PNode[]
   ) {
     super(item, gap1, separator, gap2);
   }
@@ -193,11 +193,11 @@ export class AnnotatedItem<A extends PNodeExpr> extends PNode {
  */
 export class TokenCollection<A extends PNodeExpr> extends PNode {
   constructor(
-    public open: Token,
-    public gap1: Token[],
+    public open: PNode,
+    public gap1: PNode[],
     public list: AnnotatedItem<A>[],
-    public gap2: Token[],
-    public close: Token
+    public gap2: PNode[],
+    public close: PNode
   ) {
     super(open, gap1, list, gap2, close);
   }

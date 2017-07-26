@@ -1,5 +1,5 @@
 import { mergeSpan, Span, Token } from "packrattle";
-import { AnnotatedItem, ImplicitNode, PNodeExpr, PNodeType, TokenCollection } from "./ast_core";
+import { AnnotatedItem, ImplicitNode, PNode, PNodeExpr, PNodeType, TokenCollection } from "./ast_core";
 import { PConstant } from "./ast_expr";
 
 export class PType extends PNodeExpr {
@@ -23,13 +23,13 @@ export class PSimpleType extends PType {
 // used only in compound types: a field name with an optional type and optional default value.
 export class PTypedField extends PNodeExpr {
   constructor(
-    name: Token,
-    colon: Token[],
+    name: PNode,
+    colon: PNode[],
     type: PType,
-    bind: Token[] = [],
+    bind: PNode[] = [],
     defaultValue?: PNodeExpr,
   ) {
-    super(PNodeType.TYPED_FIELD, `field(${name.value})`, name, colon, type, bind, defaultValue);
+    super(PNodeType.TYPED_FIELD, `field(${name.source})`, name, colon, type, bind, defaultValue);
   }
 }
 

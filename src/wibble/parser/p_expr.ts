@@ -32,7 +32,7 @@ const LowercaseError = "Variable name must start with lowercase letter";
 export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identifier").map(token => {
   if (token.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
   if (!token.value.match(/^[a-z]/)) throw failWithPriority(LowercaseError);
-  return new PReference(token);
+  return new PReference(new PNodeToken(token));
 });
 
 const array: Parser<Token, PNodeExpr> = repeatSurrounded(
@@ -82,7 +82,7 @@ const structMember = seq2(
 ).map(([ prefix, value ]) => {
   if (prefix !== undefined) {
     const [ ref, gap ] = prefix;
-    return new PStructField(ref.token, gap, value);
+    return new PStructField(ref.token, gap.map(t => new PNodeToken(t)), value);
   } else {
     return new PStructField(undefined, [], value);
   }
@@ -98,11 +98,11 @@ const struct = repeatSurrounded(
   // AST optimization: "(expr)" is just a precedence-bumped expression.
   if (items.list.length == 1 && items.list[0].item.childExpr.length == 1) {
     return new PNested(
-      new PNodeToken(items.open),
+      items.open,
       items.gap1,
       items.list[0].item.childExpr[0],
       items.gap2,
-      new PNodeToken(items.close)
+      items.close
     );
   }
   return new PStruct(items);
@@ -129,7 +129,9 @@ const unary: Parser<Token, PNodeExpr> = seq3(
   tokenizer.matchOneOf(TokenType.NOT, TokenType.MINUS),
   linespace,
   alt(() => unary, atom)
-).map(([ token, gap, inner ]) => new PUnary(token, gap, inner));
+).map(([ token, gap, inner ]) => {
+  return new PUnary(new PNodeToken(token), gap === undefined ? undefined : new PNodeToken(gap), inner);
+});
 
 const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first, rest ]) => {
   return rest.reduce((left, [ gap, right ]) => {
@@ -211,7 +213,7 @@ const repeatLoop = seq3(
   linespace,
   () => code
 ).map(([ token, gap, expr ]) => {
-  return new PRepeat(token, gap, expr);
+  return new PRepeat(new PNodeToken(token), gap === undefined ? undefined : new PNodeToken(gap), expr);
 })
 
 const whileLoop = seq7(

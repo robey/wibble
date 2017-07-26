@@ -1,5 +1,7 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
-import { PAssignment, PBlock, PBreak, PLocal, PLocals, PNodeExpr, POn, PReturn, PType } from "../common/ast";
+import {
+  PAssignment, PBlock, PBreak, PLocal, PLocals, PNodeExpr, PNodeToken, POn, PReturn, PType
+} from "../common/ast";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
 import { linespace, repeatSeparated, repeatSurrounded } from "./p_parser";
@@ -37,10 +39,10 @@ const breakEarly = seq2(
   optional(seq2(linespace, () => code))
 ).map(([ token, optionalExpr ]) => {
   const tokens = [ token ];
-  if (optionalExpr === undefined) return new PBreak(tokens);
+  if (optionalExpr === undefined) return new PBreak(tokens.map(t => new PNodeToken(t)));
   const [ gap, expr ] = optionalExpr;
   if (gap !== undefined) tokens.push(gap);
-  return new PBreak(tokens, expr);
+  return new PBreak(tokens.map(t => new PNodeToken(t)), expr);
 });
 
 const localDeclaration = seq6(
@@ -59,7 +61,7 @@ const localDeclaration = seq6(
   }
   const tokens = (gap1 === undefined ? [] : [ gap1 ]).concat(op);
   if (gap2 !== undefined) tokens.push(gap2);
-  return new PLocal(isVar, name.token, tokens, expr);
+  return new PLocal(isVar.map(t => new PNodeToken(t)), name.token, tokens.map(t => new PNodeToken(t)), expr);
 });
 
 const localLet = seq3(
@@ -67,7 +69,7 @@ const localLet = seq3(
   linespace,
   repeatSeparated(localDeclaration, TokenType.COMMA)
 ).map(([ token, gap, items ]) => {
-  return new PLocals(token, gap, items);
+  return new PLocals(new PNodeToken(token), gap === undefined ? undefined : new PNodeToken(gap), items);
 })
 
 const handler = seq8(

@@ -8,7 +8,26 @@
 
 import { Span, Token } from "packrattle";
 import {
-  PBinary, PCall, PConstant, PConstantType, PIf, PLogic, PNested, PNode, PNodeExpr, PNodeInjected, PNodeType, PUnary
+  AnnotatedItem,
+  PBinary,
+  PBlock,
+  PBreak,
+  PCall,
+  PConstant,
+  PConstantType,
+  PIf,
+  PLocal,
+  PLocals,
+  PLogic,
+  PNested,
+  PNode,
+  PNodeExpr,
+  PNodeInjected,
+  PNodeType,
+  PReference,
+  PRepeat,
+  PUnary,
+  TokenCollection
 } from "../common/ast";
 import { Errors } from "../common/errors";
 import { TokenType } from "../parser/p_tokens";
@@ -19,15 +38,16 @@ import { transformAst } from "../common/transform";
  * before type-checking.
  */
 export function simplify(ast: PNode, errors: Errors) {
-//   /*
-//    * assign new variable names starting with '_' (which is not allowed by
-//    * user-written code).
-//    */
-//   let generateIndex = 0;
-//   function nextLocal(span) {
-//     return new PReference(`_${generateIndex++}`, span);
-//   }
-//
+  /*
+   * assign new variable names starting with '_' (which is not allowed by
+   * user-written code).
+   */
+  let generateIndex = 0;
+  function nextLocal(): PReference {
+    return new PReference(inject(`_${generateIndex++}`));
+  }
+
+
 //   // keep breadcrumbs of the path we took to get to this node.
 //   const path = [];
 //   function parentType(n = 0) {
@@ -40,8 +60,7 @@ export function simplify(ast: PNode, errors: Errors) {
       case PNodeType.UNARY: {
         // convert unary(op)(a) into call(a, op)
         const tnode = node as PUnary;
-        const op = tnode.op.tokenType.id == TokenType.MINUS ? "negative" : tnode.op.value;
-        return new PCall(tnode.childExpr[0], new PNodeInjected(" "), newSymbol(op));
+        return makeCall(tnode.childExpr[0], newSymbol(tnode.op.source == "-" ? "negative" : tnode.op.source));
       }
 
       case PNodeType.BINARY: {
@@ -51,9 +70,8 @@ export function simplify(ast: PNode, errors: Errors) {
           return new PLogic(tnode.childExpr[0], tnode.gap1, tnode.op, tnode.gap2, tnode.childExpr[1]);
         }
         // convert binary(op)(a, b) into call(call(a, op), b)
-        return new PCall(
-          new PCall(wrap(tnode.childExpr[0]), new PNodeInjected(" "), newSymbol(tnode.op.value)),
-          new PNodeInjected(" "),
+        return makeCall(
+          makeCall(wrap(tnode.childExpr[0]), newSymbol(tnode.op.value)),
           wrap(tnode.childExpr[1])
         );
       }
@@ -62,8 +80,7 @@ export function simplify(ast: PNode, errors: Errors) {
         // ensure every "if" has an "else".
         if (node.childExpr.length < 3) {
           const tnode = node as PIf;
-          const elseToken = [ new PNodeInjected(" else ") ];
-          const nothing = new PConstant(PConstantType.NOTHING, [ new PNodeInjected("()") ]);
+          const elseToken = [ sp, fakeElse, sp ];
           return new PIf(tnode.ifToken, tnode.childExpr[0], tnode.thenToken, tnode.childExpr[1], elseToken, nothing);
         }
         return null;
@@ -85,21 +102,14 @@ export function simplify(ast: PNode, errors: Errors) {
         return null;
       }
 
+      case PNodeType.WHILE: {
+        // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
+        const newVar = nextLocal();
+        const newLocal = makeLocal(newVar, node.childExpr[1]);
+        const breakOut = makeIf(makeCall(node.childExpr[0], newSymbol("not")), makeBreak(newVar));
+        return makeIf(node.childExpr[0], makeRepeat(makeBlock(newLocal, breakOut)));
+      }
 
-//       case "PWhile": {
-//         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
-//         const newVar = nextLocal(node.span);
-//         const breakOut = new PIf(
-//           new PUnary("not", node.children[0], node.children[0].span),
-//           new PBreak(newVar, node.span),
-//           null,
-//           node.span
-//         );
-//         const newLocal = new PLocal(newVar.name, node.children[1], node.children[1].span, false);
-//         const block = new PBlock([ new PLocals(node.span, [ newLocal ], false), breakOut ], null, node.span);
-//         return new PIf(node.children[0], new PRepeat(block, node.span), null, node.span);
-//       }
-//
 //       case "PStruct": {
 //         // convert positional fields into named fields. (adds a name in-place)
 //         let positional = true;
@@ -177,12 +187,60 @@ export function simplify(ast: PNode, errors: Errors) {
   });
 }
 
+function inject(text: string): PNode {
+  return new PNodeInjected(text);
+}
+
+const sp = inject(" ");
+const semi = inject(";");
+const eq = inject("=");
+const obrace = inject("{");
+const cbrace = inject("}");
+const fakeIf = inject("if");
+const fakeThen = inject("then");
+const fakeElse = inject("else");
+const fakeRepeat = inject("repeat");
+const fakeBreak = inject("break");
+const fakeLet = inject("let");
+
+const nothing = new PConstant(PConstantType.NOTHING, [ inject("()") ]);
+
 function newSymbol(name: string): PConstant {
-  const source = [ new PNodeInjected(`.${name}`) ];
-  return new PConstant(PConstantType.SYMBOL, source, name);
+  return new PConstant(PConstantType.SYMBOL, [ inject(`.${name}`) ], name);
 }
 
 // put inside a PNested, to preserve precedence when dumping
-function wrap(node: PNodeExpr): PNodeExpr {
-  return new PNested(new PNodeInjected("("), [], node, [], new PNodeInjected(")"));
+function wrap(node: PNodeExpr): PNested {
+  return new PNested(inject("("), [], node, [], inject(")"));
+}
+
+function makeCall(a: PNodeExpr, b: PNodeExpr): PCall {
+  return new PCall(a, sp, b);
+}
+
+function makeIf(cond: PNodeExpr, ifTrue: PNodeExpr, ifFalse?: PNodeExpr): PIf {
+  const elseToken = ifFalse === undefined ? [] : [ sp, fakeElse, sp ];
+  return new PIf([ fakeIf, sp ], cond, [ sp, fakeThen, sp ], ifTrue, elseToken, ifFalse);
+}
+
+function makeRepeat(expr: PNodeExpr): PRepeat {
+  return new PRepeat(fakeRepeat, sp, expr);
+}
+
+function makeBreak(expr: PNodeExpr): PBreak {
+  return new PBreak([ fakeBreak, sp ], expr);
+}
+
+function makeLocal(name: PReference, value: PNodeExpr): PLocals {
+  const newLocal = new PLocal([], name.token, [ sp, eq, sp ], value);
+  return new PLocals(fakeLet, sp, [ new AnnotatedItem(newLocal, undefined, undefined, []) ]);
+}
+
+// put expressions in a block
+function makeBlock(...nodes: PNodeExpr[]): PBlock {
+  const list = nodes.map(expr => {
+    return new AnnotatedItem(expr, undefined, semi, [ sp ]);
+  });
+  const collection = new TokenCollection<PNodeExpr>(obrace, [ sp ], list, [ sp ], cbrace);
+  return new PBlock(collection);
 }

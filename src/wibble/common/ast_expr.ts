@@ -26,8 +26,8 @@ export class PConstant extends PNodeExpr {
 }
 
 export class PReference extends PNodeExpr {
-  constructor(public token: Token) {
-    super(PNodeType.REFERENCE, token.value, token);
+  constructor(public token: PNode) {
+    super(PNodeType.REFERENCE, token.source, token);
   }
 }
 
@@ -50,8 +50,8 @@ export class PFunction extends PNodeExpr {
 }
 
 export class PStructField extends PNodeExpr {
-  constructor(name: Token | undefined, gap: Token[], value: PNodeExpr) {
-    super(PNodeType.STRUCT_FIELD, name === undefined ? "field" : `field(${name.value})`, name, gap, value);
+  constructor(name: PNode | undefined, gap: PNode[], value: PNodeExpr) {
+    super(PNodeType.STRUCT_FIELD, name === undefined ? "field" : `field(${name.source})`, name, gap, value);
   }
 }
 
@@ -64,9 +64,9 @@ export class PStruct extends PNodeExpr {
 export class PNested extends PNodeExpr {
   constructor(
     open: PNode,
-    gap1: Token[],
+    gap1: PNode[],
     inner: PNode,
-    gap2: Token[],
+    gap2: PNode[],
     close: PNode
   ) {
     super(PNodeType.NESTED, "nested", open, gap1, inner, gap2, close);
@@ -86,8 +86,8 @@ export class PNew extends PNodeExpr {
 }
 
 export class PUnary extends PNodeExpr {
-  constructor(public op: Token, gap: Token | undefined, expr: PNodeExpr) {
-    super(PNodeType.UNARY, `unary(${op.value})`, op, gap, expr);
+  constructor(public op: PNode, gap: PNode | undefined, expr: PNodeExpr) {
+    super(PNodeType.UNARY, `unary(${op.source})`, op, gap, expr);
   }
 }
 
@@ -136,7 +136,7 @@ export class PIf extends PNodeExpr {
 }
 
 export class PRepeat extends PNodeExpr {
-  constructor(token: Token, gap: Token | undefined, expr: PNode) {
+  constructor(token: PNode, gap: PNode | undefined, expr: PNodeExpr) {
     super(PNodeType.REPEAT, "repeat", token, gap, expr);
   }
 }
@@ -168,28 +168,28 @@ export class PReturn extends PNodeExpr {
 }
 
 export class PBreak extends PNodeExpr {
-  constructor(tokens: Token[], expr?: PNode) {
+  constructor(tokens: PNode[], expr?: PNodeExpr) {
     super(PNodeType.BREAK, "break", tokens, expr);
   }
 }
 
 export class PLocal extends PNodeExpr {
   constructor(
-    isVar: Token[],
-    name: Token,
-    tokens: Token[],
-    expr: PNode
+    isVar: PNode[],
+    name: PNode,
+    tokens: PNode[],
+    expr: PNodeExpr
   ) {
     super(
       PNodeType.LOCAL,
-      `local${isVar.length == 0 ? "" : "-var"}(${name.value})`,
+      `local${isVar.length == 0 ? "" : "-var"}(${name.source})`,
       isVar, name, tokens, expr
     );
   }
 }
 
 export class PLocals extends PNodeExpr {
-  constructor(token: Token, gap: Token | undefined, locals: AnnotatedItem<PLocal>[]) {
+  constructor(token: PNode, gap: PNode | undefined, locals: AnnotatedItem<PLocal>[]) {
     super(PNodeType.LOCALS, "let", token, gap, locals);
   }
 }

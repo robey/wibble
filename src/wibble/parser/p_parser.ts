@@ -2,7 +2,7 @@ import {
   alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token
 } from "packrattle";
 import { TokenType, tokenizer, WHITESPACE } from "./p_tokens";
-import { AnnotatedItem, PNodeExpr, TokenCollection } from "../common/ast";
+import { AnnotatedItem, PNodeExpr, PNodeToken, TokenCollection } from "../common/ast";
 
 interface Prioritized {
   priority?: number;
@@ -33,7 +33,12 @@ export function repeatSeparated<A extends PNodeExpr>(
   ...separators: TokenType[]
 ): Parser<Token, AnnotatedItem<A>[]> {
   const element = seq4(p, linespace, tokenizer.matchOneOf(...separators), whitespace).map(([ a, ls, sep, ws ]) => {
-    return new AnnotatedItem(a, ls, sep, ws);
+    return new AnnotatedItem(
+      a,
+      ls === undefined ? undefined : new PNodeToken(ls),
+      sep === undefined ? sep : new PNodeToken(sep),
+      ws.map(t => new PNodeToken(t))
+    );
   });
 
   return seq2(repeat(element), optional(p)).map(([ list, last ]) => {
@@ -56,6 +61,12 @@ export function repeatSurrounded<A extends PNodeExpr>(
     whitespace,
     name ? tokenizer.match(close).named(name, 1) : tokenizer.match(close)
   ).map(([ o, ws1, inner, ws2, c ]) => {
-    return new TokenCollection(o, ws1, inner, ws2, c);
+    return new TokenCollection(
+      new PNodeToken(o),
+      ws1.map(t => new PNodeToken(t)),
+      inner,
+      ws2.map(t => new PNodeToken(t)),
+      new PNodeToken(c)
+    );
   });
 }
