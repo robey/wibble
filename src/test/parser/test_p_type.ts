@@ -11,142 +11,142 @@ const parse = (s: string, options: EngineOptions = {}) => {
 
 describe("Parse types", () => {
   it("simple", () => {
-    parse("Int").inspect().should.eql("type(Int)[0:3]");
+    parse("Int").inspect().should.eql("type(Int)[0...3]");
     (() => parse("int")).should.throw(/uppercase/);
-    parse("@").inspect().should.eql("type(@)[0:1]");
+    parse("@").inspect().should.eql("type(@)[0...1]");
   });
 
   it("compound", () => {
     const p1 = parse("(n:Int,s:String)");
     p1.inspect().should.eql(
-      "compoundType{ field(n){ type(Int)[3:6] }[1:6], field(s){ type(String)[9:15] }[7:15] }[0:16]"
+      "compoundType{ field(n){ type(Int)[3...6] }[1...6], field(s){ type(String)[9...15] }[7...15] }[0...16]"
     );
-    p1.toCode().should.eql("(n:Int,s:String)");
+    p1.source.should.eql("(n:Int,s:String)");
     const p2 = parse("( n: Int, s: String )");
     p2.inspect().should.eql(
-      "compoundType{ field(n){ type(Int)[5:8] }[2:8], field(s){ type(String)[13:19] }[10:19] }[0:21]"
+      "compoundType{ field(n){ type(Int)[5...8] }[2...8], field(s){ type(String)[13...19] }[10...19] }[0...21]"
     );
-    p2.toCode().should.eql("( n: Int, s: String )");
+    p2.source.should.eql("( n: Int, s: String )");
     const p3 = parse("(x: Int, y:String)");
     p3.inspect().should.eql(
-      "compoundType{ field(x){ type(Int)[4:7] }[1:7], field(y){ type(String)[11:17] }[9:17] }[0:18]"
+      "compoundType{ field(x){ type(Int)[4...7] }[1...7], field(y){ type(String)[11...17] }[9...17] }[0...18]"
     );
-    p3.toCode().should.eql("(x: Int, y:String)");
+    p3.source.should.eql("(x: Int, y:String)");
     const p4 = parse("(x: Int = 4)");
     p4.inspect().should.eql(
-      "compoundType{ field(x){ type(Int)[4:7], const(NUMBER_BASE10, 4)[10:11] }[1:11] }[0:12]"
+      "compoundType{ field(x){ type(Int)[4...7], const(NUMBER_BASE10, 4)[10...11] }[1...11] }[0...12]"
     );
-    p4.toCode().should.eql("(x: Int = 4)");
+    p4.source.should.eql("(x: Int = 4)");
     const p5 = parse("()");
-    p5.inspect().should.eql("emptyType[0:2]");
-    p5.toCode().should.eql("()");
+    p5.inspect().should.eql("emptyType[0...2]");
+    p5.source.should.eql("()");
   });
 
   it("function", () => {
     const p1 = parse("Long -> Int");
     p1.inspect().should.eql(
-      "functionType{ type(Long)[0:4], type(Int)[8:11] }[0:11]"
+      "functionType{ type(Long)[0...4], type(Int)[8...11] }[0...11]"
     );
-    p1.toCode().should.eql("Long -> Int");
+    p1.source.should.eql("Long -> Int");
 
     const p2 = parse("Boolean -> Long -> Int");
     p2.inspect().should.eql(
-      "functionType{ type(Boolean)[0:7], functionType{ type(Long)[11:15], type(Int)[19:22] }[11:22] }[0:22]"
+      "functionType{ type(Boolean)[0...7], functionType{ type(Long)[11...15], type(Int)[19...22] }[11...22] }[0...22]"
     );
-    p2.toCode().should.eql("Boolean -> Long -> Int");
+    p2.source.should.eql("Boolean -> Long -> Int");
   });
 
   it("template", () => {
     const p1 = parse("List(Int)");
-    p1.inspect().should.eql("templateType(List){ type(Int)[5:8] }[0:9]");
-    p1.toCode().should.eql("List(Int)");
+    p1.inspect().should.eql("templateType(List){ type(Int)[5...8] }[0...9]");
+    p1.source.should.eql("List(Int)");
     const p2 = parse("Map(String, Int)");
-    p2.inspect().should.eql("templateType(Map){ type(String)[4:10], type(Int)[12:15] }[0:16]");
-    p2.toCode().should.eql("Map(String, Int)");
+    p2.inspect().should.eql("templateType(Map){ type(String)[4...10], type(Int)[12...15] }[0...16]");
+    p2.source.should.eql("Map(String, Int)");
   });
 
   it("parameter", () => {
     const p1 = parse("$T");
-    p1.inspect().should.eql("parameterType(T)[0:2]");
-    p1.toCode().should.eql("$T");
+    p1.inspect().should.eql("parameterType(T)[0...2]");
+    p1.source.should.eql("$T");
     const p2 = parse("List($Element)");
-    p2.inspect().should.eql("templateType(List){ parameterType(Element)[5:13] }[0:14]");
-    p2.toCode().should.eql("List($Element)");
+    p2.inspect().should.eql("templateType(List){ parameterType(Element)[5...13] }[0...14]");
+    p2.source.should.eql("List($Element)");
   });
 
   it("combined", () => {
     const p1 = parse("Map(String, List(Int -> (real: Float, imaginary: Float)))");
     p1.inspect().should.eql(
       "templateType(Map){ " +
-        "type(String)[4:10], " +
+        "type(String)[4...10], " +
         "templateType(List){ " +
           "functionType{ " +
-            "type(Int)[17:20], " +
+            "type(Int)[17...20], " +
             "compoundType{ " +
-              "field(real){ type(Float)[31:36] }[25:36], " +
-              "field(imaginary){ type(Float)[49:54] }[38:54]" +
-            " }[24:55]" +
-          " }[17:55]" +
-        " }[12:56]" +
-      " }[0:57]"
+              "field(real){ type(Float)[31...36] }[25...36], " +
+              "field(imaginary){ type(Float)[49...54] }[38...54]" +
+            " }[24...55]" +
+          " }[17...55]" +
+        " }[12...56]" +
+      " }[0...57]"
     );
-    p1.toCode().should.eql("Map(String, List(Int -> (real: Float, imaginary: Float)))");
+    p1.source.should.eql("Map(String, List(Int -> (real: Float, imaginary: Float)))");
   });
 
   it("merged", () => {
     const p1 = parse("Int | Symbol");
-    p1.inspect().should.eql("mergedType{ type(Int)[0:3], type(Symbol)[6:12] }[0:12]");
-    p1.toCode().should.eql("Int | Symbol");
+    p1.inspect().should.eql("mergedType{ type(Int)[0...3], type(Symbol)[6...12] }[0...12]");
+    p1.source.should.eql("Int | Symbol");
     const p2 = parse("(Int -> Int) | (Symbol -> Int)");
     p2.inspect().should.eql(
       "mergedType{ " +
-        "nestedType{ functionType{ type(Int)[1:4], type(Int)[8:11] }[1:11] }[0:12], " +
-        "nestedType{ functionType{ type(Symbol)[16:22], type(Int)[26:29] }[16:29] }[15:30]" +
-      " }[0:30]"
+        "nestedType{ functionType{ type(Int)[1...4], type(Int)[8...11] }[1...11] }[0...12], " +
+        "nestedType{ functionType{ type(Symbol)[16...22], type(Int)[26...29] }[16...29] }[15...30]" +
+      " }[0...30]"
     );
-    p2.toCode().should.eql("(Int -> Int) | (Symbol -> Int)");
+    p2.source.should.eql("(Int -> Int) | (Symbol -> Int)");
   });
 
   it("inline", () => {
     const p1 = parse("{}");
-    p1.inspect().should.eql("inlineType[0:2]");
-    p1.toCode().should.eql("{}");
+    p1.inspect().should.eql("inlineType[0...2]");
+    p1.source.should.eql("{}");
     const p2 = parse("{ }");
-    p2.inspect().should.eql("inlineType[0:3]");
-    p2.toCode().should.eql("{ }");
+    p2.inspect().should.eql("inlineType[0...3]");
+    p2.source.should.eql("{ }");
     const p3 = parse("{ .+ -> Int -> Int }");
     p3.inspect().should.eql(
       "inlineType{ " +
         "inlineTypeDeclaration{ " +
-          "const(SYMBOL, +)[2:4], " +
-          "functionType{ type(Int)[8:11], type(Int)[15:18] }[8:18]" +
-        " }[2:18]" +
-      " }[0:20]"
+          "const(SYMBOL, +)[2...4], " +
+          "functionType{ type(Int)[8...11], type(Int)[15...18] }[8...18]" +
+        " }[2...18]" +
+      " }[0...20]"
     );
-    p3.toCode().should.eql("{ .+ -> Int -> Int }");
+    p3.source.should.eql("{ .+ -> Int -> Int }");
     const p4 = parse("{ (x: Int) -> String }");
     p4.inspect().should.eql(
       "inlineType{ " +
         "inlineTypeDeclaration{ " +
-          "compoundType{ field(x){ type(Int)[6:9] }[3:9] }[2:10], " +
-          "type(String)[14:20]" +
-        " }[2:20]" +
-      " }[0:22]"
+          "compoundType{ field(x){ type(Int)[6...9] }[3...9] }[2...10], " +
+          "type(String)[14...20]" +
+        " }[2...20]" +
+      " }[0...22]"
     );
-    p4.toCode().should.eql("{ (x: Int) -> String }");
+    p4.source.should.eql("{ (x: Int) -> String }");
     const p5 = parse("{ .name -> String; (x: String) -> Boolean }");
     p5.inspect().should.eql(
       "inlineType{ " +
         "inlineTypeDeclaration{ " +
-          "const(SYMBOL, name)[2:7], " +
-          "type(String)[11:17]" +
-        " }[2:17], " +
+          "const(SYMBOL, name)[2...7], " +
+          "type(String)[11...17]" +
+        " }[2...17], " +
         "inlineTypeDeclaration{ " +
-          "compoundType{ field(x){ type(String)[23:29] }[20:29] }[19:30], " +
-          "type(Boolean)[34:41]" +
-        " }[19:41]" +
-      " }[0:43]"
+          "compoundType{ field(x){ type(String)[23...29] }[20...29] }[19...30], " +
+          "type(Boolean)[34...41]" +
+        " }[19...41]" +
+      " }[0...43]"
     );
-    p5.toCode().should.eql("{ .name -> String; (x: String) -> Boolean }");
+    p5.source.should.eql("{ .name -> String; (x: String) -> Boolean }");
   });
 });
