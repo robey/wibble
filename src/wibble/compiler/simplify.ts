@@ -8,7 +8,7 @@
 
 import { Span, Token } from "packrattle";
 import {
-  PBinary, PCall, PConstant, PConstantType, PLogic, PNested, PNode, PNodeExpr, PNodeInjected, PNodeType, PUnary
+  PBinary, PCall, PConstant, PConstantType, PIf, PLogic, PNested, PNode, PNodeExpr, PNodeInjected, PNodeType, PUnary
 } from "../common/ast";
 import { Errors } from "../common/errors";
 import { TokenType } from "../parser/p_tokens";
@@ -41,21 +41,32 @@ export function simplify(ast: PNode, errors: Errors) {
         // convert unary(op)(a) into call(a, op)
         const tnode = node as PUnary;
         const op = tnode.op.tokenType.id == TokenType.MINUS ? "negative" : tnode.op.value;
-        return new PCall(tnode.expr[0], new PNodeInjected(" "), newSymbol(op));
+        return new PCall(tnode.childExpr[0], new PNodeInjected(" "), newSymbol(op));
       }
 
       case PNodeType.BINARY: {
         // convert binary(logic-op)(a, b) into logic(logic-op)(a, b)
         const tnode = node as PBinary;
         if (tnode.op.tokenType.id == TokenType.OR || tnode.op.tokenType.id == TokenType.AND) {
-          return new PLogic(tnode.expr[0], tnode.gap1, tnode.op, tnode.gap2, tnode.expr[1]);
+          return new PLogic(tnode.childExpr[0], tnode.gap1, tnode.op, tnode.gap2, tnode.childExpr[1]);
         }
         // convert binary(op)(a, b) into call(call(a, op), b)
         return new PCall(
-          new PCall(wrap(tnode.expr[0]), new PNodeInjected(" "), newSymbol(tnode.op.value)),
+          new PCall(wrap(tnode.childExpr[0]), new PNodeInjected(" "), newSymbol(tnode.op.value)),
           new PNodeInjected(" "),
-          wrap(tnode.expr[1])
+          wrap(tnode.childExpr[1])
         );
+      }
+
+      case PNodeType.IF: {
+        // ensure every "if" has an "else".
+        if (node.childExpr.length < 3) {
+          const tnode = node as PIf;
+          const elseToken = [ new PNodeInjected(" else ") ];
+          const nothing = new PConstant(PConstantType.NOTHING, [ new PNodeInjected("()") ]);
+          return new PIf(tnode.ifToken, tnode.childExpr[0], tnode.thenToken, tnode.childExpr[1], elseToken, nothing);
+        }
+        return null;
       }
 
       case PNodeType.ASSIGNMENT: {
@@ -68,27 +79,13 @@ export function simplify(ast: PNode, errors: Errors) {
       case PNodeType.BLOCK: {
         // convert one-expression block into that expression.
         if (
-          node.expr.length == 1 &&
-          [ PNodeType.LOCALS, PNodeType.ASSIGNMENT, PNodeType.ON ].indexOf(node.expr[0].nodeType) < 0
-        ) return node.expr[0];
+          node.childExpr.length == 1 &&
+          [ PNodeType.LOCALS, PNodeType.ASSIGNMENT, PNodeType.ON ].indexOf(node.childExpr[0].nodeType) < 0
+        ) return node.childExpr[0];
         return null;
       }
-      //       case "PBlock": {
-      //         // convert one-expression block into that expression.
-      //         if (
-      //           node.children.length == 1 &&
-      //           [ "PLocals", "PAssignment", "POn" ].indexOf(node.children[0].nodeType) < 0
-      //         ) return node.children[0];
-      //         return null;
-      //       }
 
 
-//       case "PIf": {
-//         // ensure every "if" has an "else".
-//         if (node.children.length < 3) node.children.push(new PConstant(PConstantType.NOTHING, node.spar));
-//         return null;
-//       }
-//
 //       case "PWhile": {
 //         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
 //         const newVar = nextLocal(node.span);
@@ -157,14 +154,6 @@ export function simplify(ast: PNode, errors: Errors) {
 //         return null;
 //       }
 //
-//       case "PBlock": {
-//         // convert one-expression block into that expression.
-//         if (
-//           node.children.length == 1 &&
-//           [ "PLocals", "PAssignment", "POn" ].indexOf(node.children[0].nodeType) < 0
-//         ) return node.children[0];
-//         return null;
-//       }
 //
 //       // "return" must be inside an "on" handler, and a block.
 //       case "PReturn": {

@@ -47,6 +47,11 @@ describe("Simplify expressions", () => {
     simplify("x or y").source.should.eql("x or y");
   });
 
+  it("if", () => {
+    simplify("if a then b else c").source.should.eql("if a then b else c");
+    simplify("if a then b").source.should.eql("if a then b else ()");
+  });
+
   it("assignment", () => {
     simplify("{ x := 3 }").source.should.eql("{ x := 3 }");
     assert.throws(() => simplify("{ y + (x := 3) }"), (error: WibbleError) => {
@@ -58,11 +63,14 @@ describe("Simplify expressions", () => {
     });
   });
 
-//   it("if", () => {
-//     simplify("if a then b else c").should.eql("if a then b else c");
-//     simplify("if a then b").should.eql("if a then b else ()");
-//   });
-//
+  it("block", () => {
+    simplify("{ 4; 5 }").source.should.eql("{ 4; 5 }");
+    simplify("{ 4 }").source.should.eql("4");
+    simplify("{ let x = 3 }").source.should.eql("{ let x = 3 }");
+  });
+
+
+
 //   it("struct", () => {
 //     simplify("(1, 2)").should.eql("(?0=1, ?1=2)");
 //     simplify("(4, x=9)").should.eql("(?0=4, x=9)");
@@ -87,12 +95,6 @@ describe("Simplify expressions", () => {
 //     simplify("(a: Int, b: Int): Int -> a + b + calc(b)").should.eql(
 //       "new (on (a: Int, b: Int): Int -> a .+ b .+ (calc b))"
 //     );
-//   });
-//
-//   it("block", () => {
-//     simplify("{ 4; 5 }").should.eql("{ 4; 5 }");
-//     simplify("{ 4 }").should.eql("4");
-//     simplify("{ let x = 3 }").should.eql("{ let x = 3 }");
 //   });
 //
 //   it("new/on", () => {

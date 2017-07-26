@@ -190,17 +190,17 @@ const condition = seq8(
     () => code
   ))
 ).named("condition").map(([ token1, space1, condition, space2, token2, space3, onTrue, elseBlock ]) => {
-  const gap1 = [ token1 ];
-  if (space1 !== undefined) gap1.push(space1);
-  const gap2 = (space2 == undefined ? [] : [ space2 ]).concat(token2);
-  if (space3 !== undefined) gap2.push(space3);
-  const gap3 = [];
+  const gap1 = [ new PNodeToken(token1) ];
+  if (space1 !== undefined) gap1.push(new PNodeToken(space1));
+  const gap2 = (space2 == undefined ? [] : [ new PNodeToken(space2) ]).concat(new PNodeToken(token2));
+  if (space3 !== undefined) gap2.push(new PNodeToken(space3));
+  const gap3: PNodeToken[] = [];
   let onFalse: PNodeExpr | undefined = undefined;
   if (elseBlock !== undefined) {
     const [ space4, token3, space5, node ] = elseBlock;
-    if (space4 !== undefined) gap3.push(space4);
-    gap3.push(token3);
-    if (space5 !== undefined) gap3.push(space5);
+    if (space4 !== undefined) gap3.push(new PNodeToken(space4));
+    gap3.push(new PNodeToken(token3));
+    if (space5 !== undefined) gap3.push(new PNodeToken(space5));
     onFalse = node;
   }
   return new PIf(gap1, condition, gap2, onTrue, gap3, onFalse);

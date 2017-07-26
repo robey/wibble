@@ -124,12 +124,12 @@ export class PLogic extends PNodeExpr {
 
 export class PIf extends PNodeExpr {
   constructor(
-    ifToken: Token[],
-    condition: PNode,
-    thenToken: Token[],
-    onTrue: PNode,
-    elseToken: Token[],
-    onFalse?: PNode
+    public ifToken: PNode[],
+    condition: PNodeExpr,
+    public thenToken: PNode[],
+    onTrue: PNodeExpr,
+    public elseToken: PNode[],
+    onFalse?: PNodeExpr
   ) {
     super(PNodeType.IF, "if", ifToken, condition, thenToken, onTrue, elseToken, onFalse);
   }
