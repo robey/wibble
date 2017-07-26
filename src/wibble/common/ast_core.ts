@@ -48,7 +48,7 @@ export abstract class PNode {
     parent?: PNode;
 
     // selective list of only the PNodeExpr children:
-    expr: PNodeExpr[];
+    childExpr: PNodeExpr[];
 
     constructor(...list: ImplicitNode[]) {
       this.replaceChildren(list);
@@ -60,7 +60,7 @@ export abstract class PNode {
       if (this.children.length > 0) {
         this.span = mergeSpan(this.children[0].span, this.children[this.children.length - 1].span);
       }
-      this.expr = flattenNodes(this.children.map(n => n.expressions())) as PNodeExpr[];
+      this.childExpr = flattenNodes(this.children.map(n => n.expressions())) as PNodeExpr[];
     }
 
     get parentExpr(): PNodeExpr | undefined {

@@ -12,7 +12,7 @@ export function transformAst(node: PNode, transform: (node: PNodeExpr) => (PNode
     } while (newNode != null);
   }
 
-  if (node.expr.length > 0) {
+  if (node.childExpr.length > 0) {
 //     if (options.enter) options.enter(node);
     node.replaceChildren(node.children.map(x => {
       return transformAst(x, transform);

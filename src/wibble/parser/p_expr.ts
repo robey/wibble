@@ -96,11 +96,11 @@ const struct = repeatSurrounded(
   "struct member"
 ).map(items => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
-  if (items.list.length == 1 && items.list[0].item.expr.length == 1) {
+  if (items.list.length == 1 && items.list[0].item.childExpr.length == 1) {
     return new PNested(
       new PNodeToken(items.open),
       items.gap1,
-      items.list[0].item.expr[0],
+      items.list[0].item.childExpr[0],
       items.gap2,
       new PNodeToken(items.close)
     );
