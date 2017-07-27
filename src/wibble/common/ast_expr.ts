@@ -1,5 +1,5 @@
 import { mergeSpan, Token } from "packrattle";
-import { AnnotatedItem, PExprKind, PNode, PNodeExpr, PType, TokenCollection } from "./ast_core";
+import { AnnotatedItem, PExpr, PExprKind, PNode, PType, TokenCollection } from "./ast_core";
 
 export enum PConstantType {
   NOTHING,
@@ -11,7 +11,7 @@ export enum PConstantType {
   STRING
 }
 
-export class PConstant extends PNodeExpr {
+export class PConstant extends PExpr {
   value: string;
 
   constructor(public type: PConstantType, tokens: PNode[], value?: string) {
@@ -24,19 +24,19 @@ export class PConstant extends PNodeExpr {
   }
 }
 
-export class PReference extends PNodeExpr {
+export class PReference extends PExpr {
   constructor(public token: PNode) {
     super(PExprKind.REFERENCE, token.source, token);
   }
 }
 
-export class PArray extends PNodeExpr {
-  constructor(items: TokenCollection<PNodeExpr>) {
+export class PArray extends PExpr {
+  constructor(items: TokenCollection<PExpr>) {
     super(PExprKind.ARRAY, "array", items);
   }
 }
 
-export class PFunction extends PNodeExpr {
+export class PFunction extends PExpr {
   constructor(
     public inType: PType | undefined,
     space1: PNode | undefined,
@@ -46,25 +46,25 @@ export class PFunction extends PNodeExpr {
     space3: PNode | undefined,
     arrow: PNode,
     space4: PNode | undefined,
-    body: PNodeExpr
+    body: PExpr
   ) {
     super(PExprKind.FUNCTION, "function", inType, space1, colon, space2, outType, space3, arrow, space4, body);
   }
 }
 
-export class PStructField extends PNodeExpr {
-  constructor(public name: PNode | undefined, public gap: PNode[], value: PNodeExpr) {
+export class PStructField extends PExpr {
+  constructor(public name: PNode | undefined, public gap: PNode[], value: PExpr) {
     super(PExprKind.STRUCT_FIELD, name === undefined ? "field" : `field(${name.source})`, name, gap, value);
   }
 }
 
-export class PStruct extends PNodeExpr {
+export class PStruct extends PExpr {
   constructor(public items: TokenCollection<PStructField>) {
     super(PExprKind.STRUCT, "struct", items);
   }
 }
 
-export class PNested extends PNodeExpr {
+export class PNested extends PExpr {
   constructor(
     open: PNode,
     gap1: PNode[],
@@ -76,31 +76,31 @@ export class PNested extends PNodeExpr {
   }
 }
 
-export class PNew extends PNodeExpr {
+export class PNew extends PExpr {
   constructor(
     public token: PNode,
     public gap1: PNode | undefined,
     type: PType | undefined,
     public gap2: PNode | undefined,
-    code: PNodeExpr
+    code: PExpr
   ) {
     super(PExprKind.NEW, "new", token, gap1, type, gap2, code);
   }
 }
 
-export class PUnary extends PNodeExpr {
-  constructor(public op: PNode, gap: PNode | undefined, expr: PNodeExpr) {
+export class PUnary extends PExpr {
+  constructor(public op: PNode, gap: PNode | undefined, expr: PExpr) {
     super(PExprKind.UNARY, `unary(${op.source})`, op, gap, expr);
   }
 }
 
-export class PCall extends PNodeExpr {
-  constructor(left: PNodeExpr, gap: PNode | undefined, right: PNodeExpr) {
+export class PCall extends PExpr {
+  constructor(left: PExpr, gap: PNode | undefined, right: PExpr) {
     super(PExprKind.CALL, "call", left, gap, right);
   }
 }
 
-export class PBinary extends PNodeExpr {
+export class PBinary extends PExpr {
   constructor(
     left: PNode,
     public gap1: Token | undefined,
@@ -113,7 +113,7 @@ export class PBinary extends PNodeExpr {
 }
 
 // added by the desugar phase to mark nodes where shortcut-logic should apply (and, or).
-export class PLogic extends PNodeExpr {
+export class PLogic extends PExpr {
   constructor(
     left: PNode,
     gap1: Token | undefined,
@@ -125,19 +125,19 @@ export class PLogic extends PNodeExpr {
   }
 }
 
-export class PIf extends PNodeExpr {
+export class PIf extends PExpr {
   constructor(
     public ifToken: PNode,
     public space1: PNode | undefined,
-    condition: PNodeExpr,
+    condition: PExpr,
     public space2: PNode | undefined,
     public thenToken: PNode,
     public space3: PNode | undefined,
-    onTrue: PNodeExpr,
+    onTrue: PExpr,
     public space4?: PNode,
     public elseToken?: PNode,
     public space5?: PNode,
-    onFalse?: PNodeExpr
+    onFalse?: PExpr
   ) {
     super(
       PExprKind.IF, "if", ifToken, space1, condition, space2, thenToken, space3, onTrue, space4, elseToken,
@@ -146,13 +146,13 @@ export class PIf extends PNodeExpr {
   }
 }
 
-export class PRepeat extends PNodeExpr {
-  constructor(token: PNode, gap: PNode | undefined, expr: PNodeExpr) {
+export class PRepeat extends PExpr {
+  constructor(token: PNode, gap: PNode | undefined, expr: PExpr) {
     super(PExprKind.REPEAT, "repeat", token, gap, expr);
   }
 }
 
-export class PWhile extends PNodeExpr {
+export class PWhile extends PExpr {
   constructor(
     token1: Token,
     gap1: Token | undefined,
@@ -166,25 +166,25 @@ export class PWhile extends PNodeExpr {
   }
 }
 
-export class PAssignment extends PNodeExpr {
-  constructor(name: PNode, space1: PNode | undefined, assign: PNode, space2: PNode | undefined, expr: PNodeExpr) {
+export class PAssignment extends PExpr {
+  constructor(name: PNode, space1: PNode | undefined, assign: PNode, space2: PNode | undefined, expr: PExpr) {
     super(PExprKind.ASSIGNMENT, "assign", name, space1, assign, space2, expr);
   }
 }
 
-export class PReturn extends PNodeExpr {
-  constructor(token: PNode, gap: PNode | undefined, expr: PNodeExpr) {
+export class PReturn extends PExpr {
+  constructor(token: PNode, gap: PNode | undefined, expr: PExpr) {
     super(PExprKind.RETURN, "return", token, gap, expr);
   }
 }
 
-export class PBreak extends PNodeExpr {
-  constructor(token: PNode, gap?: PNode, expr?: PNodeExpr) {
+export class PBreak extends PExpr {
+  constructor(token: PNode, gap?: PNode, expr?: PExpr) {
     super(PExprKind.BREAK, "break", token, gap, expr);
   }
 }
 
-export class PLocal extends PNodeExpr {
+export class PLocal extends PExpr {
   constructor(
     isVar: PNode | undefined,
     space1: PNode | undefined,
@@ -192,7 +192,7 @@ export class PLocal extends PNodeExpr {
     space2: PNode | undefined,
     token: PNode,
     space3: PNode | undefined,
-    expr: PNodeExpr
+    expr: PExpr
   ) {
     super(
       PExprKind.LOCAL,
@@ -202,13 +202,13 @@ export class PLocal extends PNodeExpr {
   }
 }
 
-export class PLocals extends PNodeExpr {
+export class PLocals extends PExpr {
   constructor(token: PNode, gap: PNode | undefined, locals: AnnotatedItem<PLocal>[]) {
     super(PExprKind.LOCALS, "let", token, gap, locals);
   }
 }
 
-export class POn extends PNodeExpr {
+export class POn extends PExpr {
   constructor(
     onToken: PNode,
     space1: PNode | undefined,
@@ -219,14 +219,14 @@ export class POn extends PNodeExpr {
     space3: PNode | undefined,
     arrow: PNode,
     space4: PNode | undefined,
-    expr: PNodeExpr
+    expr: PExpr
   ) {
     super(PExprKind.ON, "on", onToken, space1, receiver, colon, space2, type, space3, arrow, space4, expr);
   }
 }
 
-export class PBlock extends PNodeExpr {
-  constructor(code: TokenCollection<PNodeExpr>) {
+export class PBlock extends PExpr {
+  constructor(code: TokenCollection<PExpr>) {
     super(PExprKind.BLOCK, "block", code);
   }
 }

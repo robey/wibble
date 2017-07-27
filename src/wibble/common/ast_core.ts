@@ -56,8 +56,8 @@ export abstract class PNode {
   children: PNode[] = [];
   parent?: PNode;
 
-  // selective list of only the PNodeExpr children:
-  childExpr: PNodeExpr[];
+  // selective list of only the PExpr children:
+  childExpr: PExpr[];
 
   constructor(...list: ImplicitNode[]) {
     this.replaceChildren(list);
@@ -69,12 +69,12 @@ export abstract class PNode {
     if (this.children.length > 0) {
       this.span = mergeSpan(this.children[0].span, this.children[this.children.length - 1].span);
     }
-    this.childExpr = flattenNodes(this.children.map(n => n.expressions())) as PNodeExpr[];
+    this.childExpr = flattenNodes(this.children.map(n => n.expressions())) as PExpr[];
   }
 
-  get parentExpr(): PNodeExpr | undefined {
+  get parentExpr(): PExpr | undefined {
     if (this.parent === undefined) return undefined;
-    if (this.parent instanceof PNodeExpr) return this.parent;
+    if (this.parent instanceof PExpr) return this.parent;
     return this.parent.parentExpr;
   }
 
@@ -94,7 +94,7 @@ export abstract class PNode {
   abstract debug(): string | undefined;
 
   // for collections: flatten out the list of nested expressions
-  abstract expressions(): PNodeExpr[];
+  abstract expressions(): PExpr[];
 
   inspect(): string {
     return this.debug() || "";
@@ -152,7 +152,7 @@ export class PNodeToken extends PNode {
     return undefined;
   }
 
-  expressions(): PNodeExpr[] {
+  expressions(): PExpr[] {
     return [];
   }
 }
@@ -173,13 +173,13 @@ export class PNodeInjected extends PNode {
     return undefined;
   }
 
-  expressions(): PNodeExpr[] {
+  expressions(): PExpr[] {
     return [];
   }
 }
 
 // PNode for expression subtrees
-export class PNodeExpr extends PNode {
+export class PExpr extends PNode {
   constructor(public nodeType: PExprKind, public description: string, ...list: ImplicitNode[]) {
     super(...list);
   }
@@ -189,7 +189,7 @@ export class PNodeExpr extends PNode {
     return this.description + (nested.length == 0 ? "" : `{ ${nested.join(", ")} }`) + this.span.toString();
   }
 
-  expressions(): PNodeExpr[] {
+  expressions(): PExpr[] {
     return [ this ];
   }
 }
@@ -205,7 +205,7 @@ export class PType extends PNode {
     return this.description + (nested.length == 0 ? "" : `{ ${nested.join(", ")} }`) + this.span.toString();
   }
 
-  expressions(): PNodeExpr[] {
+  expressions(): PExpr[] {
     return [];
   }
 }
@@ -226,8 +226,8 @@ export class AnnotatedItem<A extends PNode> extends PNode {
     return this.item.debug();
   }
 
-  expressions(): PNodeExpr[] {
-    return this.item instanceof PNodeExpr ? [ this.item ] : [];
+  expressions(): PExpr[] {
+    return this.item instanceof PExpr ? [ this.item ] : [];
   }
 }
 
@@ -253,8 +253,8 @@ export class TokenCollection<A extends PNode> extends PNode {
     return list.length == 0 ? undefined : list.join(", ");
   }
 
-  expressions(): PNodeExpr[] {
-    return ([] as PNodeExpr[]).concat(...this.list.map(x => x.expressions()));
+  expressions(): PExpr[] {
+    return ([] as PExpr[]).concat(...this.list.map(x => x.expressions()));
   }
 }
 

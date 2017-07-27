@@ -1,6 +1,6 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
 import {
-  PAssignment, PBlock, PBreak, PConstant, PLocal, PLocals, PNodeExpr, PNodeToken, POn, PReturn, PType, token, tokenMaybe
+  PAssignment, PBlock, PBreak, PConstant, PExpr, PLocal, PLocals, PNodeToken, POn, PReturn, PType, token, tokenMaybe
 } from "../common/ast";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
@@ -83,7 +83,7 @@ const handler = seq8(
   );
 });
 
-export const code: Parser<Token, PNodeExpr> = alt(
+export const code: Parser<Token, PExpr> = alt(
   localLet,
   assignment,
   returnEarly,

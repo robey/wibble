@@ -1,5 +1,5 @@
 import { mergeSpan, Span, Token } from "packrattle";
-import { AnnotatedItem, ImplicitNode, PNode, PNodeExpr, PType, PTypeKind, TokenCollection } from "./ast_core";
+import { AnnotatedItem, ImplicitNode, PExpr, PNode, PType, PTypeKind, TokenCollection } from "./ast_core";
 import { PConstant } from "./ast_expr";
 
 
@@ -22,7 +22,7 @@ export class PTypedField extends PType {
     colon: PNode[],
     type: PType,
     bind: PNode[] = [],
-    defaultValue?: PNodeExpr,
+    defaultValue?: PExpr,
   ) {
     super(PTypeKind.TYPED_FIELD, `field(${name.source})`, name, colon, type, bind, defaultValue);
   }

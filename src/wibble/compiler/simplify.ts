@@ -8,6 +8,7 @@ import {
   PConstant,
   PConstantType,
   PEmptyType,
+  PExpr,
   PExprKind,
   PFunction,
   PIf,
@@ -17,7 +18,6 @@ import {
   PNested,
   PNew,
   PNode,
-  PNodeExpr,
   PNodeInjected,
   POn,
   PReference,
@@ -226,37 +226,37 @@ function newSymbol(name: string): PConstant {
 }
 
 // put inside a PNested, to preserve precedence when dumping
-function wrap(node: PNodeExpr): PNested {
+function wrap(node: PExpr): PNested {
   return new PNested(inject("("), [], node, [], inject(")"));
 }
 
-function makeNew(type: PType | undefined, code: PNodeExpr): PNew {
+function makeNew(type: PType | undefined, code: PExpr): PNew {
   return new PNew(fakeNew, sp, type, type === undefined ? undefined : sp, code);
 }
 
-function makeCall(a: PNodeExpr, b: PNodeExpr): PCall {
+function makeCall(a: PExpr, b: PExpr): PCall {
   return new PCall(a, sp, b);
 }
 
-function makeIf(cond: PNodeExpr, ifTrue: PNodeExpr, ifFalse?: PNodeExpr): PIf {
+function makeIf(cond: PExpr, ifTrue: PExpr, ifFalse?: PExpr): PIf {
   if (ifFalse == undefined) return new PIf(fakeIf, sp, cond, sp, fakeThen, sp, ifTrue);
   return new PIf(fakeIf, sp, cond, sp, fakeThen, sp, ifTrue, sp, fakeElse, sp, ifFalse);
 }
 
-function makeRepeat(expr: PNodeExpr): PRepeat {
+function makeRepeat(expr: PExpr): PRepeat {
   return new PRepeat(fakeRepeat, sp, expr);
 }
 
-function makeBreak(expr: PNodeExpr): PBreak {
+function makeBreak(expr: PExpr): PBreak {
   return new PBreak(fakeBreak, sp, expr);
 }
 
-function makeLocal(name: PReference, value: PNodeExpr): PLocals {
+function makeLocal(name: PReference, value: PExpr): PLocals {
   const newLocal = new PLocal(undefined, undefined, name.token, sp, eq, sp, value);
   return new PLocals(fakeLet, sp, [ new AnnotatedItem(newLocal, undefined, undefined, []) ]);
 }
 
-function makeHandler(receiver: PConstant | PType, type: PType | undefined, expr: PNodeExpr): POn {
+function makeHandler(receiver: PConstant | PType, type: PType | undefined, expr: PExpr): POn {
   return new POn(
     fakeOn, sp, receiver, type === undefined ? undefined : colon, type === undefined ? undefined : sp, type,
     sp, arrow, sp, expr
@@ -264,16 +264,16 @@ function makeHandler(receiver: PConstant | PType, type: PType | undefined, expr:
 }
 
 // put expressions in a block
-function makeBlock(...nodes: PNodeExpr[]): PBlock {
+function makeBlock(...nodes: PExpr[]): PBlock {
   const list = nodes.map((expr, i) => {
     const last = i == nodes.length - 1;
     return new AnnotatedItem(expr, undefined, last ? undefined : semi, last ? [] : [ sp ]);
   });
-  const collection = new TokenCollection<PNodeExpr>(obrace, [ sp ], list, [ sp ], cbrace);
+  const collection = new TokenCollection<PExpr>(obrace, [ sp ], list, [ sp ], cbrace);
   return new PBlock(collection);
 }
 
-function transformCollection<A extends PNodeExpr>(
+function transformCollection<A extends PExpr>(
   items: TokenCollection<A>,
   f: (item: A, index: number) => A
 ): TokenCollection<A> {
@@ -281,6 +281,6 @@ function transformCollection<A extends PNodeExpr>(
   return new TokenCollection(items.open, items.gap1, newList, items.gap2, items.close);
 }
 
-function replaceAnnotatedItem<A extends PNodeExpr>(item: AnnotatedItem<A>, value: A): AnnotatedItem<A> {
+function replaceAnnotatedItem<A extends PExpr>(item: AnnotatedItem<A>, value: A): AnnotatedItem<A> {
   return new AnnotatedItem(value, item.gap1, item.separator, item.gap2);
 }

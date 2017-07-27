@@ -1,14 +1,14 @@
-import { PNode, PNodeExpr } from "./ast";
+import { PExpr, PNode } from "./ast";
 
 /*
  * walk the AST (depth-first), optionally transforming each expression node as you go.
  */
-export function transformAst(node: PNode, transform: (node: PNodeExpr) => (PNodeExpr | null)): PNode {
-  if (node instanceof PNodeExpr) {
-    let newNode: PNodeExpr | null = node;
+export function transformAst(node: PNode, transform: (node: PExpr) => (PExpr | null)): PNode {
+  if (node instanceof PExpr) {
+    let newNode: PExpr | null = node;
     do {
       node = newNode;
-      newNode = transform(node as PNodeExpr);
+      newNode = transform(node as PExpr);
     } while (newNode != null);
   }
 

@@ -4,12 +4,13 @@
 
 export {
   AnnotatedItem,
+  PExpr,
   PExprKind,
   PNode,
-  PNodeExpr,
   PNodeInjected,
   PNodeToken,
   PType,
+  PTypeKind,
   TokenCollection,
   token,
   tokenMaybe,

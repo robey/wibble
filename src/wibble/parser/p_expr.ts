@@ -3,11 +3,11 @@ import {
   PArray,
   PBinary,
   PCall,
+  PExpr,
   PFunction,
   PIf,
   PNested,
   PNew,
-  PNodeExpr,
   PNodeToken,
   PReference,
   PRepeat,
@@ -38,7 +38,7 @@ export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identif
   return new PReference(token(t));
 });
 
-const array: Parser<Token, PNodeExpr> = repeatSurrounded(
+const array: Parser<Token, PExpr> = repeatSurrounded(
   TokenType.OBRACKET,
   () => code,
   TokenType.COMMA,
@@ -130,7 +130,7 @@ const atom = alt(
   newObject
 ).named("atom");
 
-const unary: Parser<Token, PNodeExpr> = seq3(
+const unary: Parser<Token, PExpr> = seq3(
   tokenizer.matchOneOf(TokenType.NOT, TokenType.MINUS),
   linespace,
   alt(() => unary, atom)
@@ -145,9 +145,9 @@ const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first,
 });
 
 // helper
-function binary(subexpr: Parser<Token, PNodeExpr>, ...ops: TokenType[]): Parser<Token, PNodeExpr> {
+function binary(subexpr: Parser<Token, PExpr>, ...ops: TokenType[]): Parser<Token, PExpr> {
   const sep = seq3(linespace, tokenizer.matchOneOf(...ops), whitespace);
-  const p: Parser<Token, PNodeExpr> = alt(
+  const p: Parser<Token, PExpr> = alt(
     subexpr,
     seq3(() => p, sep, subexpr.named("operand")).map(([ left, [ gap1, op, gap2 ], right]) => {
       return new PBinary(left, gap1, op, gap2, right);
@@ -227,6 +227,6 @@ const whileLoop = seq7(
   return new PWhile(token1, gap1, condition, gap2, token2, gap3, expr);
 });
 
-const baseExpression: Parser<Token, PNodeExpr> = alt(condition, repeatLoop, whileLoop, func, logical);
+const baseExpression: Parser<Token, PExpr> = alt(condition, repeatLoop, whileLoop, func, logical);
 
 export const expression = baseExpression;
