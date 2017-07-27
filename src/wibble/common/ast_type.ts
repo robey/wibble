@@ -9,7 +9,7 @@ export class PType extends PNodeExpr {
 }
 
 export class PEmptyType extends PType {
-  constructor(public token: Token) {
+  constructor(public token: PNode) {
     super(PNodeType.EMPTY_TYPE, "emptyType", token);
   }
 }

@@ -15,18 +15,18 @@ export enum PNodeType {
   CONSTANT,
   REFERENCE,
   ARRAY,
-  FUNCTION,
+  FUNCTION,                     // X
   STRUCT_FIELD,
   STRUCT,
   NESTED,
   NEW,
-  UNARY,
+  UNARY,                        // X
   CALL,
-  BINARY,
+  BINARY,                       // X
   LOGIC,
   IF,
   REPEAT,
-  WHILE,
+  WHILE,                        // X
   ASSIGNMENT,
   RETURN,
   BREAK,
@@ -35,6 +35,10 @@ export enum PNodeType {
   ON,
   BLOCK
 }
+
+/*
+ * X - eliminated by simplify
+ */
 
 /*
  * An AST node may be:
@@ -67,6 +71,13 @@ export abstract class PNode {
       if (this.parent === undefined) return undefined;
       if (this.parent instanceof PNodeExpr) return this.parent;
       return this.parent.parentExpr;
+    }
+
+    // are we contained (somewhere up the tree) inside a node of a certain type?
+    containedInside(nodeType: PNodeType): boolean {
+      const parent = this.parentExpr;
+      if (parent === undefined) return false;
+      return parent.nodeType == nodeType || parent.containedInside(nodeType);
     }
 
     // default implementation assumes children; Token will override

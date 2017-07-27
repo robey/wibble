@@ -96,7 +96,14 @@ const handler = seq8(
   if (gap2 !== undefined) arrowTokens.push(gap2);
   arrowTokens.push(arrow);
   if (gap3 !== undefined) arrowTokens.push(gap3);
-  return new POn(onTokens, receiver, typeTokens, type, arrowTokens, expr);
+  return new POn(
+    onTokens.map(t => new PNodeToken(t)),
+    receiver,
+    typeTokens.map(t => new PNodeToken(t)),
+    type,
+    arrowTokens.map(t => new PNodeToken(t)),
+    expr
+  );
 })
 
 export const code: Parser<Token, PNodeExpr> = alt(

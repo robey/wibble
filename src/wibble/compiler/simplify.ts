@@ -1,11 +1,3 @@
-// "use strict";
-//
-// import {
-//   PBlock, PBreak, PCall, PConstant, PConstantType, PIf, PLocal, PLocals,
-//   PLogic, PNew, POn, PReference, PRepeat, PUnary
-// } from "../common/ast";
-// import { transformAst } from "../common/transform";
-
 import { Span, Token } from "packrattle";
 import {
   AnnotatedItem,
@@ -15,17 +7,23 @@ import {
   PCall,
   PConstant,
   PConstantType,
+  PEmptyType,
   PIf,
   PLocal,
   PLocals,
   PLogic,
   PNested,
+  PNew,
   PNode,
   PNodeExpr,
   PNodeInjected,
   PNodeType,
+  POn,
   PReference,
   PRepeat,
+  PStruct,
+  PStructField,
+  PType,
   PUnary,
   TokenCollection
 } from "../common/ast";
@@ -57,6 +55,58 @@ export function simplify(ast: PNode, errors: Errors) {
 
   return transformAst(ast, node => {
     switch (node.nodeType) {
+
+      case PNodeType.FUNCTION: {
+        // convert function(inType?, outType?, a) into new(on(inType, a, outType))
+        let inType: PType | undefined = undefined;
+        let outType: PType | undefined = undefined;
+        let expr = node.childExpr[0];
+        if (node.childExpr.length > 1) {
+          inType = node.childExpr[0];
+          expr = node.childExpr[1];
+          if (node.childExpr.length > 2) {
+            outType = node.childExpr[1];
+            expr = node.childExpr[2];
+          }
+        }
+        return makeNew(undefined, makeBlock(makeHandler(inType || new PEmptyType(openclose), outType, expr)));
+      }
+
+      case PNodeType.STRUCT: {
+        const tnode = node as PStruct;
+        // convert positional fields into named fields. (adds a name in-place)
+        let positional = true, changed = false;
+        const seen: { [name: string]: boolean } = {};
+
+        const newItems = transformCollection(tnode.items, (item, i) => {
+          if (item.name === undefined) {
+            if (!positional) errors.add("Positional fields can't come after named fields", item);
+            changed = true;
+            return new PStructField(inject(`?${i}`), [ eq ], item.childExpr[0]);
+          }
+          positional = false;
+          if (seen[item.name.source]) errors.add(`Field name '${item.name.source}' is repeated`, item);
+          seen[item.name.source] = true;
+          return item;
+        });
+        return changed ? new PStruct(newItems) : null;
+      }
+
+      case PNodeType.NEW: {
+        // "new" must contain either an "on", or a block that contains at least one "on".
+        const inner = node.childExpr[node.childExpr.length - 1];
+        if (inner.nodeType != PNodeType.BLOCK && inner.nodeType != PNodeType.ON) {
+          errors.add("'new' expression must contain at least one 'on' handler", node);
+        }
+        if (inner.nodeType == PNodeType.BLOCK) {
+          const handlers = inner.childExpr.filter(n => n.nodeType == PNodeType.ON);
+          if (handlers.length == 0) {
+            errors.add("'new' expression must contain at least one 'on' handler", node);
+          }
+        }
+        return null;
+      }
+
       case PNodeType.UNARY: {
         // convert unary(op)(a) into call(a, op)
         const tnode = node as PUnary;
@@ -98,7 +148,7 @@ export function simplify(ast: PNode, errors: Errors) {
         if (
           node.childExpr.length == 1 &&
           [ PNodeType.LOCALS, PNodeType.ASSIGNMENT, PNodeType.ON ].indexOf(node.childExpr[0].nodeType) < 0
-        ) return node.childExpr[0];
+        ) return wrap(node.childExpr[0]);
         return null;
       }
 
@@ -110,29 +160,7 @@ export function simplify(ast: PNode, errors: Errors) {
         return makeIf(node.childExpr[0], makeRepeat(makeBlock(newLocal, breakOut)));
       }
 
-//       case "PStruct": {
-//         // convert positional fields into named fields. (adds a name in-place)
-//         let positional = true;
-//         const seen = {};
-//
-//         node.children.forEach((field, i) => {
-//           if (field.name == null) {
-//             if (!positional) errors.add("Positional fields can't come after named fields", field.span);
-//             field.name = `?${i}`;
-//           } else {
-//             positional = false;
-//             if (seen[field.name]) errors.add(`Field name '${field.name}' is repeated`, field.span);
-//             seen[field.name] = true;
-//           }
-//         });
-//         return null;
-//       }
-//
-//       case "PFunction": {
-//         // convert function(inType, a, outType) into new(on(inType, a, outType)).
-//         return new PNew(new POn(node.children[0], node.children[1], node.children[2], node.span), null, node.span);
-//       }
-//
+
 //       case "POn": {
 //         // must be inside a "new" block.
 //         if (parentType(0) == "PNew" || (parentType(0) == "PBlock" && parentType(1) == "PNew")) {
@@ -143,20 +171,7 @@ export function simplify(ast: PNode, errors: Errors) {
 //         }
 //       }
 //
-//       case "PNew": {
-//         // "new" must contain either an "on", or a block that contains at least one "on".
-//         const inner = node.children[0].nodeType;
-//         if (inner != "PBlock" && inner != "POn") {
-//           errors.add("'new' expression must contain at least one 'on' handler", node.span);
-//         }
-//         if (inner == "PBlock") {
-//           const handlers = node.children[0].children.filter(n => n.nodeType == "POn");
-//           if (handlers.length == 0) {
-//             errors.add("'new' expression must contain at least one 'on' handler", node.span);
-//           }
-//         }
-//         return null;
-//       }
+
 //
 //       // we allow statements everywhere in the parser, to make errors nicer. but here we check and redcard.
 //       case "PLocals": {
@@ -192,18 +207,23 @@ function inject(text: string): PNode {
 }
 
 const sp = inject(" ");
+const colon = inject(":");
 const semi = inject(";");
 const eq = inject("=");
+const arrow = inject("->");
+const openclose = inject("()");
 const obrace = inject("{");
 const cbrace = inject("}");
+const fakeNew = inject("new");
 const fakeIf = inject("if");
 const fakeThen = inject("then");
 const fakeElse = inject("else");
 const fakeRepeat = inject("repeat");
 const fakeBreak = inject("break");
 const fakeLet = inject("let");
+const fakeOn = inject("on");
 
-const nothing = new PConstant(PConstantType.NOTHING, [ inject("()") ]);
+const nothing = new PConstant(PConstantType.NOTHING, [ openclose ]);
 
 function newSymbol(name: string): PConstant {
   return new PConstant(PConstantType.SYMBOL, [ inject(`.${name}`) ], name);
@@ -212,6 +232,10 @@ function newSymbol(name: string): PConstant {
 // put inside a PNested, to preserve precedence when dumping
 function wrap(node: PNodeExpr): PNested {
   return new PNested(inject("("), [], node, [], inject(")"));
+}
+
+function makeNew(type: PType | undefined, code: PNodeExpr): PNew {
+  return new PNew(fakeNew, sp, type, type === undefined ? undefined : sp, code);
 }
 
 function makeCall(a: PNodeExpr, b: PNodeExpr): PCall {
@@ -236,11 +260,28 @@ function makeLocal(name: PReference, value: PNodeExpr): PLocals {
   return new PLocals(fakeLet, sp, [ new AnnotatedItem(newLocal, undefined, undefined, []) ]);
 }
 
+function makeHandler(receiver: PNodeExpr, type: PType | undefined, expr: PNodeExpr): POn {
+  return new POn([ fakeOn, sp ], receiver, type === undefined ? [] : [ colon, sp ], type, [ sp, arrow, sp ], expr);
+}
+
 // put expressions in a block
 function makeBlock(...nodes: PNodeExpr[]): PBlock {
-  const list = nodes.map(expr => {
-    return new AnnotatedItem(expr, undefined, semi, [ sp ]);
+  const list = nodes.map((expr, i) => {
+    const last = i == nodes.length - 1;
+    return new AnnotatedItem(expr, undefined, last ? undefined : semi, last ? [] : [ sp ]);
   });
   const collection = new TokenCollection<PNodeExpr>(obrace, [ sp ], list, [ sp ], cbrace);
   return new PBlock(collection);
+}
+
+function transformCollection<A extends PNodeExpr>(
+  items: TokenCollection<A>,
+  f: (item: A, index: number) => A
+): TokenCollection<A> {
+  const newList = items.list.map((item, i) => replaceAnnotatedItem(item, f(item.item, i)));
+  return new TokenCollection(items.open, items.gap1, newList, items.gap2, items.close);
+}
+
+function replaceAnnotatedItem<A extends PNodeExpr>(item: AnnotatedItem<A>, value: A): AnnotatedItem<A> {
+  return new AnnotatedItem(value, item.gap1, item.separator, item.gap2);
 }

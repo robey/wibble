@@ -35,6 +35,41 @@ function simplify(s: string, options: EngineOptions = {}): PNode {
 
 
 describe("Simplify expressions", () => {
+  it("function", () => {
+    simplify("(n: Int) -> n * 2").source.should.eql("new { on (n: Int) -> (n) .* (2) }");
+    simplify("(a: Int, b: Int): Int -> a + b + calc(b)").source.should.eql(
+      "new { on (a: Int, b: Int): Int -> ((a) .+ (b)) .+ (calc(b)) }"
+    );
+  });
+
+  it("struct", () => {
+    simplify("(1, 2)").source.should.eql("(?0=1, ?1=2)");
+    simplify("(4, x=9)").source.should.eql("(?0=4, x=9)");
+    simplify("(z=4, x=9)").source.should.eql("(z=4, x=9)");
+
+    assert.throws(() => simplify("(y=4, 9)"), (error: WibbleError) => {
+      error.node.source.should.eql("(y=4, ?1=9)");
+      error.errors.inspect().should.match(/\[6:7\] Positional fields/);
+      return true;
+    });
+
+    assert.throws(() => simplify("(y=4, 9, 7)"), (error: WibbleError) => {
+      error.node.source.should.eql("(y=4, ?1=9, ?2=7)");
+      error.errors.inspect().should.match(/\[6:7\] Positional fields/);
+      error.errors.inspect().should.match(/\[9:10\] Positional fields/);
+      return true;
+    });
+  });
+
+  it("new", () => {
+    assert.throws(() => simplify("new { 3 }"), (error: WibbleError) => {
+      error.node.source.should.eql("new (3)");
+      error.errors.inspect().should.match(/at least one 'on'/);
+      return true;
+    });
+    simplify("new { on .x -> 3 }").source.should.eql("new { on .x -> 3 }");
+  });
+
   it("unary", () => {
     simplify("not a").source.should.eql("a .not");
     simplify("-a").source.should.eql("a .negative");
@@ -52,10 +87,19 @@ describe("Simplify expressions", () => {
     simplify("if a then b").source.should.eql("if a then b else ()");
   });
 
+  it("while", () => {
+    simplify("while true do 13").source.should.eql(
+      "if true then repeat { let _0 = 13; if true .not then break _0 else () } else ()"
+    );
+    simplify("while x > 5 do { x := x - 1 }").source.should.eql(
+      "if (x) .> (5) then repeat { let _0 = { x := (x) .- (1) }; if (x) .> (5) .not then break _0 else () } else ()"
+    );
+  });
+
   it("assignment", () => {
     simplify("{ x := 3 }").source.should.eql("{ x := 3 }");
     assert.throws(() => simplify("{ y + (x := 3) }"), (error: WibbleError) => {
-      error.node.source.should.eql("(y) .+ ((x := 3))");
+      error.node.source.should.eql("((y) .+ ((x := 3)))");
       error.errors.inspect().should.match(/\[7:13\] Mutable assignments/);
       error.errors.list.length.should.eql(1);
       error.errors.list[0].node.source.should.eql("x := 3");
@@ -65,50 +109,19 @@ describe("Simplify expressions", () => {
 
   it("block", () => {
     simplify("{ 4; 5 }").source.should.eql("{ 4; 5 }");
-    simplify("{ 4 }").source.should.eql("4");
+    simplify("{ 4 }").source.should.eql("(4)");
     simplify("{ let x = 3 }").source.should.eql("{ let x = 3 }");
   });
 
 
 
-//   it("struct", () => {
-//     simplify("(1, 2)").should.eql("(?0=1, ?1=2)");
-//     simplify("(4, x=9)").should.eql("(?0=4, x=9)");
-//     simplify("(z=4, x=9)").should.eql("(z=4, x=9)");
+
 //
-//     should.throws(() => simplify("(y=4, 9)"), error => {
-//       error.dump.should.eql("(y=4, ?1=9)");
-//       error.errors.inspect().should.match(/\[6:7\] Positional fields/);
-//       return true;
-//     });
-//
-//     should.throws(() => simplify("(y=4, 9, 7)"), error => {
-//       error.dump.should.eql("(y=4, ?1=9, ?2=7)");
-//       error.errors.inspect().should.match(/\[6:7\] Positional fields/);
-//       error.errors.inspect().should.match(/\[9:10\] Positional fields/);
-//       return true;
-//     });
-//   });
-//
-//   it("function", () => {
-//     simplify("(n: Int) -> n * 2").should.eql("new (on (n: Int) -> n .* 2)");
-//     simplify("(a: Int, b: Int): Int -> a + b + calc(b)").should.eql(
-//       "new (on (a: Int, b: Int): Int -> a .+ b .+ (calc b))"
-//     );
-//   });
 //
 //   it("new/on", () => {
 //     simplify("new { on .x -> 3 }").should.eql("new { on .x -> 3 }");
 //   });
 //
-//   it("while", () => {
-//     simplify("while true do 13").should.eql(
-//       "if true then repeat { let _0 = 13; if true .not then break _0 else () } else ()"
-//     );
-//     simplify("while x > 5 do { x := x - 1 }").should.eql(
-//       "if x .> 5 then repeat { let _0 = { x := x .- 1 }; if x .> 5 .not then break _0 else () } else ()"
-//     );
-//   });
 //
 //   it("return", () => {
 //     simplify("() -> return 3").should.eql(

@@ -114,7 +114,15 @@ const newObject = seq5(
   optional(typedecl),
   linespace,
   () => codeBlock
-).map(([ token, gap1, type, gap2, code ]) => new PNew(token, gap1, type, gap2, code));
+).map(([ token, gap1, type, gap2, code ]) => {
+  return new PNew(
+    new PNodeToken(token),
+    gap1 === undefined ? undefined : new PNodeToken(gap1),
+    type,
+    gap2 === undefined ? undefined : new PNodeToken(gap2),
+    code
+  );
+});
 
 const atom = alt(
   constant,

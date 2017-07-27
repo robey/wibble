@@ -28,7 +28,7 @@ import { expression, reference } from "./p_expr";
 const ReservedError = "Reserved word can't be used as identifier";
 const UppercaseError = "Type name must start with uppercase letter";
 
-export const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new PEmptyType(token));
+export const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new PEmptyType(new PNodeToken(token)));
 
 export const simpleType = alt(
   tokenizer.match(TokenType.AT),

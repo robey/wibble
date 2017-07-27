@@ -50,13 +50,13 @@ export class PFunction extends PNodeExpr {
 }
 
 export class PStructField extends PNodeExpr {
-  constructor(name: PNode | undefined, gap: PNode[], value: PNodeExpr) {
+  constructor(public name: PNode | undefined, public gap: PNode[], value: PNodeExpr) {
     super(PNodeType.STRUCT_FIELD, name === undefined ? "field" : `field(${name.source})`, name, gap, value);
   }
 }
 
 export class PStruct extends PNodeExpr {
-  constructor(items: TokenCollection<PStructField>) {
+  constructor(public items: TokenCollection<PStructField>) {
     super(PNodeType.STRUCT, "struct", items);
   }
 }
@@ -75,11 +75,11 @@ export class PNested extends PNodeExpr {
 
 export class PNew extends PNodeExpr {
   constructor(
-    public token: Token,
-    public gap1: Token | undefined,
-    public type: PType | undefined,
-    public gap2: Token | undefined,
-    public code: PNodeExpr
+    public token: PNode,
+    public gap1: PNode | undefined,
+    type: PType | undefined,
+    public gap2: PNode | undefined,
+    code: PNodeExpr
   ) {
     super(PNodeType.NEW, "new", token, gap1, type, gap2, code);
   }
@@ -196,12 +196,12 @@ export class PLocals extends PNodeExpr {
 
 export class POn extends PNodeExpr {
   constructor(
-    onTokens: Token[],
-    receiver: PNode,
-    typeTokens: Token[],
-    type: PNode | undefined,
-    arrowTokens: Token[],
-    expr: PNode
+    onTokens: PNode[],
+    receiver: PNodeExpr,
+    typeTokens: PNode[],
+    type: PType | undefined,
+    arrowTokens: PNode[],
+    expr: PNodeExpr
   ) {
     super(PNodeType.ON, "on", onTokens, receiver, typeTokens, type, arrowTokens, expr);
   }
