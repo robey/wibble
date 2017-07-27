@@ -1,6 +1,5 @@
 import { mergeSpan, Token } from "packrattle";
-import { AnnotatedItem, PNode, PNodeExpr, PNodeType, TokenCollection } from "./ast_core";
-import { PType } from "./ast_type";
+import { AnnotatedItem, PExprKind, PNode, PNodeExpr, PType, TokenCollection } from "./ast_core";
 
 export enum PConstantType {
   NOTHING,
@@ -17,7 +16,7 @@ export class PConstant extends PNodeExpr {
 
   constructor(public type: PConstantType, tokens: PNode[], value?: string) {
     super(
-      PNodeType.CONSTANT,
+      PExprKind.CONSTANT,
       `const(${PConstantType[type]}, ${value !== undefined ? value : tokens.map(x => x.source).join("")})`,
       tokens
     );
@@ -27,37 +26,41 @@ export class PConstant extends PNodeExpr {
 
 export class PReference extends PNodeExpr {
   constructor(public token: PNode) {
-    super(PNodeType.REFERENCE, token.source, token);
+    super(PExprKind.REFERENCE, token.source, token);
   }
 }
 
 export class PArray extends PNodeExpr {
   constructor(items: TokenCollection<PNodeExpr>) {
-    super(PNodeType.ARRAY, "array", items);
+    super(PExprKind.ARRAY, "array", items);
   }
 }
 
 export class PFunction extends PNodeExpr {
   constructor(
-    argType: PType | undefined,
-    gap1: Token[],
-    resultType: PType | undefined,
-    gap2: Token[],
+    public inType: PType | undefined,
+    space1: PNode | undefined,
+    colon: PNode | undefined,
+    space2: PNode | undefined,
+    public outType: PType | undefined,
+    space3: PNode | undefined,
+    arrow: PNode,
+    space4: PNode | undefined,
     body: PNodeExpr
   ) {
-    super(PNodeType.FUNCTION, "function", argType, gap1, resultType, gap2, body);
+    super(PExprKind.FUNCTION, "function", inType, space1, colon, space2, outType, space3, arrow, space4, body);
   }
 }
 
 export class PStructField extends PNodeExpr {
   constructor(public name: PNode | undefined, public gap: PNode[], value: PNodeExpr) {
-    super(PNodeType.STRUCT_FIELD, name === undefined ? "field" : `field(${name.source})`, name, gap, value);
+    super(PExprKind.STRUCT_FIELD, name === undefined ? "field" : `field(${name.source})`, name, gap, value);
   }
 }
 
 export class PStruct extends PNodeExpr {
   constructor(public items: TokenCollection<PStructField>) {
-    super(PNodeType.STRUCT, "struct", items);
+    super(PExprKind.STRUCT, "struct", items);
   }
 }
 
@@ -69,7 +72,7 @@ export class PNested extends PNodeExpr {
     gap2: PNode[],
     close: PNode
   ) {
-    super(PNodeType.NESTED, "nested", open, gap1, inner, gap2, close);
+    super(PExprKind.NESTED, "nested", open, gap1, inner, gap2, close);
   }
 }
 
@@ -81,19 +84,19 @@ export class PNew extends PNodeExpr {
     public gap2: PNode | undefined,
     code: PNodeExpr
   ) {
-    super(PNodeType.NEW, "new", token, gap1, type, gap2, code);
+    super(PExprKind.NEW, "new", token, gap1, type, gap2, code);
   }
 }
 
 export class PUnary extends PNodeExpr {
   constructor(public op: PNode, gap: PNode | undefined, expr: PNodeExpr) {
-    super(PNodeType.UNARY, `unary(${op.source})`, op, gap, expr);
+    super(PExprKind.UNARY, `unary(${op.source})`, op, gap, expr);
   }
 }
 
 export class PCall extends PNodeExpr {
   constructor(left: PNodeExpr, gap: PNode | undefined, right: PNodeExpr) {
-    super(PNodeType.CALL, "call", left, gap, right);
+    super(PExprKind.CALL, "call", left, gap, right);
   }
 }
 
@@ -105,7 +108,7 @@ export class PBinary extends PNodeExpr {
     public gap2: Token[],
     right: PNode
   ) {
-    super(PNodeType.BINARY, `binary(${op.value})`, left, gap1, op, gap2, right);
+    super(PExprKind.BINARY, `binary(${op.value})`, left, gap1, op, gap2, right);
   }
 }
 
@@ -118,26 +121,34 @@ export class PLogic extends PNodeExpr {
     gap2: Token[],
     right: PNode
   ) {
-    super(PNodeType.LOGIC, `logic(${op.value})`, left, gap1, op, gap2, right);
+    super(PExprKind.LOGIC, `logic(${op.value})`, left, gap1, op, gap2, right);
   }
 }
 
 export class PIf extends PNodeExpr {
   constructor(
-    public ifToken: PNode[],
+    public ifToken: PNode,
+    public space1: PNode | undefined,
     condition: PNodeExpr,
-    public thenToken: PNode[],
+    public space2: PNode | undefined,
+    public thenToken: PNode,
+    public space3: PNode | undefined,
     onTrue: PNodeExpr,
-    public elseToken: PNode[],
+    public space4?: PNode,
+    public elseToken?: PNode,
+    public space5?: PNode,
     onFalse?: PNodeExpr
   ) {
-    super(PNodeType.IF, "if", ifToken, condition, thenToken, onTrue, elseToken, onFalse);
+    super(
+      PExprKind.IF, "if", ifToken, space1, condition, space2, thenToken, space3, onTrue, space4, elseToken,
+      space5, onFalse
+    );
   }
 }
 
 export class PRepeat extends PNodeExpr {
   constructor(token: PNode, gap: PNode | undefined, expr: PNodeExpr) {
-    super(PNodeType.REPEAT, "repeat", token, gap, expr);
+    super(PExprKind.REPEAT, "repeat", token, gap, expr);
   }
 }
 
@@ -151,64 +162,71 @@ export class PWhile extends PNodeExpr {
     gap3: Token | undefined,
     expr: PNode
   ) {
-    super(PNodeType.WHILE, "while", token1, gap1, condition, gap2, token2, gap3, expr);
+    super(PExprKind.WHILE, "while", token1, gap1, condition, gap2, token2, gap3, expr);
   }
 }
 
 export class PAssignment extends PNodeExpr {
-  constructor(name: PNode, assign: Token[], expr: PNode) {
-    super(PNodeType.ASSIGNMENT, "assign", name, assign, expr);
+  constructor(name: PNode, space1: PNode | undefined, assign: PNode, space2: PNode | undefined, expr: PNodeExpr) {
+    super(PExprKind.ASSIGNMENT, "assign", name, space1, assign, space2, expr);
   }
 }
 
 export class PReturn extends PNodeExpr {
-  constructor(tokens: Token[], expr: PNode) {
-    super(PNodeType.RETURN, "return", tokens, expr);
+  constructor(token: PNode, gap: PNode | undefined, expr: PNodeExpr) {
+    super(PExprKind.RETURN, "return", token, gap, expr);
   }
 }
 
 export class PBreak extends PNodeExpr {
-  constructor(tokens: PNode[], expr?: PNodeExpr) {
-    super(PNodeType.BREAK, "break", tokens, expr);
+  constructor(token: PNode, gap?: PNode, expr?: PNodeExpr) {
+    super(PExprKind.BREAK, "break", token, gap, expr);
   }
 }
 
 export class PLocal extends PNodeExpr {
   constructor(
-    isVar: PNode[],
+    isVar: PNode | undefined,
+    space1: PNode | undefined,
     name: PNode,
-    tokens: PNode[],
+    space2: PNode | undefined,
+    token: PNode,
+    space3: PNode | undefined,
     expr: PNodeExpr
   ) {
     super(
-      PNodeType.LOCAL,
-      `local${isVar.length == 0 ? "" : "-var"}(${name.source})`,
-      isVar, name, tokens, expr
+      PExprKind.LOCAL,
+      `local${isVar === undefined ? "" : "-var"}(${name.source})`,
+      isVar, space1, name, space2, token, space3, expr
     );
   }
 }
 
 export class PLocals extends PNodeExpr {
   constructor(token: PNode, gap: PNode | undefined, locals: AnnotatedItem<PLocal>[]) {
-    super(PNodeType.LOCALS, "let", token, gap, locals);
+    super(PExprKind.LOCALS, "let", token, gap, locals);
   }
 }
 
 export class POn extends PNodeExpr {
   constructor(
-    onTokens: PNode[],
-    receiver: PNodeExpr,
-    typeTokens: PNode[],
+    onToken: PNode,
+    space1: PNode | undefined,
+    receiver: PConstant | PType,
+    colon: PNode | undefined,
+    space2: PNode | undefined,
     type: PType | undefined,
-    arrowTokens: PNode[],
+    space3: PNode | undefined,
+    arrow: PNode,
+    space4: PNode | undefined,
     expr: PNodeExpr
   ) {
-    super(PNodeType.ON, "on", onTokens, receiver, typeTokens, type, arrowTokens, expr);
+    super(PExprKind.ON, "on", onToken, space1, receiver, colon, space2, type, space3, arrow, space4, expr);
   }
 }
 
 export class PBlock extends PNodeExpr {
   constructor(code: TokenCollection<PNodeExpr>) {
-    super(PNodeType.BLOCK, "block", code);
+    super(PExprKind.BLOCK, "block", code);
   }
 }

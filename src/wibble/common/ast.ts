@@ -2,7 +2,20 @@
  * AST nodes
  */
 
-export { AnnotatedItem, PNode, PNodeExpr, PNodeInjected, PNodeToken, PNodeType, TokenCollection } from "./ast_core";
+export {
+  AnnotatedItem,
+  PExprKind,
+  PNode,
+  PNodeExpr,
+  PNodeInjected,
+  PNodeToken,
+  PType,
+  TokenCollection,
+  token,
+  tokenMaybe,
+  tokens
+} from "./ast_core";
+
 export {
   PArray,
   PAssignment,
@@ -28,6 +41,7 @@ export {
   PUnary,
   PWhile
 } from "./ast_expr";
+
 export {
   PCompoundType,
   PEmptyType,
@@ -39,6 +53,5 @@ export {
   PParameterType,
   PSimpleType,
   PTemplateType,
-  PType,
   PTypedField
 } from "./ast_type";

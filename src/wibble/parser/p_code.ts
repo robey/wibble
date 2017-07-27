@@ -1,6 +1,6 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
 import {
-  PAssignment, PBlock, PBreak, PLocal, PLocals, PNodeExpr, PNodeToken, POn, PReturn, PType
+  PAssignment, PBlock, PBreak, PConstant, PLocal, PLocals, PNodeExpr, PNodeToken, POn, PReturn, PType, token, tokenMaybe
 } from "../common/ast";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
@@ -18,31 +18,25 @@ const assignment = seq5(
   tokenizer.match(TokenType.ASSIGN),
   linespace,
   () => code
-).named("assignment").map(([ name, gap1, token, gap2, expr ]) => {
-  const tokens = (gap1 === undefined ? [] : [ gap1 ]).concat(token);
-  if (gap2 !== undefined) tokens.push(gap2);
-  return new PAssignment(name, tokens, expr);
+).named("assignment").map(([ name, gap1, t, gap2, expr ]) => {
+  return new PAssignment(name, tokenMaybe(gap1), token(t), tokenMaybe(gap2), expr);
 });
 
 const returnEarly = seq3(
   tokenizer.match(TokenType.RETURN),
   linespace,
   () => code
-).named("return").map(([ token, gap, expr ]) => {
-  const tokens = [ token ];
-  if (gap !== undefined) tokens.push(gap);
-  return new PReturn(tokens, expr);
+).named("return").map(([ t, gap, expr ]) => {
+  return new PReturn(token(t), tokenMaybe(gap), expr);
 });
 
 const breakEarly = seq2(
   tokenizer.match(TokenType.BREAK),
   optional(seq2(linespace, () => code))
-).map(([ token, optionalExpr ]) => {
-  const tokens = [ token ];
-  if (optionalExpr === undefined) return new PBreak(tokens.map(t => new PNodeToken(t)));
+).map(([ t, optionalExpr ]) => {
+  if (optionalExpr === undefined) return new PBreak(token(t));
   const [ gap, expr ] = optionalExpr;
-  if (gap !== undefined) tokens.push(gap);
-  return new PBreak(tokens.map(t => new PNodeToken(t)), expr);
+  return new PBreak(token(t), tokenMaybe(gap), expr);
 });
 
 const localDeclaration = seq6(
@@ -52,59 +46,42 @@ const localDeclaration = seq6(
   tokenizer.match(TokenType.BIND),
   linespace,
   () => expression
-).map(([ optionalVar, name, gap1, op, gap2, expr ]) => {
-  const isVar: Token[] = [];
-  if (optionalVar !== undefined) {
-    const [ a, b ] = optionalVar;
-    isVar.push(a);
-    if (b !== undefined) isVar.push(b);
+).map(([ optionalVar, name, gap2, op, gap3, expr ]) => {
+  if (optionalVar === undefined) {
+    return new PLocal(undefined, undefined, name.token, tokenMaybe(gap2), token(op), tokenMaybe(gap3), expr);
   }
-  const tokens = (gap1 === undefined ? [] : [ gap1 ]).concat(op);
-  if (gap2 !== undefined) tokens.push(gap2);
-  return new PLocal(isVar.map(t => new PNodeToken(t)), name.token, tokens.map(t => new PNodeToken(t)), expr);
+  const [ isVar, gap1 ] = optionalVar;
+  return new PLocal(token(isVar), tokenMaybe(gap1), name.token, tokenMaybe(gap2), token(op), tokenMaybe(gap3), expr);
 });
 
 const localLet = seq3(
   tokenizer.match(TokenType.LET),
   linespace,
   repeatSeparated(localDeclaration, TokenType.COMMA)
-).map(([ token, gap, items ]) => {
-  return new PLocals(new PNodeToken(token), gap === undefined ? undefined : new PNodeToken(gap), items);
-})
+).map(([ t, gap, items ]) => {
+  return new PLocals(token(t), tokenMaybe(gap), items);
+});
 
 const handler = seq8(
   tokenizer.match(TokenType.ON),
   linespace,
-  alt<Token, PNodeExpr>(emptyType, symbolRef, compoundType).named("symbol or parameters"),
+  alt<Token, PConstant | PType>(emptyType, symbolRef, compoundType).named("symbol or parameters"),
   optional(seq3(tokenizer.match(TokenType.COLON), linespace, typedecl)),
   linespace,
   tokenizer.match(TokenType.ARROW),
   linespace,
   () => expression
 ).map(([ onToken, gap1, receiver, optionalType, gap2, arrow, gap3, expr ]) => {
-  const onTokens = [ onToken ];
-  if (gap1 !== undefined) onTokens.push(gap1);
-  const typeTokens = [];
-  let type: PType | undefined = undefined;
-  if (optionalType !== undefined) {
-    const [ colon, gap, t ] = optionalType;
-    typeTokens.push(colon);
-    if (gap !== undefined) typeTokens.push(gap);
-    type = t;
-  }
-  const arrowTokens = [];
-  if (gap2 !== undefined) arrowTokens.push(gap2);
-  arrowTokens.push(arrow);
-  if (gap3 !== undefined) arrowTokens.push(gap3);
-  return new POn(
-    onTokens.map(t => new PNodeToken(t)),
-    receiver,
-    typeTokens.map(t => new PNodeToken(t)),
-    type,
-    arrowTokens.map(t => new PNodeToken(t)),
-    expr
+  if (optionalType === undefined) return new POn(
+    token(onToken), tokenMaybe(gap1), receiver, undefined, undefined, undefined, tokenMaybe(gap2),
+    token(arrow), tokenMaybe(gap3), expr
   );
-})
+  const [ colon, gap, t ] = optionalType;
+  return new POn(
+    token(onToken), tokenMaybe(gap1), receiver, token(colon), tokenMaybe(gap), t, tokenMaybe(gap2),
+    token(arrow), tokenMaybe(gap3), expr
+  );
+});
 
 export const code: Parser<Token, PNodeExpr> = alt(
   localLet,

@@ -14,7 +14,8 @@ import {
   PSimpleType,
   PTemplateType,
   PType,
-  PTypedField
+  PTypedField,
+  tokens,
 } from "../common/ast";
 import { symbolRef } from "./p_const";
 import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded } from "./p_parser";
@@ -48,16 +49,10 @@ const typedField: Parser<Token, PTypedField> = seq4(
   optional(seq2(linespaceAround(tokenizer.match(TokenType.BIND)), () => expression))
 ).map(([ name, colon, type, value ]) => {
   if (value === undefined) {
-    return new PTypedField(name.token, colon.map(t => new PNodeToken(t)), type);
+    return new PTypedField(name.token, tokens(colon), type);
   } else {
     const [ bind, defaultValue ] = value;
-    return new PTypedField(
-      name.token,
-      colon.map(t => new PNodeToken(t)),
-      type,
-      bind.map(t => new PNodeToken(t)),
-      defaultValue
-    );
+    return new PTypedField(name.token, tokens(colon), type, tokens(bind), defaultValue);
   }
 });
 
@@ -140,4 +135,4 @@ const mergedType = repeatSeparated(baseType, TokenType.PIPE).map(items => {
   return new PMergedType(items);
 });
 
-export const typedecl = mergedType.named("type");
+export const typedecl: Parser<Token, PType> = mergedType.named("type");

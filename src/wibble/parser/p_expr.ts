@@ -14,7 +14,10 @@ import {
   PStruct,
   PStructField,
   PUnary,
-  PWhile
+  PWhile,
+  token,
+  tokenMaybe,
+  tokens,
 } from "../common/ast";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
@@ -29,10 +32,10 @@ import { compoundType, typedecl } from "./p_type";
 const ReservedError = "Reserved word can't be used as identifier";
 const LowercaseError = "Variable name must start with lowercase letter";
 
-export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identifier").map(token => {
-  if (token.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
-  if (!token.value.match(/^[a-z]/)) throw failWithPriority(LowercaseError);
-  return new PReference(new PNodeToken(token));
+export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identifier").map(t => {
+  if (t.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
+  if (!t.value.match(/^[a-z]/)) throw failWithPriority(LowercaseError);
+  return new PReference(token(t));
 });
 
 const array: Parser<Token, PNodeExpr> = repeatSurrounded(
@@ -60,20 +63,20 @@ export const func = seq4(
   linespace,
   () => code
 ).named("function").map(([ args, arrow, space4, body ]) => {
-  const gap2 = [ arrow ];
-  if (space4 !== undefined) gap2.push(space4);
-  if (args === undefined) return new PFunction(undefined, [], undefined, gap2, body);
+  if (args === undefined) return new PFunction(
+    undefined, undefined, undefined, undefined, undefined, undefined, token(arrow), tokenMaybe(space4), body
+  );
 
   const [ argType, space1, results ] = args;
-  const gap1 = [];
-  if (space1 !== undefined) gap1.push(space1);
-  if (results === undefined) return new PFunction(argType, gap1, undefined, gap2, body);
+  if (results === undefined) return new PFunction(
+    argType, tokenMaybe(space1), undefined, undefined, undefined, undefined, token(arrow), tokenMaybe(space4), body
+  );
 
   const [ colon, space2, resultType, space3 ] = results;
-  gap1.push(colon);
-  if (space2 !== undefined) gap1.push(space2);
-  if (space3 !== undefined) gap2.unshift(space3);
-  return new PFunction(argType, gap1, resultType, gap2, body);
+  return new PFunction(
+    argType, tokenMaybe(space1), tokenMaybe(colon), tokenMaybe(space2), resultType, tokenMaybe(space3),
+    token(arrow), tokenMaybe(space4), body
+  );
 });
 
 const structMember = seq2(
@@ -82,7 +85,7 @@ const structMember = seq2(
 ).map(([ prefix, value ]) => {
   if (prefix !== undefined) {
     const [ ref, gap ] = prefix;
-    return new PStructField(ref.token, gap.map(t => new PNodeToken(t)), value);
+    return new PStructField(ref.token, tokens(gap), value);
   } else {
     return new PStructField(undefined, [], value);
   }
@@ -114,14 +117,8 @@ const newObject = seq5(
   optional(typedecl),
   linespace,
   () => codeBlock
-).map(([ token, gap1, type, gap2, code ]) => {
-  return new PNew(
-    new PNodeToken(token),
-    gap1 === undefined ? undefined : new PNodeToken(gap1),
-    type,
-    gap2 === undefined ? undefined : new PNodeToken(gap2),
-    code
-  );
+).map(([ t, gap1, type, gap2, code ]) => {
+  return new PNew(token(t), tokenMaybe(gap1), type, tokenMaybe(gap2), code);
 });
 
 const atom = alt(
@@ -137,13 +134,13 @@ const unary: Parser<Token, PNodeExpr> = seq3(
   tokenizer.matchOneOf(TokenType.NOT, TokenType.MINUS),
   linespace,
   alt(() => unary, atom)
-).map(([ token, gap, inner ]) => {
-  return new PUnary(new PNodeToken(token), gap === undefined ? undefined : new PNodeToken(gap), inner);
+).map(([ t, gap, inner ]) => {
+  return new PUnary(token(t), tokenMaybe(gap), inner);
 });
 
 const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first, rest ]) => {
   return rest.reduce((left, [ gap, right ]) => {
-    return new PCall(left, gap !== undefined ? new PNodeToken(gap) : undefined, right);
+    return new PCall(left, tokenMaybe(gap), right);
   }, first);
 });
 
@@ -200,28 +197,22 @@ const condition = seq8(
     () => code
   ))
 ).named("condition").map(([ token1, space1, condition, space2, token2, space3, onTrue, elseBlock ]) => {
-  const gap1 = [ new PNodeToken(token1) ];
-  if (space1 !== undefined) gap1.push(new PNodeToken(space1));
-  const gap2 = (space2 == undefined ? [] : [ new PNodeToken(space2) ]).concat(new PNodeToken(token2));
-  if (space3 !== undefined) gap2.push(new PNodeToken(space3));
-  const gap3: PNodeToken[] = [];
-  let onFalse: PNodeExpr | undefined = undefined;
-  if (elseBlock !== undefined) {
-    const [ space4, token3, space5, node ] = elseBlock;
-    if (space4 !== undefined) gap3.push(new PNodeToken(space4));
-    gap3.push(new PNodeToken(token3));
-    if (space5 !== undefined) gap3.push(new PNodeToken(space5));
-    onFalse = node;
-  }
-  return new PIf(gap1, condition, gap2, onTrue, gap3, onFalse);
+  if (elseBlock === undefined) return new PIf(
+    token(token1), tokenMaybe(space1), condition, tokenMaybe(space2), token(token2), tokenMaybe(space3), onTrue
+  );
+  const [ space4, token3, space5, node ] = elseBlock;
+  return new PIf(
+    token(token1), tokenMaybe(space1), condition, tokenMaybe(space2), token(token2), tokenMaybe(space3), onTrue,
+    tokenMaybe(space4), token(token3), tokenMaybe(space5), node
+  );
 });
 
 const repeatLoop = seq3(
   tokenizer.match(TokenType.REPEAT),
   linespace,
   () => code
-).map(([ token, gap, expr ]) => {
-  return new PRepeat(new PNodeToken(token), gap === undefined ? undefined : new PNodeToken(gap), expr);
+).map(([ t, gap, expr ]) => {
+  return new PRepeat(token(t), tokenMaybe(gap), expr);
 })
 
 const whileLoop = seq7(

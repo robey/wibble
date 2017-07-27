@@ -8,6 +8,8 @@ import {
   PConstant,
   PConstantType,
   PEmptyType,
+  PExprKind,
+  PFunction,
   PIf,
   PLocal,
   PLocals,
@@ -17,7 +19,6 @@ import {
   PNode,
   PNodeExpr,
   PNodeInjected,
-  PNodeType,
   POn,
   PReference,
   PRepeat,
@@ -56,23 +57,16 @@ export function simplify(ast: PNode, errors: Errors) {
   return transformAst(ast, node => {
     switch (node.nodeType) {
 
-      case PNodeType.FUNCTION: {
+      case PExprKind.FUNCTION: {
         // convert function(inType?, outType?, a) into new(on(inType, a, outType))
-        let inType: PType | undefined = undefined;
-        let outType: PType | undefined = undefined;
-        let expr = node.childExpr[0];
-        if (node.childExpr.length > 1) {
-          inType = node.childExpr[0];
-          expr = node.childExpr[1];
-          if (node.childExpr.length > 2) {
-            outType = node.childExpr[1];
-            expr = node.childExpr[2];
-          }
-        }
-        return makeNew(undefined, makeBlock(makeHandler(inType || new PEmptyType(openclose), outType, expr)));
+        const tnode = node as PFunction;
+        return makeNew(
+          undefined,
+          makeBlock(makeHandler(tnode.inType || new PEmptyType(openclose), tnode.outType, tnode.childExpr[0]))
+        );
       }
 
-      case PNodeType.STRUCT: {
+      case PExprKind.STRUCT: {
         const tnode = node as PStruct;
         // convert positional fields into named fields. (adds a name in-place)
         let positional = true, changed = false;
@@ -92,14 +86,14 @@ export function simplify(ast: PNode, errors: Errors) {
         return changed ? new PStruct(newItems) : null;
       }
 
-      case PNodeType.NEW: {
+      case PExprKind.NEW: {
         // "new" must contain either an "on", or a block that contains at least one "on".
         const inner = node.childExpr[node.childExpr.length - 1];
-        if (inner.nodeType != PNodeType.BLOCK && inner.nodeType != PNodeType.ON) {
+        if (inner.nodeType != PExprKind.BLOCK && inner.nodeType != PExprKind.ON) {
           errors.add("'new' expression must contain at least one 'on' handler", node);
         }
-        if (inner.nodeType == PNodeType.BLOCK) {
-          const handlers = inner.childExpr.filter(n => n.nodeType == PNodeType.ON);
+        if (inner.nodeType == PExprKind.BLOCK) {
+          const handlers = inner.childExpr.filter(n => n.nodeType == PExprKind.ON);
           if (handlers.length == 0) {
             errors.add("'new' expression must contain at least one 'on' handler", node);
           }
@@ -107,13 +101,13 @@ export function simplify(ast: PNode, errors: Errors) {
         return null;
       }
 
-      case PNodeType.UNARY: {
+      case PExprKind.UNARY: {
         // convert unary(op)(a) into call(a, op)
         const tnode = node as PUnary;
         return makeCall(tnode.childExpr[0], newSymbol(tnode.op.source == "-" ? "negative" : tnode.op.source));
       }
 
-      case PNodeType.BINARY: {
+      case PExprKind.BINARY: {
         // convert binary(logic-op)(a, b) into logic(logic-op)(a, b)
         const tnode = node as PBinary;
         if (tnode.op.tokenType.id == TokenType.OR || tnode.op.tokenType.id == TokenType.AND) {
@@ -126,33 +120,35 @@ export function simplify(ast: PNode, errors: Errors) {
         );
       }
 
-      case PNodeType.IF: {
+      case PExprKind.IF: {
         // ensure every "if" has an "else".
         if (node.childExpr.length < 3) {
           const tnode = node as PIf;
-          const elseToken = [ sp, fakeElse, sp ];
-          return new PIf(tnode.ifToken, tnode.childExpr[0], tnode.thenToken, tnode.childExpr[1], elseToken, nothing);
+          return new PIf(
+            tnode.ifToken, tnode.space1, tnode.childExpr[0], tnode.space2, tnode.thenToken, tnode.space3,
+            tnode.childExpr[1], sp, fakeElse, sp, nothing
+          );
         }
         return null;
       }
 
-      case PNodeType.ASSIGNMENT: {
-        if (node.parentExpr && node.parentExpr.nodeType != PNodeType.BLOCK) {
+      case PExprKind.ASSIGNMENT: {
+        if (node.parentExpr && node.parentExpr.nodeType != PExprKind.BLOCK) {
           errors.add("Mutable assignments may only occur inside a code block", node);
         }
         return null;
       }
 
-      case PNodeType.BLOCK: {
+      case PExprKind.BLOCK: {
         // convert one-expression block into that expression.
         if (
           node.childExpr.length == 1 &&
-          [ PNodeType.LOCALS, PNodeType.ASSIGNMENT, PNodeType.ON ].indexOf(node.childExpr[0].nodeType) < 0
+          [ PExprKind.LOCALS, PExprKind.ASSIGNMENT, PExprKind.ON ].indexOf(node.childExpr[0].nodeType) < 0
         ) return wrap(node.childExpr[0]);
         return null;
       }
 
-      case PNodeType.WHILE: {
+      case PExprKind.WHILE: {
         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
         const newVar = nextLocal();
         const newLocal = makeLocal(newVar, node.childExpr[1]);
@@ -243,8 +239,8 @@ function makeCall(a: PNodeExpr, b: PNodeExpr): PCall {
 }
 
 function makeIf(cond: PNodeExpr, ifTrue: PNodeExpr, ifFalse?: PNodeExpr): PIf {
-  const elseToken = ifFalse === undefined ? [] : [ sp, fakeElse, sp ];
-  return new PIf([ fakeIf, sp ], cond, [ sp, fakeThen, sp ], ifTrue, elseToken, ifFalse);
+  if (ifFalse == undefined) return new PIf(fakeIf, sp, cond, sp, fakeThen, sp, ifTrue);
+  return new PIf(fakeIf, sp, cond, sp, fakeThen, sp, ifTrue, sp, fakeElse, sp, ifFalse);
 }
 
 function makeRepeat(expr: PNodeExpr): PRepeat {
@@ -252,16 +248,19 @@ function makeRepeat(expr: PNodeExpr): PRepeat {
 }
 
 function makeBreak(expr: PNodeExpr): PBreak {
-  return new PBreak([ fakeBreak, sp ], expr);
+  return new PBreak(fakeBreak, sp, expr);
 }
 
 function makeLocal(name: PReference, value: PNodeExpr): PLocals {
-  const newLocal = new PLocal([], name.token, [ sp, eq, sp ], value);
+  const newLocal = new PLocal(undefined, undefined, name.token, sp, eq, sp, value);
   return new PLocals(fakeLet, sp, [ new AnnotatedItem(newLocal, undefined, undefined, []) ]);
 }
 
-function makeHandler(receiver: PNodeExpr, type: PType | undefined, expr: PNodeExpr): POn {
-  return new POn([ fakeOn, sp ], receiver, type === undefined ? [] : [ colon, sp ], type, [ sp, arrow, sp ], expr);
+function makeHandler(receiver: PConstant | PType, type: PType | undefined, expr: PNodeExpr): POn {
+  return new POn(
+    fakeOn, sp, receiver, type === undefined ? undefined : colon, type === undefined ? undefined : sp, type,
+    sp, arrow, sp, expr
+  );
 }
 
 // put expressions in a block
