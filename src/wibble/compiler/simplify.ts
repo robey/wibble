@@ -18,7 +18,6 @@ import {
   PNested,
   PNew,
   PNode,
-  PNodeInjected,
   POn,
   PReference,
   PRepeat,
@@ -29,7 +28,7 @@ import {
   TokenCollection
 } from "../common/ast";
 import { Errors } from "../common/errors";
-import { TokenType } from "../parser/p_tokens";
+import { makeToken, tokenizer, TokenType } from "../parser/p_tokens";
 import { transformAst } from "../common/transform";
 
 /*
@@ -42,17 +41,10 @@ export function simplify(ast: PNode, errors: Errors) {
    * user-written code).
    */
   let generateIndex = 0;
-  function nextLocal(): PReference {
-    return new PReference(inject(`_${generateIndex++}`));
+  function nextLocal(): string {
+    return `_${generateIndex++}`;
   }
 
-
-//   // keep breadcrumbs of the path we took to get to this node.
-//   const path = [];
-//   function parentType(n = 0) {
-//     if (n >= path.length) return "";
-//     return path[path.length - n - 1].nodeType;
-//   }
 
   return transformAst(ast, node => {
     switch (node.nodeType) {
@@ -62,7 +54,11 @@ export function simplify(ast: PNode, errors: Errors) {
         const tnode = node as PFunction;
         return makeNew(
           undefined,
-          makeBlock(makeHandler(tnode.inType || new PEmptyType(openclose), tnode.outType, tnode.childExpr[0]))
+          makeBlock(makeHandler(
+            tnode.inType || new PEmptyType(makeToken[TokenType.NOTHING](tnode.span.start)),
+            tnode.outType,
+            tnode.childExpr[0]
+          ))
         );
       }
 
@@ -76,11 +72,15 @@ export function simplify(ast: PNode, errors: Errors) {
           if (item.name === undefined) {
             if (!positional) errors.add("Positional fields can't come after named fields", item);
             changed = true;
-            return new PStructField(inject(`?${i}`), [ eq ], item.childExpr[0]);
+            return new PStructField(
+              identifier(`?${i}`, item.span.start),
+              [ makeToken[TokenType.BIND](item.span.start) ],
+              item.childExpr[0]
+            );
           }
           positional = false;
-          if (seen[item.name.source]) errors.add(`Field name '${item.name.source}' is repeated`, item);
-          seen[item.name.source] = true;
+          if (seen[item.name.value]) errors.add(`Field name '${item.name.value}' is repeated`, item);
+          seen[item.name.value] = true;
           return item;
         });
         return changed ? new PStruct(newItems) : null;
@@ -104,7 +104,10 @@ export function simplify(ast: PNode, errors: Errors) {
       case PExprKind.UNARY: {
         // convert unary(op)(a) into call(a, op)
         const tnode = node as PUnary;
-        return makeCall(tnode.childExpr[0], newSymbol(tnode.op.source == "-" ? "negative" : tnode.op.source));
+        return makeCall(
+          tnode.childExpr[0],
+          newSymbol(tnode.op.value == "-" ? "negative" : tnode.op.value, tnode.children[0].span.end)
+        );
       }
 
       case PExprKind.BINARY: {
@@ -115,7 +118,7 @@ export function simplify(ast: PNode, errors: Errors) {
         }
         // convert binary(op)(a, b) into call(call(a, op), b)
         return makeCall(
-          makeCall(wrap(tnode.childExpr[0]), newSymbol(tnode.op.value)),
+          makeCall(wrap(tnode.childExpr[0]), newSymbol(tnode.op.value, tnode.childExpr[0].span.end)),
           wrap(tnode.childExpr[1])
         );
       }
@@ -124,9 +127,10 @@ export function simplify(ast: PNode, errors: Errors) {
         // ensure every "if" has an "else".
         if (node.childExpr.length < 3) {
           const tnode = node as PIf;
+          const index = tnode.childExpr[1].span.end;
           return new PIf(
             tnode.ifToken, tnode.space1, tnode.childExpr[0], tnode.space2, tnode.thenToken, tnode.space3,
-            tnode.childExpr[1], sp, fakeElse, sp, nothing
+            tnode.childExpr[1], sp(index), makeToken[TokenType.ELSE](index), sp(index), nothing(index)
           );
         }
         return null;
@@ -150,10 +154,14 @@ export function simplify(ast: PNode, errors: Errors) {
 
       case PExprKind.WHILE: {
         // convert while(a, b) into if(a, repeat(block(local(?0, b), if(not(a), break(?0))))).
+        const cond = node.childExpr[0], expr = node.childExpr[1];
         const newVar = nextLocal();
-        const newLocal = makeLocal(newVar, node.childExpr[1]);
-        const breakOut = makeIf(makeCall(node.childExpr[0], newSymbol("not")), makeBreak(newVar));
-        return makeIf(node.childExpr[0], makeRepeat(makeBlock(newLocal, breakOut)));
+        const newLocal = makeLocal(identifier(newVar, expr.span.start), expr);
+        const breakOut = makeIf(
+          makeCall(cond, newSymbol("not", cond.span.end)),
+          makeBreak(new PReference(identifier(newVar, cond.span.end)))
+        );
+        return makeIf(cond, makeRepeat(makeBlock(newLocal, breakOut)));
       }
 
 
@@ -198,68 +206,81 @@ export function simplify(ast: PNode, errors: Errors) {
   });
 }
 
-function inject(text: string): PNode {
-  return new PNodeInjected(text);
+function sp(index: number): Token {
+  return tokenizer.token(TokenType.LINESPACE, new Span(index, index), " ");
 }
 
-const sp = inject(" ");
-const colon = inject(":");
-const semi = inject(";");
-const eq = inject("=");
-const arrow = inject("->");
-const openclose = inject("()");
-const obrace = inject("{");
-const cbrace = inject("}");
-const fakeNew = inject("new");
-const fakeIf = inject("if");
-const fakeThen = inject("then");
-const fakeElse = inject("else");
-const fakeRepeat = inject("repeat");
-const fakeBreak = inject("break");
-const fakeLet = inject("let");
-const fakeOn = inject("on");
+function nothing(index: number): PConstant {
+  return new PConstant(PConstantType.NOTHING, [ makeToken[TokenType.NOTHING](index) ]);
+}
 
-const nothing = new PConstant(PConstantType.NOTHING, [ openclose ]);
+function identifier(name: string, index: number): Token {
+  return tokenizer.token(TokenType.IDENTIFIER, new Span(index, index), name);
+}
 
-function newSymbol(name: string): PConstant {
-  return new PConstant(PConstantType.SYMBOL, [ inject(`.${name}`) ], name);
+function newSymbol(name: string, index: number): PConstant {
+  return new PConstant(PConstantType.SYMBOL, [ identifier(`.${name}`, index) ], name);
 }
 
 // put inside a PNested, to preserve precedence when dumping
 function wrap(node: PExpr): PNested {
-  return new PNested(inject("("), [], node, [], inject(")"));
+  return new PNested(
+    makeToken[TokenType.OPAREN](node.span.start), [], node, [], makeToken[TokenType.CPAREN](node.span.end)
+  );
 }
 
 function makeNew(type: PType | undefined, code: PExpr): PNew {
-  return new PNew(fakeNew, sp, type, type === undefined ? undefined : sp, code);
+  const index = type === undefined ? code.span.start : type.span.start;
+  return new PNew(
+    makeToken[TokenType.NEW](index), sp(index), type, type === undefined ? undefined : sp(code.span.start), code
+  );
 }
 
 function makeCall(a: PExpr, b: PExpr): PCall {
-  return new PCall(a, sp, b);
+  return new PCall(a, sp(a.span.end), b);
 }
 
 function makeIf(cond: PExpr, ifTrue: PExpr, ifFalse?: PExpr): PIf {
-  if (ifFalse == undefined) return new PIf(fakeIf, sp, cond, sp, fakeThen, sp, ifTrue);
-  return new PIf(fakeIf, sp, cond, sp, fakeThen, sp, ifTrue, sp, fakeElse, sp, ifFalse);
+  const fakeIf = makeToken[TokenType.IF](cond.span.start);
+  const sp1 = sp(cond.span.start);
+  const fakeThen = makeToken[TokenType.THEN](ifTrue.span.start);
+  const sp2 = sp(ifTrue.span.start);
+  if (ifFalse == undefined) return new PIf(fakeIf, sp1, cond, sp2, fakeThen, sp2, ifTrue);
+  const fakeElse = makeToken[TokenType.ELSE](ifFalse.span.start);
+  const sp3 = sp(ifFalse.span.start);
+  return new PIf(fakeIf, sp1, cond, sp2, fakeThen, sp2, ifTrue, sp3, fakeElse, sp3, ifFalse);
 }
 
 function makeRepeat(expr: PExpr): PRepeat {
-  return new PRepeat(fakeRepeat, sp, expr);
+  return new PRepeat(makeToken[TokenType.REPEAT](expr.span.start), sp(expr.span.start), expr);
 }
 
 function makeBreak(expr: PExpr): PBreak {
-  return new PBreak(fakeBreak, sp, expr);
+  return new PBreak(makeToken[TokenType.BREAK](expr.span.start), sp(expr.span.start), expr);
 }
 
-function makeLocal(name: PReference, value: PExpr): PLocals {
-  const newLocal = new PLocal(undefined, undefined, name.token, sp, eq, sp, value);
-  return new PLocals(fakeLet, sp, [ new AnnotatedItem(newLocal, undefined, undefined, []) ]);
+function makeLocal(name: Token, value: PExpr): PLocals {
+  const index = value.span.start;
+  const newLocal = new PLocal(
+    undefined, undefined, name, sp(index), makeToken[TokenType.BIND](index), sp(index), value
+  );
+  return new PLocals(
+    makeToken[TokenType.LET](index), sp(index), [ new AnnotatedItem(newLocal, undefined, undefined, []) ]
+  );
 }
 
 function makeHandler(receiver: PConstant | PType, type: PType | undefined, expr: PExpr): POn {
   return new POn(
-    fakeOn, sp, receiver, type === undefined ? undefined : colon, type === undefined ? undefined : sp, type,
-    sp, arrow, sp, expr
+    makeToken[TokenType.ON](receiver.span.start),
+    sp(receiver.span.start),
+    receiver,
+    type === undefined ? undefined : makeToken[TokenType.COLON](type.span.start),
+    type === undefined ? undefined : sp(type.span.start),
+    type,
+    sp(expr.span.start),
+    makeToken[TokenType.ARROW](expr.span.start),
+    sp(expr.span.start),
+    expr
   );
 }
 
@@ -267,9 +288,19 @@ function makeHandler(receiver: PConstant | PType, type: PType | undefined, expr:
 function makeBlock(...nodes: PExpr[]): PBlock {
   const list = nodes.map((expr, i) => {
     const last = i == nodes.length - 1;
-    return new AnnotatedItem(expr, undefined, last ? undefined : semi, last ? [] : [ sp ]);
+    const index = expr.span.end;
+    const semi = last ? undefined : makeToken[TokenType.SEMICOLON](index);
+    return new AnnotatedItem(expr, undefined, semi, last ? [] : [ sp(index) ]);
   });
-  const collection = new TokenCollection<PExpr>(obrace, [ sp ], list, [ sp ], cbrace);
+  const left = list[0].span.start;
+  const right = list[list.length - 1].span.end;
+  const collection = new TokenCollection<PExpr>(
+    makeToken[TokenType.OBRACE](left),
+    [ sp(left) ],
+    list,
+    [ sp(right) ],
+    makeToken[TokenType.CBRACE](right)
+  );
   return new PBlock(collection);
 }
 

@@ -1,6 +1,6 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
 import {
-  PAssignment, PBlock, PBreak, PConstant, PExpr, PLocal, PLocals, PNodeToken, POn, PReturn, PType, token, tokenMaybe
+  PAssignment, PBlock, PBreak, PConstant, PExpr, PLocal, PLocals, PNodeToken, POn, PReturn, PType
 } from "../common/ast";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
@@ -19,7 +19,7 @@ const assignment = seq5(
   linespace,
   () => code
 ).named("assignment").map(([ name, gap1, t, gap2, expr ]) => {
-  return new PAssignment(name, tokenMaybe(gap1), token(t), tokenMaybe(gap2), expr);
+  return new PAssignment(name, gap1, t, gap2, expr);
 });
 
 const returnEarly = seq3(
@@ -27,16 +27,16 @@ const returnEarly = seq3(
   linespace,
   () => code
 ).named("return").map(([ t, gap, expr ]) => {
-  return new PReturn(token(t), tokenMaybe(gap), expr);
+  return new PReturn(t, gap, expr);
 });
 
 const breakEarly = seq2(
   tokenizer.match(TokenType.BREAK),
   optional(seq2(linespace, () => code))
 ).map(([ t, optionalExpr ]) => {
-  if (optionalExpr === undefined) return new PBreak(token(t));
+  if (optionalExpr === undefined) return new PBreak(t);
   const [ gap, expr ] = optionalExpr;
-  return new PBreak(token(t), tokenMaybe(gap), expr);
+  return new PBreak(t, gap, expr);
 });
 
 const localDeclaration = seq6(
@@ -48,10 +48,10 @@ const localDeclaration = seq6(
   () => expression
 ).map(([ optionalVar, name, gap2, op, gap3, expr ]) => {
   if (optionalVar === undefined) {
-    return new PLocal(undefined, undefined, name.token, tokenMaybe(gap2), token(op), tokenMaybe(gap3), expr);
+    return new PLocal(undefined, undefined, name.token, gap2, op, gap3, expr);
   }
   const [ isVar, gap1 ] = optionalVar;
-  return new PLocal(token(isVar), tokenMaybe(gap1), name.token, tokenMaybe(gap2), token(op), tokenMaybe(gap3), expr);
+  return new PLocal(isVar, gap1, name.token, gap2, op, gap3, expr);
 });
 
 const localLet = seq3(
@@ -59,7 +59,7 @@ const localLet = seq3(
   linespace,
   repeatSeparated(localDeclaration, TokenType.COMMA)
 ).map(([ t, gap, items ]) => {
-  return new PLocals(token(t), tokenMaybe(gap), items);
+  return new PLocals(t, gap, items);
 });
 
 const handler = seq8(
@@ -73,14 +73,10 @@ const handler = seq8(
   () => expression
 ).map(([ onToken, gap1, receiver, optionalType, gap2, arrow, gap3, expr ]) => {
   if (optionalType === undefined) return new POn(
-    token(onToken), tokenMaybe(gap1), receiver, undefined, undefined, undefined, tokenMaybe(gap2),
-    token(arrow), tokenMaybe(gap3), expr
+    onToken, gap1, receiver, undefined, undefined, undefined, gap2, arrow, gap3, expr
   );
   const [ colon, gap, t ] = optionalType;
-  return new POn(
-    token(onToken), tokenMaybe(gap1), receiver, token(colon), tokenMaybe(gap), t, tokenMaybe(gap2),
-    token(arrow), tokenMaybe(gap3), expr
-  );
+  return new POn(onToken, gap1, receiver, colon, gap, t, gap2, arrow, gap3, expr);
 });
 
 export const code: Parser<Token, PExpr> = alt(

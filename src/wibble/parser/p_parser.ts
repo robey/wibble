@@ -33,12 +33,7 @@ export function repeatSeparated<A extends PNode>(
   ...separators: TokenType[]
 ): Parser<Token, AnnotatedItem<A>[]> {
   const element = seq4(p, linespace, tokenizer.matchOneOf(...separators), whitespace).map(([ a, ls, sep, ws ]) => {
-    return new AnnotatedItem(
-      a,
-      ls === undefined ? undefined : new PNodeToken(ls),
-      sep === undefined ? sep : new PNodeToken(sep),
-      ws.map(t => new PNodeToken(t))
-    );
+    return new AnnotatedItem(a, ls, sep, ws);
   });
 
   return seq2(repeat(element), optional(p)).map(([ list, last ]) => {
@@ -61,12 +56,6 @@ export function repeatSurrounded<A extends PNode>(
     whitespace,
     name ? tokenizer.match(close).named(name, 1) : tokenizer.match(close)
   ).map(([ o, ws1, inner, ws2, c ]) => {
-    return new TokenCollection(
-      new PNodeToken(o),
-      ws1.map(t => new PNodeToken(t)),
-      inner,
-      ws2.map(t => new PNodeToken(t)),
-      new PNodeToken(c)
-    );
+    return new TokenCollection(o, ws1, inner, ws2, c);
   });
 }

@@ -7,14 +7,10 @@ export {
   PExpr,
   PExprKind,
   PNode,
-  PNodeInjected,
   PNodeToken,
   PType,
   PTypeKind,
   TokenCollection,
-  token,
-  tokenMaybe,
-  tokens
 } from "./ast_core";
 
 export {

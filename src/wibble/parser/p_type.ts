@@ -15,7 +15,6 @@ import {
   PTemplateType,
   PType,
   PTypedField,
-  tokens,
 } from "../common/ast";
 import { symbolRef } from "./p_const";
 import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded } from "./p_parser";
@@ -29,7 +28,7 @@ import { expression, reference } from "./p_expr";
 const ReservedError = "Reserved word can't be used as identifier";
 const UppercaseError = "Type name must start with uppercase letter";
 
-export const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new PEmptyType(new PNodeToken(token)));
+export const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new PEmptyType(token));
 
 export const simpleType = alt(
   tokenizer.match(TokenType.AT),
@@ -49,10 +48,10 @@ const typedField: Parser<Token, PTypedField> = seq4(
   optional(seq2(linespaceAround(tokenizer.match(TokenType.BIND)), () => expression))
 ).map(([ name, colon, type, value ]) => {
   if (value === undefined) {
-    return new PTypedField(name.token, tokens(colon), type);
+    return new PTypedField(name.token, colon, type);
   } else {
     const [ bind, defaultValue ] = value;
-    return new PTypedField(name.token, tokens(colon), type, tokens(bind), defaultValue);
+    return new PTypedField(name.token, colon, type, bind, defaultValue);
   }
 });
 

@@ -61,7 +61,7 @@ describe("Simplify expressions", () => {
     });
   });
 
-  it("new", () => {
+  it("new/on", () => {
     assert.throws(() => simplify("new { 3 }"), (error: WibbleError) => {
       error.node.source.should.eql("new (3)");
       error.errors.inspect().should.match(/at least one 'on'/);
@@ -116,11 +116,6 @@ describe("Simplify expressions", () => {
 
 
 
-//
-//
-//   it("new/on", () => {
-//     simplify("new { on .x -> 3 }").should.eql("new { on .x -> 3 }");
-//   });
 //
 //
 //   it("return", () => {

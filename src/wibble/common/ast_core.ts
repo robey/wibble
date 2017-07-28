@@ -120,19 +120,6 @@ function flattenNodes(list: ImplicitNode[]): PNode[] {
   return rv;
 }
 
-export function token(token: Token): PNodeToken {
-  return new PNodeToken(token);
-}
-
-export function tokenMaybe(token: Token | undefined): PNodeToken | undefined {
-  if (token === undefined) return undefined;
-  return new PNodeToken(token);
-}
-
-export function tokens(tokens: Token[]): PNodeToken[] {
-  return tokens.map(t => new PNodeToken(t));
-}
-
 
 // PNode wrapper for a token
 export class PNodeToken extends PNode {
@@ -146,27 +133,6 @@ export class PNodeToken extends PNode {
 
   get source(): string {
     return this.token.value;
-  }
-
-  debug(): string | undefined {
-    return undefined;
-  }
-
-  expressions(): PExpr[] {
-    return [];
-  }
-}
-
-// PNode wrapper for some injected text (done during the simplify transforms)
-export class PNodeInjected extends PNode {
-  span = new Span(0, 0);
-
-  constructor(public _source: string) {
-    super();
-  }
-
-  get source() {
-    return this._source;
   }
 
   debug(): string | undefined {
@@ -215,9 +181,9 @@ export class PType extends PNode {
 export class AnnotatedItem<A extends PNode> extends PNode {
   constructor(
     public item: A,
-    public gap1: PNode | undefined,
-    public separator: PNode | undefined,
-    public gap2: PNode[]
+    public gap1: Token | undefined,
+    public separator: Token | undefined,
+    public gap2: Token[]
   ) {
     super(item, gap1, separator, gap2);
   }
@@ -239,11 +205,11 @@ export class AnnotatedItem<A extends PNode> extends PNode {
  */
 export class TokenCollection<A extends PNode> extends PNode {
   constructor(
-    public open: PNode,
-    public gap1: PNode[],
+    public open: Token,
+    public gap1: Token[],
     public list: AnnotatedItem<A>[],
-    public gap2: PNode[],
-    public close: PNode
+    public gap2: Token[],
+    public close: Token
   ) {
     super(open, gap1, list, gap2, close);
   }

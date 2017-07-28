@@ -1,4 +1,4 @@
-import { Parser, Token, Tokenizer } from "packrattle";
+import { Parser, Span, Token, Tokenizer } from "packrattle";
 
 export enum TokenType {
   UNKNOWN,
@@ -199,4 +199,10 @@ export const tokenizer = new Tokenizer(TokenType, {
     [ "$", TokenType.DOLLAR ]
   ],
   fallback: TokenType.UNKNOWN
+});
+
+// make a token generator for each string type
+export const makeToken: { [id: number]: (index: number) => Token } = {};
+(tokenizer.rules.strings || []).forEach(([ value, type ]) => {
+  makeToken[type] = (index: number) => tokenizer.token(type, new Span(index, index), value);
 });
