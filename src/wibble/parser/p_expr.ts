@@ -30,8 +30,10 @@ const ReservedError = "Reserved word can't be used as identifier";
 const LowercaseError = "Variable name must start with lowercase letter";
 
 export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identifier").map(t => {
-  if (t.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
-  if (!t.value.match(/^[a-z]/)) throw failWithPriority(LowercaseError);
+  if (t.tokenType.id != TokenType.IDENTIFIER && t.tokenType.id != TokenType.QUOTED_IDENTIFIER) {
+    throw failWithPriority(ReservedError);
+  }
+  if (!t.value.match(/^`?[a-z]/)) throw failWithPriority(LowercaseError);
   return new PReference(t);
 });
 

@@ -75,6 +75,7 @@ export enum TokenType {
   STRING,
 
   IDENTIFIER,
+  QUOTED_IDENTIFIER,
 }
 
 export const WHITESPACE = [
@@ -126,7 +127,7 @@ export const RESERVED = [
   TokenType.FROM
 ];
 
-export const IDENTIFIER_LIKE = [ TokenType.IDENTIFIER ].concat(RESERVED);
+export const IDENTIFIER_LIKE = [ TokenType.IDENTIFIER ].concat(RESERVED, TokenType.QUOTED_IDENTIFIER);
 
 export const tokenizer = new Tokenizer(TokenType, {
   regex: [
@@ -136,6 +137,7 @@ export const tokenizer = new Tokenizer(TokenType, {
     { token: TokenType.STRING, regex: /"(([^"\\]|\\.)*)"/ },
 
     { token: TokenType.IDENTIFIER, regex: /[A-Za-z][A-Za-z_0-9]*/ },
+    { token: TokenType.QUOTED_IDENTIFIER, regex: /`[A-Za-z][A-Za-z_0-9]*`/ },
 
     // line may be continued with "\"
     { token: TokenType.LF, regex: /\r?\n/ },

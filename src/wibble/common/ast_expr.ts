@@ -1,5 +1,6 @@
 import { mergeSpan, Token } from "packrattle";
 import { AnnotatedItem, PExpr, PExprKind, PType, TokenCollection } from "./ast_core";
+import { TokenType } from "../parser/p_tokens";
 
 export enum PConstantType {
   NOTHING,
@@ -26,7 +27,11 @@ export class PConstant extends PExpr {
 
 export class PReference extends PExpr {
   constructor(public token: Token) {
-    super(PExprKind.REFERENCE, token.value, token);
+    super(
+      PExprKind.REFERENCE,
+      token.tokenType.id == TokenType.IDENTIFIER ? token.value : token.value.slice(1, -1),
+      token
+    );
   }
 }
 

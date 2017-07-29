@@ -19,6 +19,8 @@ describe("Parse expressions", () => {
     parse("hello").inspect().should.eql("hello[0...5]");
     (() => parse("else")).should.throw(/Reserved/);
     (() => parse("Int")).should.throw(/lowercase/);
+    parse("`else`").inspect().should.eql("else[0...6]");
+    parse("`else`").source.should.eql("`else`");
   });
 
   describe("array", () => {
