@@ -1,8 +1,8 @@
 import {
   alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token
 } from "packrattle";
-import { TokenType, tokenizer, WHITESPACE } from "./p_tokens";
 import { AnnotatedItem, PNode, PNodeToken, TokenCollection } from "../common/ast";
+import { TokenType, tokenizer, WHITESPACE } from "../common/tokens";
 
 interface Prioritized {
   priority?: number;

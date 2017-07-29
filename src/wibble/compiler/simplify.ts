@@ -28,7 +28,7 @@ import {
   TokenCollection
 } from "../common/ast";
 import { Errors } from "../common/errors";
-import { makeToken, tokenizer, TokenType } from "../parser/p_tokens";
+import { makeToken, tokenizer, TokenType } from "../common/tokens";
 import { transformAst } from "../common/transform";
 
 /*

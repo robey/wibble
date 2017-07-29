@@ -1,8 +1,8 @@
 import { alt, mergeSpan, Parser, seq2, Token } from "packrattle";
 import { PConstant, PConstantType, PNodeToken } from "../common/ast";
 import { uncstring } from "../common/strings";
+import { OPERATORS, tokenizer, TokenType } from "../common/tokens";
 import { failWithPriority } from "./p_parser";
-import { OPERATORS, tokenizer, TokenType } from "./p_tokens";
 
 /*
  * parse constants
