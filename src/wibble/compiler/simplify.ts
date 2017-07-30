@@ -27,9 +27,8 @@ import {
   PUnary,
   TokenCollection
 } from "../common/ast";
-import { Errors } from "../common/errors";
-import { makeToken, tokenizer, TokenType } from "../common/tokens";
-import { transformAst } from "../common/transform";
+import { Errors, TokenType, transformAst } from "../common";
+import { makeToken, tokenizer } from "../parser/p_parser";
 
 /*
  * perform some basic simplifications and error checks on the parse tree,

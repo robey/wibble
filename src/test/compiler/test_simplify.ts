@@ -1,22 +1,19 @@
-// "use strict";
-//
-// import { compiler, dump, Errors, parser } from "../../../lib/wibble";
 import * as assert from "assert";
 import { EngineOptions } from "packrattle";
-import { compiler, CompileError, Errors, parser } from "../../wibble";
+import { common, compiler, parser } from "../../wibble";
 import { PNode } from "../../wibble/common/ast";
 
 import "should";
 import "source-map-support/register";
 
 export class WibbleError extends Error {
-  constructor(public errors: Errors, public node: PNode) {
+  constructor(public errors: common.Errors, public node: PNode) {
     super(errors.inspect());
   }
 }
 
 function simplify(s: string, options: EngineOptions = {}): PNode {
-  const errors = new Errors();
+  const errors = new common.Errors();
   const tokens = parser.tokenizer.parser.run(s);
   const rv = compiler.simplify(parser.code.run(tokens, options), errors);
   if (errors.length > 0) throw new WibbleError(errors, rv);

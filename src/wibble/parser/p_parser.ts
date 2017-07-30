@@ -1,8 +1,16 @@
 import {
-  alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Token
+  alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Span, Token, Tokenizer
 } from "packrattle";
 import { AnnotatedItem, PNode, PNodeToken, TokenCollection } from "../common/ast";
-import { TokenType, tokenizer, WHITESPACE } from "../common/tokens";
+import { tokenRules, TokenType, WHITESPACE } from "../common/tokens";
+
+export const tokenizer = new Tokenizer(TokenType, tokenRules);
+
+// make a token generator for each string type
+export const makeToken: { [id: number]: (index: number) => Token } = {};
+(tokenizer.rules.strings || []).forEach(([ value, type ]) => {
+  makeToken[type] = (index: number) => tokenizer.token(type, new Span(index, index), value);
+});
 
 interface Prioritized {
   priority?: number;

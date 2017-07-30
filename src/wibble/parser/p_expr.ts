@@ -16,10 +16,10 @@ import {
   PUnary,
   PWhile,
 } from "../common/ast";
-import { IDENTIFIER_LIKE, OPERATORS, tokenizer, TokenType } from "../common/tokens";
+import { IDENTIFIER_LIKE, OPERATORS, TokenType } from "../common/tokens";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
-import { failWithPriority, linespace, linespaceAround, repeatSurrounded, whitespace } from "./p_parser";
+import { failWithPriority, linespace, linespaceAround, repeatSurrounded, tokenizer, whitespace } from "./p_parser";
 import { compoundType, typedecl } from "./p_type";
 
 /*

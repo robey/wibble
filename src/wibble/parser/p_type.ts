@@ -16,9 +16,9 @@ import {
   PType,
   PTypedField,
 } from "../common/ast";
-import { IDENTIFIER_LIKE, tokenizer, TokenType } from "../common/tokens";
+import { IDENTIFIER_LIKE, TokenType } from "../common/tokens";
 import { symbolRef } from "./p_const";
-import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded } from "./p_parser";
+import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded, tokenizer} from "./p_parser";
 import { expression, reference } from "./p_expr";
 
 /*

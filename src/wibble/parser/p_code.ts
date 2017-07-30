@@ -2,10 +2,10 @@ import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "pack
 import {
   PAssignment, PBlock, PBreak, PConstant, PExpr, PLocal, PLocals, PNodeToken, POn, PReturn, PType
 } from "../common/ast";
-import { tokenizer, TokenType } from "../common/tokens";
+import { TokenType } from "../common/tokens";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";
-import { linespace, repeatSeparated, repeatSurrounded } from "./p_parser";
+import { linespace, repeatSeparated, repeatSurrounded, tokenizer } from "./p_parser";
 import { compoundType, emptyType, typedecl } from "./p_type";
 
 /*
