@@ -1,6 +1,6 @@
-import { mergeSpan, Token } from "packrattle";
+import { Token } from "packrattle";
 import { AnnotatedItem, PExpr, PExprKind, PType, TokenCollection } from "./ast_core";
-import { TokenType } from "./tokens";
+import { TokenType } from "../tokens";
 
 export enum PConstantType {
   NOTHING,
