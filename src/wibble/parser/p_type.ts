@@ -8,8 +8,6 @@ import {
   PInlineTypeDeclaration,
   PMergedType,
   PNestedType,
-  PNode,
-  PNodeToken,
   PParameterType,
   PSimpleType,
   PTemplateType,

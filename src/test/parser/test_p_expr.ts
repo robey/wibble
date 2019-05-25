@@ -20,7 +20,7 @@ describe("Parse expressions", () => {
     (() => parse("else")).should.throw(/Reserved/);
     (() => parse("Int")).should.throw(/lowercase/);
     parse("`else`").inspect().should.eql("else[0...6]");
-    parse("`else`").source.should.eql("`else`");
+    parse("`else`").source().should.eql("`else`");
   });
 
   describe("array", () => {
@@ -62,10 +62,10 @@ describe("Parse expressions", () => {
     it("with comment", () => {
       let ast = parse("[\n  # true\n  true\n]");
       ast.inspect().should.eql("array{ const(BOOLEAN, true)[13...17] }[0...19]");
-      ast.source.should.eql("[\n  # true\n  true\n]");
+      ast.source().should.eql("[\n  # true\n  true\n]");
       ast = parse("[\n  true\n  # more later\n]");
       ast.inspect().should.eql("array{ const(BOOLEAN, true)[4...8] }[0...25]");
-      ast.source.should.eql("[\n  true\n  # more later\n]");
+      ast.source().should.eql("[\n  true\n  # more later\n]");
     });
 
     it("failing", () => {
@@ -76,7 +76,7 @@ describe("Parse expressions", () => {
   describe("function", () => {
     it("empty", () => {
       parseFunc("-> ()").inspect().should.eql("function{ const(NOTHING, ())[3...5] }[0...5]");
-      parseFunc("-> ()").source.should.eql("-> ()");
+      parseFunc("-> ()").source().should.eql("-> ()");
     });
 
     it("simple expression", () => {
@@ -87,7 +87,7 @@ describe("Parse expressions", () => {
           "binary(*){ x[12...13], const(NUMBER_BASE10, 2)[16...17] }[12...17]" +
         " }[0...17]"
       );
-      p1.source.should.eql("(x: Int) -> x * 2");
+      p1.source().should.eql("(x: Int) -> x * 2");
     });
 
     it("with return type", () => {
@@ -99,7 +99,7 @@ describe("Parse expressions", () => {
           "x[17...18]" +
         " }[0...18]"
       );
-      p1.source.should.eql("(x: Int): Int -> x");
+      p1.source().should.eql("(x: Int): Int -> x");
     });
 
     it("complex parameters", () => {
@@ -115,7 +115,7 @@ describe("Parse expressions", () => {
           "const(BOOLEAN, false)[43...48]" +
         " }[0...48]"
       );
-      p1.source.should.eql("(a: Map(String, Int), b: String -> Int) -> false");
+      p1.source().should.eql("(a: Map(String, Int), b: String -> Int) -> false");
     });
 
     it("default values", () => {
@@ -129,7 +129,7 @@ describe("Parse expressions", () => {
           "binary(+){ x[28...29], y[32...33] }[28...33]" +
         " }[0...33]"
       );
-      p1.source.should.eql("(x: Int = 4, y: Int = 5) -> x + y");
+      p1.source().should.eql("(x: Int = 4, y: Int = 5) -> x + y");
     });
 
     it("nested", () => {
@@ -137,7 +137,7 @@ describe("Parse expressions", () => {
       p1.inspect().should.eql(
         "function{ function{ const(NUMBER_BASE10, 69)[6...8] }[3...8] }[0...8]"
       );
-      p1.source.should.eql("-> -> 69");
+      p1.source().should.eql("-> -> 69");
     });
 
     it("via expression", () => {
@@ -145,7 +145,7 @@ describe("Parse expressions", () => {
       p1.inspect().should.eql(
         "function{ const(NUMBER_BASE10, 3)[3...4] }[0...4]"
       );
-      p1.source.should.eql("-> 3");
+      p1.source().should.eql("-> 3");
       const p2 = parse("(x: Int) -> 3");
       p2.inspect().should.eql(
         "function{ " +
@@ -153,7 +153,7 @@ describe("Parse expressions", () => {
           "const(NUMBER_BASE10, 3)[12...13]" +
         " }[0...13]"
       );
-      p2.source.should.eql("(x: Int) -> 3");
+      p2.source().should.eql("(x: Int) -> 3");
       const p3 = parse("(x: Int) -> x * 2");
       p3.inspect().should.eql(
         "function{ " +
@@ -161,7 +161,7 @@ describe("Parse expressions", () => {
           "binary(*){ x[12...13], const(NUMBER_BASE10, 2)[16...17] }[12...17]" +
         " }[0...17]"
       );
-      p3.source.should.eql("(x: Int) -> x * 2");
+      p3.source().should.eql("(x: Int) -> x * 2");
     });
   });
 
@@ -169,7 +169,7 @@ describe("Parse expressions", () => {
     it("without names", () => {
       const p1 = parse("(x, y)");
       p1.inspect().should.eql("struct{ field{ x[1...2] }[1...2], field{ y[4...5] }[4...5] }[0...6]");
-      p1.source.should.eql("(x, y)");
+      p1.source().should.eql("(x, y)");
     });
 
     it("with names", () => {
@@ -178,7 +178,7 @@ describe("Parse expressions", () => {
         "field(x){ const(NUMBER_BASE10, 3)[5...6] }[3...6], " +
         "field(y){ const(NUMBER_BASE10, 4)[11...12] }[7...12]" +
       " }[0...13]");
-      p1.source.should.eql("(  x=3,y = 4)");
+      p1.source().should.eql("(  x=3,y = 4)");
     });
 
     it("single-valued", () => {
@@ -197,7 +197,7 @@ describe("Parse expressions", () => {
       p1.inspect().should.eql(
         "new{ block{ const(BOOLEAN, true)[6...10] }[4...12] }[0...12]"
       );
-      p1.source.should.eql("new { true }");
+      p1.source().should.eql("new { true }");
     });
 
     it("part of a call", () => {
@@ -210,7 +210,7 @@ describe("Parse expressions", () => {
           "const(SYMBOL, foo)[21...25]" +
         " }[0...25]"
       );
-      p1.source.should.eql("new { on .foo -> 3 } .foo");
+      p1.source().should.eql("new { on .foo -> 3 } .foo");
     });
 
     it("explicit type", () => {
@@ -221,30 +221,30 @@ describe("Parse expressions", () => {
           "block{ const(BOOLEAN, true)[16...20] }[14...22]" +
         " }[0...22]"
       );
-      p1.source.should.eql("new List(Int) { true }");
+      p1.source().should.eql("new List(Int) { true }");
     });
   });
 
   it("unary", () => {
     const p1 = parse("not true");
     p1.inspect().should.eql("unary(not){ const(BOOLEAN, true)[4...8] }[0...8]");
-    p1.source.should.eql("not true");
+    p1.source().should.eql("not true");
     const p2 = parse("-  5");
     p2.inspect().should.eql("unary(-){ const(NUMBER_BASE10, 5)[3...4] }[0...4]");
-    p2.source.should.eql("-  5");
+    p2.source().should.eql("-  5");
     const p3 = parse("not not true");
     p3.inspect().should.eql("unary(not){ unary(not){ const(BOOLEAN, true)[8...12] }[4...12] }[0...12]");
-    p3.source.should.eql("not not true");
+    p3.source().should.eql("not not true");
   });
 
   describe("call", () => {
     it("simple", () => {
       const p1 = parse("a b");
       p1.inspect().should.eql("call{ a[0...1], b[2...3] }[0...3]");
-      p1.source.should.eql("a b");
+      p1.source().should.eql("a b");
       const p2 = parse("3 .+");
       p2.inspect().should.eql("call{ const(NUMBER_BASE10, 3)[0...1], const(SYMBOL, +)[2...4] }[0...4]");
-      p2.source.should.eql("3 .+");
+      p2.source().should.eql("3 .+");
     });
 
     it("compound", () => {
@@ -253,7 +253,7 @@ describe("Parse expressions", () => {
         "call{ widget[0...6], const(SYMBOL, draw)[6...11] }[0...11], " +
         "const(NOTHING, ())[11...13]" +
       " }[0...13]");
-      p1.source.should.eql("widget.draw()");
+      p1.source().should.eql("widget.draw()");
       const p2 = parse("widget .height .subtract 3");
       p2.inspect().should.eql("call{ " +
         "call{ " +
@@ -262,7 +262,7 @@ describe("Parse expressions", () => {
         " }[0...24], " +
         "const(NUMBER_BASE10, 3)[25...26]" +
       " }[0...26]");
-      p2.source.should.eql("widget .height .subtract 3");
+      p2.source().should.eql("widget .height .subtract 3");
     });
 
     it("with struct", () => {
@@ -274,7 +274,7 @@ describe("Parse expressions", () => {
           "field{ const(NUMBER_BASE10, 5)[9...10] }[9...10]" +
         " }[5...11]" +
       " }[0...11]");
-      p1.source.should.eql("b.add(4, 5)");
+      p1.source().should.eql("b.add(4, 5)");
     });
 
     it("multi-line", () => {
@@ -283,7 +283,7 @@ describe("Parse expressions", () => {
         "call{ a[0...1], const(SYMBOL, b)[2...4] }[0...4], " +
         "const(SYMBOL, c)[9...11]" +
       " }[0...11]");
-      p1.source.should.eql("a .b \\\n  .c");
+      p1.source().should.eql("a .b \\\n  .c");
     });
   });
 
@@ -294,7 +294,7 @@ describe("Parse expressions", () => {
         "binary(**){ const(NUMBER_BASE10, 2)[0...1], const(NUMBER_BASE10, 3)[5...6] }[0...6], " +
         "const(NUMBER_BASE10, 4)[10...11]" +
       " }[0...11]");
-      p1.source.should.eql("2 ** 3 ** 4");
+      p1.source().should.eql("2 ** 3 ** 4");
     });
 
     it("* / %", () => {
@@ -306,7 +306,7 @@ describe("Parse expressions", () => {
         " }[0...9], " +
         "d[12...13]" +
       " }[0...13]");
-      p1.source.should.eql("a * b / c % d");
+      p1.source().should.eql("a * b / c % d");
     });
 
     it("+ -", () => {
@@ -315,7 +315,7 @@ describe("Parse expressions", () => {
         "binary(+){ a[0...1], b[4...5] }[0...5], " +
         "c[8...9]" +
       " }[0...9]");
-      p1.source.should.eql("a + b - c");
+      p1.source().should.eql("a + b - c");
     });
 
     it("* vs + precedence", () => {
@@ -324,7 +324,7 @@ describe("Parse expressions", () => {
         "binary(+){ a[0...1], binary(*){ b[4...5], c[8...9] }[4...9] }[0...9], " +
         "d[12...13]" +
       " }[0...13]");
-      p1.source.should.eql("a + b * c + d");
+      p1.source().should.eql("a + b * c + d");
     });
 
     it("+, ==, and precedence", () => {
@@ -333,7 +333,7 @@ describe("Parse expressions", () => {
         "a[0...1], " +
         "binary(==){ binary(+){ b[6...7], c[10...11] }[6...11], d[15...16] }[6...16]" +
       " }[0...16]");
-      p1.source.should.eql("a and b + c == d");
+      p1.source().should.eql("a and b + c == d");
     });
 
     it("and, or", () => {
@@ -347,7 +347,7 @@ describe("Parse expressions", () => {
           " }[8...24]" +
         " }[0...24]"
       );
-      p1.source.should.eql("true or 3 == 1 and false");
+      p1.source().should.eql("true or 3 == 1 and false");
     });
 
     it("can span multiple lines", () => {
@@ -356,7 +356,7 @@ describe("Parse expressions", () => {
         "const(NUMBER_BASE10, 3)[0...1], " +
         "const(NUMBER_BASE10, 4)[7...8]" +
       " }[0...8]");
-      p1.source.should.eql("3 + \n  4");
+      p1.source().should.eql("3 + \n  4");
     });
 
     it("with comment", () => {
@@ -365,7 +365,7 @@ describe("Parse expressions", () => {
         "const(NUMBER_BASE10, 3)[0...1], " +
         "const(NUMBER_BASE10, 4)[20...21]" +
       " }[0...21]");
-      p1.source.should.eql("3 + # add numbers\n  4");
+      p1.source().should.eql("3 + # add numbers\n  4");
     });
 
     it("notices a missing argument", () => {
@@ -381,7 +381,7 @@ describe("Parse expressions", () => {
         "binary(<){ x[3...4], const(NUMBER_BASE10, 0)[7...8] }[3...8], " +
         "x[14...15]" +
       " }[0...15]");
-      p1.source.should.eql("if x < 0 then x");
+      p1.source().should.eql("if x < 0 then x");
     });
 
     it("if _ then _ else _", () => {
@@ -391,7 +391,7 @@ describe("Parse expressions", () => {
         "unary(-){ x[15...16] }[14...16], " +
         "x[22...23]" +
       " }[0...23]");
-      p1.source.should.eql("if x < 0 then -x else x");
+      p1.source().should.eql("if x < 0 then -x else x");
     });
 
     it("if {block} then _ else _", () => {
@@ -404,7 +404,7 @@ describe("Parse expressions", () => {
         "const(NUMBER_BASE10, 1)[20...21], " +
         "const(NUMBER_BASE10, 2)[27...28]" +
       " }[0...28]");
-      p1.source.should.eql("if { 3; true } then 1 else 2");
+      p1.source().should.eql("if { 3; true } then 1 else 2");
     });
 
     it("nested", () => {
@@ -415,7 +415,7 @@ describe("Parse expressions", () => {
         " }[10...23], " +
         "const(NUMBER_BASE10, 9)[29...30]" +
       " }[0...30]");
-      p1.source.should.eql("if a then (if b then 3) else 9");
+      p1.source().should.eql("if a then (if b then 3) else 9");
     });
 
     it("failing", () => {
@@ -428,17 +428,17 @@ describe("Parse expressions", () => {
   it("repeat", () => {
     const p1 = parse("repeat 3");
     p1.inspect().should.eql("repeat{ const(NUMBER_BASE10, 3)[7...8] }[0...8]");
-    p1.source.should.eql("repeat 3");
+    p1.source().should.eql("repeat 3");
     const p2 = parse("repeat { if true then break }");
     p2.inspect().should.eql(
       "repeat{ block{ if{ const(BOOLEAN, true)[12...16], break[22...27] }[9...27] }[7...29] }[0...29]"
     );
-    p2.source.should.eql("repeat { if true then break }");
+    p2.source().should.eql("repeat { if true then break }");
   });
 
   it("while", () => {
     const p1 = parse("while true do false");
     p1.inspect().should.eql("while{ const(BOOLEAN, true)[6...10], const(BOOLEAN, false)[14...19] }[0...19]");
-    p1.source.should.eql("while true do false");
+    p1.source().should.eql("while true do false");
   });
 });

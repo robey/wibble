@@ -1,4 +1,4 @@
-import { EngineOptions, Token } from "packrattle";
+import { EngineOptions } from "packrattle";
 import { parser } from "../../wibble";
 
 import "should";
@@ -11,20 +11,20 @@ const parse = (s: string, options: EngineOptions = {}) => {
 describe("Parse constants", () => {
   it("nothing", () => {
     parse("()").inspect().should.eql("const(NOTHING, ())[0...2]");
-    parse("()").source.should.eql("()");
+    parse("()").source().should.eql("()");
   });
 
   it("boolean", () => {
     parse("true").inspect().should.eql("const(BOOLEAN, true)[0...4]");
     parse("false").inspect().should.eql("const(BOOLEAN, false)[0...5]");
-    parse("true").source.should.eql("true");
+    parse("true").source().should.eql("true");
   });
 
   it("symbol", () => {
     parse(".hello").inspect().should.eql("const(SYMBOL, hello)[0...6]");
     parse(".xx_").inspect().should.eql("const(SYMBOL, xx_)[0...4]");
     parse(".a3").inspect().should.eql("const(SYMBOL, a3)[0...3]");
-    parse(".hello").source.should.eql(".hello");
+    parse(".hello").source().should.eql(".hello");
   });
 
   it("opref", () => {
@@ -32,7 +32,7 @@ describe("Parse constants", () => {
     parse(".>").inspect().should.eql("const(SYMBOL, >)[0...2]");
     parse(".>=").inspect().should.eql("const(SYMBOL, >=)[0...3]");
     (() => parse(".?")).should.throw(/Invalid symbol/);
-    parse(".+").source.should.eql(".+");
+    parse(".+").source().should.eql(".+");
   });
 
   it("base 10", () => {
@@ -43,27 +43,27 @@ describe("Parse constants", () => {
     parse("500.2").inspect().should.eql("const(NUMBER_BASE10, 500.2)[0...5]");
     parse("4e900").inspect().should.eql("const(NUMBER_BASE10, 4e900)[0...5]");
     parse("3.14e-02").inspect().should.eql("const(NUMBER_BASE10, 3.14e-02)[0...8]");
-    parse("23").source.should.eql("23");
+    parse("23").source().should.eql("23");
   });
 
   it("base 16", () => {
     parse("0x2f").inspect().should.eql("const(NUMBER_BASE16, 2f)[0...4]");
     parse("0xcc1").inspect().should.eql("const(NUMBER_BASE16, cc1)[0...5]");
     (() => parse("0xqqq")).should.throw(/Expected end/);
-    parse("0x2f").source.should.eql("0x2f");
+    parse("0x2f").source().should.eql("0x2f");
   });
 
   it("base 2", () => {
     parse("0b11").inspect().should.eql("const(NUMBER_BASE2, 11)[0...4]");
     parse("0b1010").inspect().should.eql("const(NUMBER_BASE2, 1010)[0...6]");
     (() => parse("0bqqq")).should.throw(/Expected end/);
-    parse("0b11").source.should.eql("0b11");
+    parse("0b11").source().should.eql("0b11");
   });
 
   describe("string", () => {
     it("empty", () => {
       parse("\"\"").inspect().should.eql("const(STRING, )[0...2]");
-      parse("\"\"").source.should.eql("\"\"");
+      parse("\"\"").source().should.eql("\"\"");
     });
 
     it("simple", () => {
@@ -72,7 +72,7 @@ describe("Parse constants", () => {
 
     it("with quotes", () => {
       parse("\"quote \\\" ha\"").inspect().should.eql("const(STRING, quote \" ha)[0...13]");
-      parse("\"quote \\\" ha\"").source.should.eql("\"quote \\\" ha\"");
+      parse("\"quote \\\" ha\"").source().should.eql("\"quote \\\" ha\"");
     });
 
     it("with escapes", () => {
@@ -82,7 +82,7 @@ describe("Parse constants", () => {
       parse("\"what\\u2022?\"").inspect().should.eql("const(STRING, what\u2022?)[0...13]");
       parse("\"what\\nup\\rup\"").inspect().should.eql("const(STRING, what\nup\rup)[0...14]");
       parse("\"what\\u{21}?\"").inspect().should.eql("const(STRING, what!?)[0...13]");
-      parse("\"what\\u{21}?\"").source.should.eql("\"what\\u{21}?\"");
+      parse("\"what\\u{21}?\"").source().should.eql("\"what\\u{21}?\"");
     });
   });
 

@@ -1,5 +1,5 @@
-import { alt, mergeSpan, Parser, seq2, Token } from "packrattle";
-import { PConstant, PConstantType, PNodeToken } from "../common/ast";
+import { alt, seq2 } from "packrattle";
+import { PConstant, PConstantType } from "../common/ast";
 import { uncstring } from "../common/strings";
 import { OPERATORS, TokenType } from "../common/tokens";
 import { failWithPriority, tokenizer } from "./p_parser";
@@ -12,7 +12,7 @@ const nothing = tokenizer.match(TokenType.NOTHING).map(t => {
   return new PConstant(PConstantType.NOTHING, [ t ]);
 });
 
-const boolean = alt(tokenizer.match(TokenType.TRUE), tokenizer.match(TokenType.FALSE)).map(t => {
+const boolean = tokenizer.matchOneOf(TokenType.TRUE, TokenType.FALSE).map(t => {
   return new PConstant(PConstantType.BOOLEAN, [ t ]);
 });
 

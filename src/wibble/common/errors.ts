@@ -10,7 +10,7 @@ export class CompileError extends Error {
 
 export class Errors {
   public list: CompileError[] = [];
-  private _mark: number;
+  private _mark: number = 0;
 
   constructor() {
     // pass

@@ -1,6 +1,6 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
 import {
-  PAssignment, PBlock, PBreak, PConstant, PExpr, PLocal, PLocals, PNodeToken, POn, PReturn, PType
+  PAssignment, PBlock, PBreak, PConstant, PExpr, PLocal, PLocals, POn, PReturn, PType
 } from "../common/ast";
 import { TokenType } from "../common/tokens";
 import { symbolRef } from "./p_const";

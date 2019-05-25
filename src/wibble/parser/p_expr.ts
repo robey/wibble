@@ -8,7 +8,6 @@ import {
   PIf,
   PNested,
   PNew,
-  PNodeToken,
   PReference,
   PRepeat,
   PStruct,
@@ -96,18 +95,18 @@ const struct = repeatSurrounded(
   TokenType.COMMA,
   TokenType.CPAREN,
   "struct member"
-).map(items => {
+).map(collection => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
-  if (items.list.length == 1 && items.list[0].item.childExpr.length == 1) {
+  if (collection.list.length == 1 && collection.list[0].item.name == undefined) {
     return new PNested(
-      items.open,
-      items.gap1,
-      items.list[0].item.childExpr[0],
-      items.gap2,
-      items.close
+      collection.open,
+      collection.gap1,
+      collection.list[0].item.value,
+      collection.gap2,
+      collection.close
     );
   }
-  return new PStruct(items);
+  return new PStruct(collection);
 });
 
 const newObject = seq5(
