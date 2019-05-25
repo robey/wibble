@@ -1,7 +1,5 @@
-import {
-  alt, LazyParser, matchRegex, matchString, optional, Parser, repeat, seq2, seq3, seq4, seq5, Span, Token, Tokenizer
-} from "packrattle";
-import { AnnotatedItem, PNode, PNodeToken, TokenCollection } from "../common/ast";
+import { LazyParser, optional, Parser, repeat, seq2, seq3, seq4, seq5, Span, Token, Tokenizer } from "packrattle";
+import * as ast from "../common/ast";
 import { tokenRules, TokenType, WHITESPACE } from "../common/tokens";
 
 export const tokenizer = new Tokenizer(TokenType, tokenRules);
@@ -36,27 +34,27 @@ export function linespaceAround(p: LazyParser<Token, Token>): Parser<Token, Toke
 }
 
 // match: (p linespace separator ws)* p?
-export function repeatSeparated<A extends PNode>(
+export function repeatSeparated<A extends ast.PNode>(
   p: LazyParser<Token, A>,
   ...separators: TokenType[]
-): Parser<Token, AnnotatedItem<A>[]> {
+): Parser<Token, ast.AnnotatedItem<A>[]> {
   const element = seq4(p, linespace, tokenizer.matchOneOf(...separators), whitespace).map(([ a, ls, sep, ws ]) => {
-    return new AnnotatedItem(a, ls, sep, ws);
+    return new ast.AnnotatedItem(a, ls, sep, ws);
   });
 
   return seq2(repeat(element), optional(p)).map(([ list, last ]) => {
-    return list.concat(last ? [ new AnnotatedItem(last, undefined, undefined, []) ] : []);
+    return list.concat(last ? [ new ast.AnnotatedItem(last, undefined, undefined, []) ] : []);
   });
 }
 
 // open (ws repeatSeparated)? ws close
-export function repeatSurrounded<A extends PNode>(
+export function repeatSurrounded<A extends ast.PNode>(
   open: TokenType,
   p: LazyParser<Token, A>,
   separator: TokenType,
   close: TokenType,
   name?: string
-): Parser<Token, TokenCollection<A>> {
+): Parser<Token, ast.TokenCollection<A>> {
   return seq5(
     tokenizer.match(open),
     whitespace,
@@ -64,6 +62,6 @@ export function repeatSurrounded<A extends PNode>(
     whitespace,
     name ? tokenizer.match(close).named(name, 1) : tokenizer.match(close)
   ).map(([ o, ws1, inner, ws2, c ]) => {
-    return new TokenCollection(o, ws1, inner, ws2, c);
+    return new ast.TokenCollection(o, ws1, inner, ws2, c);
   });
 }

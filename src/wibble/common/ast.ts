@@ -2,53 +2,6 @@
  * AST nodes
  */
 
-export {
-  AnnotatedItem,
-  PExpr,
-  PExprKind,
-  PNode,
-  PNodeToken,
-  PType,
-  PTypeKind,
-  TokenCollection,
-} from "./ast_core";
-
-export {
-  PArray,
-  PAssignment,
-  PBinary,
-  PBlock,
-  PBreak,
-  PCall,
-  PConstant,
-  PConstantType,
-  PFunction,
-  PIf,
-  PLocal,
-  PLogic,
-  PLocals,
-  PNested,
-  PNew,
-  POn,
-  PReference,
-  PRepeat,
-  PReturn,
-  PStruct,
-  PStructField,
-  PUnary,
-  PWhile
-} from "./ast_expr";
-
-export {
-  PCompoundType,
-  PEmptyType,
-  PFunctionType,
-  PInlineType,
-  PInlineTypeDeclaration,
-  PMergedType,
-  PNestedType,
-  PParameterType,
-  PSimpleType,
-  PTemplateType,
-  PTypedField
-} from "./ast_type";
+export * from "./ast/ast_core";
+export * from "./ast/ast_expr";
+export * from "./ast/ast_type";

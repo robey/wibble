@@ -1,19 +1,5 @@
 import { alt, optional, Parser, seq2, seq3, seq4, seq5, Token } from "packrattle";
-import {
-  PCompoundType,
-  PConstant,
-  PEmptyType,
-  PFunctionType,
-  PInlineType,
-  PInlineTypeDeclaration,
-  PMergedType,
-  PNestedType,
-  PParameterType,
-  PSimpleType,
-  PTemplateType,
-  PType,
-  PTypedField,
-} from "../common/ast";
+import * as ast from "../common/ast";
 import { IDENTIFIER_LIKE, TokenType } from "../common/tokens";
 import { symbolRef } from "./p_const";
 import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded, tokenizer} from "./p_parser";
@@ -26,7 +12,7 @@ import { expression, reference } from "./p_expr";
 const ReservedError = "Reserved word can't be used as identifier";
 const UppercaseError = "Type name must start with uppercase letter";
 
-export const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new PEmptyType(token));
+export const emptyType = tokenizer.match(TokenType.NOTHING).map(token => new ast.PEmptyType(token));
 
 export const simpleType = alt(
   tokenizer.match(TokenType.AT),
@@ -36,20 +22,20 @@ export const simpleType = alt(
     if (token.tokenType.id != TokenType.IDENTIFIER) throw failWithPriority(ReservedError);
     if (!token.value.match(/^[A-Z]/)) throw failWithPriority(UppercaseError);
   }
-  return new PSimpleType(token);
+  return new ast.PSimpleType(token);
 });
 
-const typedField: Parser<Token, PTypedField> = seq4(
+const typedField: Parser<Token, ast.PTypedField> = seq4(
   () => reference,
   linespaceAround(tokenizer.match(TokenType.COLON)),
   () => typedecl,
   optional(seq2(linespaceAround(tokenizer.match(TokenType.BIND)), () => expression))
 ).map(([ name, colon, type, value ]) => {
   if (value === undefined) {
-    return new PTypedField(name.token, colon, type);
+    return new ast.PTypedField(name.token, colon, type);
   } else {
     const [ bind, defaultValue ] = value;
-    return new PTypedField(name.token, colon, type, bind, defaultValue);
+    return new ast.PTypedField(name.token, colon, type, bind, defaultValue);
   }
 });
 
@@ -60,7 +46,7 @@ export const compoundType = repeatSurrounded(
   TokenType.CPAREN,
   "type field"
 ).map(items => {
-  return new PCompoundType(items);
+  return new ast.PCompoundType(items);
 });
 
 const templateType = seq2(
@@ -72,10 +58,10 @@ const templateType = seq2(
     TokenType.CPAREN,
     "type"
   )
-).map(([ name, items ]) => new PTemplateType(name.token, items));
+).map(([ name, items ]) => new ast.PTemplateType(name.token, items));
 
 const parameterType = seq2(tokenizer.match(TokenType.DOLLAR), simpleType).map(([ dollar, name ]) => {
-  return new PParameterType(dollar, name.token);
+  return new ast.PParameterType(dollar, name.token);
 })
 
 // just a type with () around it, for precedence
@@ -85,16 +71,16 @@ const nestedType = seq5(
   () => typedecl,
   linespace,
   tokenizer.match(TokenType.CPAREN),
-).map(([ open, gap1, inner, gap2, close ]) => new PNestedType(open, gap1, inner, gap2, close));
+).map(([ open, gap1, inner, gap2, close ]) => new ast.PNestedType(open, gap1, inner, gap2, close));
 
 const declaration = seq5(
-  alt<Token, PConstant | PType>(symbolRef, compoundType),
+  alt<Token, ast.PConstant | ast.PType>(symbolRef, compoundType),
   linespace,
   tokenizer.match(TokenType.ARROW),
   linespace,
   () => typedecl
 ).map(([ argType, gap1, arrow, gap2, resultType ]) => {
-  return new PInlineTypeDeclaration(argType, gap1, arrow, gap2, resultType);
+  return new ast.PInlineTypeDeclaration(argType, gap1, arrow, gap2, resultType);
 });
 
 const inlineType = repeatSurrounded(
@@ -104,10 +90,10 @@ const inlineType = repeatSurrounded(
   TokenType.CBRACE,
   "type declaration"
 ).map(items => {
-  return new PInlineType(items);
+  return new ast.PInlineType(items);
 })
 
-const componentType: Parser<Token, PType> = alt<Token, PType>(
+const componentType: Parser<Token, ast.PType> = alt<Token, ast.PType>(
   emptyType,
   inlineType,
   nestedType,
@@ -122,14 +108,14 @@ const functionType = seq3(
   linespaceAround(tokenizer.match(TokenType.ARROW)),
   () => typedecl
 ).map(([ left, arrow, right ]) => {
-  return new PFunctionType(left, arrow, right);
+  return new ast.PFunctionType(left, arrow, right);
 });
 
-const baseType: Parser<Token, PType> = alt(functionType, componentType);
+const baseType: Parser<Token, ast.PType> = alt(functionType, componentType);
 
 const mergedType = repeatSeparated(baseType, TokenType.PIPE).map(items => {
   if (items.length == 1) return items[0].item;
-  return new PMergedType(items);
+  return new ast.PMergedType(items);
 });
 
-export const typedecl: Parser<Token, PType> = mergedType.named("type");
+export const typedecl: Parser<Token, ast.PType> = mergedType.named("type");

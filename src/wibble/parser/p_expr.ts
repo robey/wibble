@@ -1,20 +1,5 @@
 import { alt, optional, Parser, repeat, seq2, seq3, seq4, seq5, seq7, seq8, Token } from "packrattle";
-import {
-  PArray,
-  PBinary,
-  PCall,
-  PExpr,
-  PFunction,
-  PIf,
-  PNested,
-  PNew,
-  PReference,
-  PRepeat,
-  PStruct,
-  PStructField,
-  PUnary,
-  PWhile,
-} from "../common/ast";
+import * as ast from "../common/ast";
 import { IDENTIFIER_LIKE, OPERATORS, TokenType } from "../common/tokens";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
@@ -33,17 +18,17 @@ export const reference = tokenizer.matchOneOf(...IDENTIFIER_LIKE).named("identif
     throw failWithPriority(ReservedError);
   }
   if (!t.value.match(/^`?[a-z]/)) throw failWithPriority(LowercaseError);
-  return new PReference(t);
+  return new ast.PReference(t);
 });
 
-const array: Parser<Token, PExpr> = repeatSurrounded(
+const array: Parser<Token, ast.PExpr> = repeatSurrounded(
   TokenType.OBRACKET,
   () => code,
   TokenType.COMMA,
   TokenType.CBRACKET,
   "array item"
 ).map(items => {
-  return new PArray(items);
+  return new ast.PArray(items);
 }).named("array");
 
 export const func = seq4(
@@ -61,17 +46,17 @@ export const func = seq4(
   linespace,
   () => code
 ).named("function").map(([ args, arrow, space4, body ]) => {
-  if (args === undefined) return new PFunction(
+  if (args === undefined) return new ast.PFunction(
     undefined, undefined, undefined, undefined, undefined, undefined, arrow, space4, body
   );
 
   const [ argType, space1, results ] = args;
-  if (results === undefined) return new PFunction(
+  if (results === undefined) return new ast.PFunction(
     argType, space1, undefined, undefined, undefined, undefined, arrow, space4, body
   );
 
   const [ colon, space2, resultType, space3 ] = results;
-  return new PFunction(
+  return new ast.PFunction(
     argType, space1, colon, space2, resultType, space3,
     arrow, space4, body
   );
@@ -83,9 +68,9 @@ const structMember = seq2(
 ).map(([ prefix, value ]) => {
   if (prefix !== undefined) {
     const [ ref, gap ] = prefix;
-    return new PStructField(ref.token, gap, value);
+    return new ast.PStructField(ref.token, gap, value);
   } else {
-    return new PStructField(undefined, [], value);
+    return new ast.PStructField(undefined, [], value);
   }
 });
 
@@ -98,7 +83,7 @@ const struct = repeatSurrounded(
 ).map(collection => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
   if (collection.list.length == 1 && collection.list[0].item.name == undefined) {
-    return new PNested(
+    return new ast.PNested(
       collection.open,
       collection.gap1,
       collection.list[0].item.value,
@@ -106,7 +91,7 @@ const struct = repeatSurrounded(
       collection.close
     );
   }
-  return new PStruct(collection);
+  return new ast.PStruct(collection);
 });
 
 const newObject = seq5(
@@ -116,7 +101,7 @@ const newObject = seq5(
   linespace,
   () => codeBlock
 ).map(([ t, gap1, type, gap2, code ]) => {
-  return new PNew(t, gap1, type, gap2, code);
+  return new ast.PNew(t, gap1, type, gap2, code);
 });
 
 const atom = alt(
@@ -128,27 +113,27 @@ const atom = alt(
   newObject
 ).named("atom");
 
-const unary: Parser<Token, PExpr> = seq3(
+const unary: Parser<Token, ast.PExpr> = seq3(
   tokenizer.matchOneOf(TokenType.NOT, TokenType.MINUS),
   linespace,
   alt(() => unary, atom)
 ).map(([ t, gap, inner ]) => {
-  return new PUnary(t, gap, inner);
+  return new ast.PUnary(t, gap, inner);
 });
 
 const call = seq2(alt(unary, atom), repeat(seq2(linespace, atom))).map(([ first, rest ]) => {
   return rest.reduce((left, [ gap, right ]) => {
-    return new PCall(left, gap, right);
+    return new ast.PCall(left, gap, right);
   }, first);
 });
 
 // helper
-function binary(subexpr: Parser<Token, PExpr>, ...ops: TokenType[]): Parser<Token, PExpr> {
+function binary(subexpr: Parser<Token, ast.PExpr>, ...ops: TokenType[]): Parser<Token, ast.PExpr> {
   const sep = seq3(linespace, tokenizer.matchOneOf(...ops), whitespace);
-  const p: Parser<Token, PExpr> = alt(
+  const p: Parser<Token, ast.PExpr> = alt(
     subexpr,
     seq3(() => p, sep, subexpr.named("operand")).map(([ left, [ gap1, op, gap2 ], right]) => {
-      return new PBinary(left, gap1, op, gap2, right);
+      return new ast.PBinary(left, gap1, op, gap2, right);
     })
   );
   return p;
@@ -195,11 +180,11 @@ const condition = seq8(
     () => code
   ))
 ).named("condition").map(([ token1, space1, condition, space2, token2, space3, onTrue, elseBlock ]) => {
-  if (elseBlock === undefined) return new PIf(
+  if (elseBlock === undefined) return new ast.PIf(
     token1, space1, condition, space2, token2, space3, onTrue
   );
   const [ space4, token3, space5, node ] = elseBlock;
-  return new PIf(
+  return new ast.PIf(
     token1, space1, condition, space2, token2, space3, onTrue,
     space4, token3, space5, node
   );
@@ -210,7 +195,7 @@ const repeatLoop = seq3(
   linespace,
   () => code
 ).map(([ t, gap, expr ]) => {
-  return new PRepeat(t, gap, expr);
+  return new ast.PRepeat(t, gap, expr);
 })
 
 const whileLoop = seq7(
@@ -222,9 +207,9 @@ const whileLoop = seq7(
   linespace,
   () => code
 ).map(([ token1, gap1, condition, gap2, token2, gap3, expr ]) => {
-  return new PWhile(token1, gap1, condition, gap2, token2, gap3, expr);
+  return new ast.PWhile(token1, gap1, condition, gap2, token2, gap3, expr);
 });
 
-const baseExpression: Parser<Token, PExpr> = alt(condition, repeatLoop, whileLoop, func, logical);
+const baseExpression: Parser<Token, ast.PExpr> = alt(condition, repeatLoop, whileLoop, func, logical);
 
 export const expression = baseExpression;
