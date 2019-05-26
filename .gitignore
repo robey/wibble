@@ -1,4 +1,7 @@
+.vscode/
+debugging/
+docs-untracked/
 lib/
 node_modules/
-wibble.sublime-project
-wibble.sublime-workspace
+screenshots/
+wibble.code-workspace

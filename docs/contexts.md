@@ -596,7 +596,30 @@ type TreeSet($A) {
 ```
 
 
+# grouping operators
 
+san josé -- 25 jan 2018
+
+Sorry to drive-by after so long, but this has been percolating in my mind over the past few months as I see more and more pet languages come out, and deal firsthand with the negative effects of rust copying the C/C++ syntax so devotedly.
+
+There are a lot of things a language wants to "group together", but only 4 real grouping symbols in ascii:
+
+  - `()`
+  - `[]`
+  - `{}`
+  - `<>`
+
+The C/C++/Java languages try to have it both ways by making anglets be both a grouping operator when combined (to name type parameters in generics), and also math operations on their own (greater than, and so on). I hate this, and it makes the parser difficult to boot, so I'm going to strike out anglets. They should be used for math operations, full stop.
+
+Parens are almost universally used to build precedence in expressions -- even in lisp. I think it would be foolish to try to use anything else.
+
+Brackets are primarily used for array indexing or slices. Scala makes containers "callable", so it can reuse parens for that, and it uses brackets to pass type parameters instead (the way anglets are used in C++/Java).
+
+Braces are used in many languages to mean "block of code". Lisp uses parens instead; python uses indentation. An overlapping set of languages use braces to mean "set" and/or "map" and/or "struct" (record).
+
+I've been using parens to mean precedence, and type parameters, and container indexing, and records, and nothing `()`. Brackets mean inline arrays. Braces mean a code block, or an inline type definition.
+
+I think inline arrays should have some other syntax, and records should use brackets. Or an inline array could be a record that has no field names, only positional parameters. But this would mess up function parameters. Crap.
 
 
 

@@ -11,11 +11,11 @@
 
     number := numberBase2 | numberBase16 | numberBase10
 
-    numberBase2 := "0b" [01_]+
+    numberBase2 := "0b" [01] [01_]*
 
-    numberBase16 := "0x" [0-9a-fA-F_]+
+    numberBase16 := "0x" [0-9a-fA-F] [0-9a-fA-F_]*
 
-    numberBase10 := [0-9_]+ ("." [0-9_]+)? ([eE] [-+]? [0-9_]+)?
+    numberBase10 := [0-9] [0-9_]* ("." [0-9] [0-9_]*)? ([eE] [-+]? [0-9] [0-9]*)?
 
     string := "\"" ([^"\\] | "\\" [.])* "\""
 
@@ -128,6 +128,26 @@
 
     module := import* body*
 
+    import := "import" [ "@" IDENTIFIER "/" ] IDENTIFIER ("as" IDENTIFIER | ":" directImports |)
+
+    directImport
     import := "import" importName (("," importName)* "from" SYMBOL_NAME)?
 
     importName := SYMBOL_NAME ("as" SYMBOL_NAME)
+
+
+
+
+
+# example
+
+```
+import collections
+import @robey/packrattle as pr
+import collections: Set, Map
+import @robey/packrattle: Parser as PackParser, Tokenizer as PackTokenizer
+
+type TreasureChest {
+
+}
+```
