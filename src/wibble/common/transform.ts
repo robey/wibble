@@ -1,23 +1,19 @@
-import { PExpr, PNode } from "./ast";
+import * as ast from "../ast";
 
 /*
  * walk the AST (depth-first), optionally transforming each expression node as you go.
  */
-export function transformAst(node: PNode, transform: (node: PExpr) => (PExpr | null)): PNode {
-  if (node instanceof PExpr) {
-    let newNode: PExpr | null = node;
-    do {
-      node = newNode;
-      newNode = transform(node as PExpr);
-    } while (newNode != null);
+export function transformAst(node: ast.PNode, transform: (node: ast.PExpr) => (ast.PExpr | undefined)): ast.PNode {
+  if (node instanceof ast.PParent) {
+    node.replaceChildren(node.children.map(n => transformAst(n, transform)));
   }
 
-  if (node.childExpr.length > 0) {
-//     if (options.enter) options.enter(node);
-    node.replaceChildren(node.children.map(x => {
-      return transformAst(x, transform);
-    }));
-    // if (options.exit) options.exit(node);
+  while (node instanceof ast.PExpr) {
+    const newNode = transform(node);
+    if (!newNode) break;
+    // fix up the parent pointer immediately, because the transforms use it.
+    newNode.parent = node.parent;
+    node = newNode;
   }
 
   return node;
