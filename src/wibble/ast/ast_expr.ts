@@ -1,6 +1,6 @@
 import { Token } from "packrattle";
 import { AnnotatedItem, PExpr, PExprKind, PType, TokenCollection } from "./ast_core";
-import { TokenType } from "../tokens";
+import { TokenType } from "../common/tokens";
 
 export enum PConstantType {
   NOTHING,
@@ -55,6 +55,10 @@ export class PFunction extends PExpr {
   ) {
     super(PExprKind.FUNCTION, "function", [ inType, space1, colon, space2, outType, space3, arrow, space4, body ]);
   }
+
+  body(): PExpr {
+    return this.children[this.children.length - 1] as PExpr;
+  }
 }
 
 export class PStructField extends PExpr {
@@ -91,11 +95,19 @@ export class PNew extends PExpr {
   ) {
     super(PExprKind.NEW, "new", [ token, gap1, type, gap2, code ]);
   }
+
+  code(): PExpr {
+    return this.children[this.children.length - 1] as PExpr;
+  }
 }
 
 export class PUnary extends PExpr {
   constructor(public op: Token, gap: Token | undefined, expr: PExpr) {
     super(PExprKind.UNARY, `unary(${op.value})`, [ op, gap, expr ]);
+  }
+
+  expr(): PExpr {
+    return this.children[this.children.length - 1] as PExpr;
   }
 }
 
@@ -114,6 +126,14 @@ export class PBinary extends PExpr {
     right: PExpr
   ) {
     super(PExprKind.BINARY, `binary(${op.value})`, [ left, gap1, op, gap2, right ]);
+  }
+
+  left(): PExpr {
+    return this.children[0] as PExpr;
+  }
+
+  right(): PExpr {
+    return this.children[this.children.length - 1] as PExpr;
   }
 }
 

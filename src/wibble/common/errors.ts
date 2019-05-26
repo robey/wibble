@@ -1,4 +1,4 @@
-import { PNode } from "./ast";
+import { PNode } from "../ast";
 
 export class CompileError extends Error {
   constructor(public message: string, public node: PNode) {

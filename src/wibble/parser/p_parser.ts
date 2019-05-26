@@ -1,14 +1,15 @@
 import { LazyParser, optional, Parser, repeat, seq2, seq3, seq4, seq5, Span, Token, Tokenizer } from "packrattle";
-import * as ast from "../common/ast";
+import * as ast from "../ast";
 import { tokenRules, TokenType, WHITESPACE } from "../common/tokens";
 
 export const tokenizer = new Tokenizer(TokenType, tokenRules);
 
-// make a token generator for each string type
-export const makeToken: { [id: number]: (index: number) => Token } = {};
-(tokenizer.rules.strings || []).forEach(([ value, type ]) => {
-  makeToken[type] = (index: number) => tokenizer.token(type, new Span(index, index), value);
-});
+const tokenStringMap: Map<number, string> = new Map((tokenizer.rules.strings || []).map(([ s, t ]) => [ t, s ]));
+
+// inject a token for a string-type
+export function injectToken(id: number, index: number): Token {
+  return tokenizer.token(id, new Span(index, index), tokenStringMap.get(id) || "?");
+}
 
 interface Prioritized {
   priority?: number;

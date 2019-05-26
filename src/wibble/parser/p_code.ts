@@ -1,5 +1,5 @@
 import { alt, optional, Parser, seq2, seq3, seq5, seq6, seq8, Token } from "packrattle";
-import * as ast from "../common/ast";
+import * as ast from "../ast";
 import { TokenType } from "../common/tokens";
 import { symbolRef } from "./p_const";
 import { expression, reference } from "./p_expr";

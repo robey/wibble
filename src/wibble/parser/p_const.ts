@@ -1,5 +1,5 @@
 import { alt, seq2 } from "packrattle";
-import * as ast from "../common/ast";
+import * as ast from "../ast";
 import { uncstring } from "../common/strings";
 import { OPERATORS, TokenType } from "../common/tokens";
 import { failWithPriority, tokenizer } from "./p_parser";

@@ -1,5 +1,5 @@
 import { alt, optional, Parser, repeat, seq2, seq3, seq4, seq5, seq7, seq8, Token } from "packrattle";
-import * as ast from "../common/ast";
+import * as ast from "../ast";
 import { IDENTIFIER_LIKE, OPERATORS, TokenType } from "../common/tokens";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
