@@ -1,4 +1,3 @@
-// import * as assert from "assert";
 import { EngineOptions } from "packrattle";
 import { ast, common, compiler, parser } from "../../wibble";
 // import { PNode } from "../../wibble/common/ast";
@@ -95,21 +94,22 @@ describe("Simplify expressions", () => {
 
   it("assignment", () => {
     simplify("{ x := 3 }").source().should.eql("{ x := 3 }");
+    simplify("{ 9; x := 3 }").source().should.eql("{ 9; x := 3 }");
     should.throws(() => simplify("{ y + (x := 3) }"), (error: WibbleError) => {
       error.node.source().should.eql("((y) .+ ((x := 3)))");
       error.errors.inspect().should.match(/\[7:13\] Mutable assignments/);
       error.errors.list.length.should.eql(1);
-      error.errors.list[0].node.source.should.eql("x := 3");
+      error.errors.list[0].node.source().should.eql("x := 3");
       return true;
     });
   });
 
   it("return", () => {
-    simplify("() -> return 3", { logger: console.log }).source().should.eql(
-      "new (on () -> return 3)"
+    simplify("() -> { return 3 }",).source().should.eql(
+      "new { on () -> (return 3) }"
     );
     should.throws(() => simplify("x := { return 3 }"), (error: WibbleError) => {
-      error.errors.inspect().should.match(/\[7:13\] 'return'/);
+      error.errors.inspect().should.match(/\[7:15\] 'return'/);
       return true;
     });
   });

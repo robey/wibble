@@ -4,7 +4,7 @@ import { IDENTIFIER_LIKE, OPERATORS, TokenType } from "../common/tokens";
 import { code, codeBlock } from "./p_code";
 import { constant } from "./p_const";
 import { failWithPriority, linespace, linespaceAround, repeatSurrounded, tokenizer, whitespace } from "./p_parser";
-import { compoundType, typedecl } from "./p_type";
+import { compoundType, typedecl, emptyType } from "./p_type";
 
 /*
  * parse expressions
@@ -33,7 +33,7 @@ const array: Parser<Token, ast.PExpr> = repeatSurrounded(
 
 export const func = seq4(
   optional(seq3(
-    compoundType,
+    alt(compoundType, emptyType),
     linespace,
     optional(seq4(
       tokenizer.match(TokenType.COLON),
@@ -82,11 +82,11 @@ const struct = repeatSurrounded(
   "struct member"
 ).map(collection => {
   // AST optimization: "(expr)" is just a precedence-bumped expression.
-  if (collection.list.length == 1 && collection.list[0].item.name == undefined) {
+  if (collection.list.length == 1 && collection.list[0].item().name == undefined) {
     return new ast.PNested(
       collection.open,
       collection.gap1,
-      collection.list[0].item.value,
+      collection.list[0].item().value,
       collection.gap2,
       collection.close
     );

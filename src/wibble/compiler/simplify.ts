@@ -1,5 +1,5 @@
 import { Span, Token } from "packrattle";
-import { Errors, TokenType, transformAst } from "../common";
+import { Errors, nodeParentIs, TokenType, transformAst } from "../common";
 import * as ast from "../ast";
 import { injectToken, tokenizer } from "../parser/p_parser";
 import { PIf } from "../ast/ast_expr";
@@ -186,21 +186,21 @@ function whileToRepeat(node: ast.PWhile, newVar: string): ast.PIf {
 }
 
 function checkAssignment(node: ast.PAssignment, errors: Errors) {
-  if (node.parentExpr && node.parentExpr.nodeType != ast.PExprKind.BLOCK) {
+  if (node.parent && (node.parent instanceof ast.PExpr) && node.parent.nodeType != ast.PExprKind.BLOCK) {
     errors.add("Mutable assignments may only occur inside a code block", node);
   }
 }
 
 // "return" must be inside an "on" handler.
 function checkReturn(node: ast.PReturn, errors: Errors) {
-  if (!node.containedInside(ast.PExprKind.ON)) {
+  if (!nodeParentIs(node, ast.PExprKind.ON, ast.PExprKind.FUNCTION)) {
     errors.add("'return' must be inside a function or handler", node);
   }
 }
 
 // "break" must be inside a loop.
 function checkBreak(node: ast.PBreak, errors: Errors) {
-  if (!node.containedInside(ast.PExprKind.REPEAT)) {
+  if (!nodeParentIs(node, ast.PExprKind.REPEAT, ast.PExprKind.WHILE)) {
     errors.add("'break' must be inside a loop", node);
   }
 }

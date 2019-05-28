@@ -2,7 +2,7 @@ import { alt, optional, Parser, seq2, seq3, seq4, seq5, Token } from "packrattle
 import * as ast from "../ast";
 import { IDENTIFIER_LIKE, TokenType } from "../common/tokens";
 import { symbolRef } from "./p_const";
-import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded, tokenizer} from "./p_parser";
+import { failWithPriority, linespace, linespaceAround, repeatSeparated, repeatSurrounded, tokenizer } from "./p_parser";
 import { expression, reference } from "./p_expr";
 
 /*
@@ -114,7 +114,7 @@ const functionType = seq3(
 const baseType: Parser<Token, ast.PType> = alt(functionType, componentType);
 
 const mergedType = repeatSeparated(baseType, TokenType.PIPE).map(items => {
-  if (items.length == 1) return items[0].item;
+  if (items.length == 1) return items[0].item();
   return new ast.PMergedType(items);
 });
 

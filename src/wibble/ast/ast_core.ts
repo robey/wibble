@@ -60,21 +60,6 @@ export abstract class PNode {
     // pass
   }
 
-  // return the parent node if it's an expression
-  get parentExpr(): PExpr | undefined {
-    if (this.parent === undefined) return undefined;
-    if (this.parent instanceof PExpr) return this.parent;
-    return this.parent.parentExpr;
-  }
-
-  // are we contained (somewhere up the tree) inside a node of a certain type?
-  containedInside(nodeType: PExprKind): boolean {
-    // console.log("containedInside?", nodeType, this.parent ? this.parent.description : null, this.parentExpr ? this.parentExpr.description : undefined, this);
-    const parent = this.parentExpr;
-    if (parent === undefined) return false;
-    return parent.nodeType == nodeType || parent.containedInside(nodeType);
-  }
-
   // reconstitute something similar to the original source
   abstract source(): string;
 
@@ -151,7 +136,7 @@ export abstract class PParent extends PNode {
   expressions(): PExpr[] {
     if (this.children.length == 1 && (this.children[0] instanceof TokenCollection)) {
       const collection = this.children[0] as TokenCollection<PNode>;
-      return collection.list.map(x => x.item).filter(c => c instanceof PExpr) as PExpr[];
+      return collection.list.map(x => x.item()).filter(c => c instanceof PExpr) as PExpr[];
     } else {
       return this.children.filter(c => c instanceof PExpr) as PExpr[];
     }
@@ -178,7 +163,7 @@ export class PType extends PParent {
 // an item and whatever linespace, separator, and whitespace came after it
 export class AnnotatedItem<A extends PNode> extends PParent {
   constructor(
-    public item: A,
+    item: A,
     public gap1: Token | undefined,
     public separator: Token | undefined,
     public gap2: Token[]
@@ -186,8 +171,12 @@ export class AnnotatedItem<A extends PNode> extends PParent {
     super("AnnotatedItem", [ item, gap1, separator, gap2 ]);
   }
 
+  item(): A {
+    return this.children[0] as A;
+  }
+
   inspect(): string {
-    return this.item.inspect();
+    return this.item().inspect();
   }
 }
 

@@ -19,6 +19,13 @@ export function transformAst(node: ast.PNode, transform: (node: ast.PExpr) => (a
   return node;
 }
 
+export function nodeParentIs(node: ast.PNode, ...kinds: ast.PExprKind[]): boolean {
+  if (node.parent === undefined) return false;
+  if ((node.parent instanceof ast.PExpr) && kinds.indexOf(node.parent.nodeType) >= 0) return true;
+  return nodeParentIs(node.parent, ...kinds);
+}
+
+
 /*
  * - node: where to start
  * - options:

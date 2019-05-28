@@ -63,7 +63,7 @@ const localLet = seq3(
 const handler = seq8(
   tokenizer.match(TokenType.ON),
   linespace,
-  alt<Token, ast.PConstant | ast.PType>(emptyType, symbolRef, compoundType).named("symbol or parameters"),
+  alt<Token, ast.PConstant | ast.PType>(emptyType, symbolRef, compoundType).named("symbol or parameters", 2),
   optional(seq3(tokenizer.match(TokenType.COLON), linespace, typedecl)),
   linespace,
   tokenizer.match(TokenType.ARROW),
